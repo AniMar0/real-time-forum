@@ -1,3 +1,4 @@
+import {renderRegisterForm} from './regester.js';
 export function renderLoginForm() {
   const app = document.getElementById("app");
 

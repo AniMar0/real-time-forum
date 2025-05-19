@@ -21,11 +21,17 @@ func (S *Server) Run() {
 	}
 	defer S.db.Close()
 
-	http.HandleFunc("/", S.HomeHandler)
+	// http.HandleFunc("/static/", S.StaticFileHandler)
+	// http.HandleFunc("/", S.HomeHandler)
 
+	http.Handle("/", http.FileServer(http.Dir("./static")))
+
+	http.HandleFunc("/register", S.RegisterHandler)
 	fmt.Println("Server running on http://localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
+
+
 
 func (S *Server) UserFound(user User) (error, bool) {
 	var exists int
