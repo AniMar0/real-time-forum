@@ -32,12 +32,34 @@ export function renderLoginForm() {
 export function handleLogin(event) {
   event.preventDefault();
 
-  const identifier = document.getElementById("identifier").value;
-  const password = document.getElementById("password").value;
 
-  console.log("Login with", identifier, password);
-
-  // server conection
+  const form = event.target;
+  const formData = {
+    identifier: form.identifier.value,
+    password: form.password.value,
+  };
+  
+  fetch("/login", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(formData)
+  })
+    .then(res => {
+      if (!res.ok) {
+        throw new Error("Registration failed");
+      }
+      return res.text();
+    })
+    .then(data => {
+      alert("Registration successful");
+      renderLoginForm();
+    })
+    .catch(err => {
+      alert("Error: " + err.message);
+      console.error(err);
+    });
 }
 
 
