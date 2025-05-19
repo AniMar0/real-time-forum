@@ -1,3 +1,5 @@
+import { renderLoginForm } from './login.js';
+
 export function renderRegisterForm() {
   const app = document.getElementById("app");
 
@@ -49,19 +51,34 @@ export function renderRegisterForm() {
 
 // Placeholder for registration logic
 export function handleRegister(event) {
-  event.preventDefault();
+  document.getElementById("register-form").addEventListener("submit", function (e) {
+    e.preventDefault();
 
-  const user = {
-    nickname: document.getElementById("nickname").value,
-    age: document.getElementById("age").value,
-    gender: document.getElementById("gender").value,
-    firstName: document.getElementById("firstName").value,
-    lastName: document.getElementById("lastName").value,
-    email: document.getElementById("email").value,
-    password: document.getElementById("password").value,
-  };
+    const data = {
+      Nickname: document.getElementById("nickname").value,
+      Age: parseInt(document.getElementById("age").value),
+      Gender: document.getElementById("gender").value,
+      FirstName: document.getElementById("first-name").value,
+      LastName: document.getElementById("last-name").value,
+      Email: document.getElementById("email").value,
+      Password: document.getElementById("password").value
+    };
 
-  console.log("Registering user:", user);
+    fetch("/register", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(data)
+    })
+      .then(res => {
+        if (res.ok) {
+          window.location.href = "/login";
+        } else {
+          alert("Something went wrong");
+        }
+      })
+      .catch(err => console.error("Error:", err));
+  });
 
-  // server send data 
 }
