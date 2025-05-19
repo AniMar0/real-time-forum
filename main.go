@@ -5,5 +5,7 @@ import (
 )
 
 func main()  {
+	var Server backend.Server
 	backend.RunDataBas()
+	Server.Run()
 }
