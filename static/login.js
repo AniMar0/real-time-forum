@@ -18,17 +18,14 @@ export function renderLoginForm() {
     </div>
   `;
 
-  // Attach submit event handler
   document.getElementById("loginForm").addEventListener("submit", handleLogin);
 
-  // Link to registration page
   document.getElementById("goToRegister").addEventListener("click", (e) => {
     e.preventDefault();
     renderRegisterForm();
   });
 }
 
-// Placeholder for login logic
 export function handleLogin(event) {
   event.preventDefault();
 

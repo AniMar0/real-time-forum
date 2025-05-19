@@ -1,5 +1,4 @@
-import {handleLogin,renderLoginForm} from './login.js';
-import {renderRegisterForm,handleRegister} from './regester.js';
+import {renderLoginForm} from './login.js';
 
 window.addEventListener("DOMContentLoaded", () => {
   renderLoginForm();

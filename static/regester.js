@@ -39,17 +39,14 @@ export function renderRegisterForm() {
     </div>
   `;
 
-  // Attach submit handler
   document.getElementById("registerForm").addEventListener("submit", handleRegister);
 
-  // Link back to login form
   document.getElementById("goToLogin").addEventListener("click", (e) => {
     e.preventDefault();
     renderLoginForm();
   });
 }
 
-// Placeholder for registration logic
 export function handleRegister(event) {
   event.preventDefault();
 
