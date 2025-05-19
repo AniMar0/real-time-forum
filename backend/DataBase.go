@@ -65,6 +65,13 @@ func createTables(db *sql.DB) error {
 		FOREIGN KEY(sender_id) REFERENCES users(id),
 		FOREIGN KEY(receiver_id) REFERENCES users(id)
 	);
+
+	CREATE TABLE IF NOT EXISTS sessions (
+    session_id TEXT PRIMARY KEY,
+    nickname TEXT,
+    expires_at DATETIME,
+    FOREIGN KEY(nickname) REFERENCES users(nickname)
+	);
 	`
 	_, err := db.Exec(schema)
 	return err

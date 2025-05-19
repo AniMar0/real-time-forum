@@ -36,7 +36,7 @@ func (S *Server) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (S *Server) LoginHandler(w http.ResponseWriter, r *http.Request){
+func (S *Server) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		renderErrorPage(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		return
@@ -50,4 +50,19 @@ func (S *Server) LoginHandler(w http.ResponseWriter, r *http.Request){
 	}
 
 	fmt.Println(user)
+
+	nickname, hashedPassword, err := S.GetHashedPasswordFromDB(user.Identifier)
+	if err != nil {
+		//err
+		return
+	}
+
+	if err := CheckPassword(hashedPassword, user.Password); err != nil {
+		renderErrorPage(w, "Inccorect password", http.StatusInternalServerError)
+		return
+	}
+
+	S.MakeTocken(w, nickname)
+
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
