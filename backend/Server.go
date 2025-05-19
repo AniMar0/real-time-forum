@@ -23,6 +23,7 @@ func (S *Server) Run() {
 
 	http.Handle("/", http.FileServer(http.Dir("./static")))
 	http.HandleFunc("/register", S.RegisterHandler)
+	http.HandleFunc("/login", S.LoginHandler)
 	
 	fmt.Println("Server running on http://localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))

@@ -10,3 +10,8 @@ type User struct {
 	Age       int    `json:"age"`
 	Gender    string `json:"gender"`
 }
+
+type LoginUser struct {
+	Identifier  string `json:"identifier"`
+	Password  string `json:"password"`
+}
