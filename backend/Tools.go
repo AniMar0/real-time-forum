@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 type Error struct {
@@ -26,4 +28,9 @@ func renderErrorPage(w http.ResponseWriter, errMsg string, errCode int) {
 		http.Error(w, "Template error", http.StatusInternalServerError)
 		return
 	}
+}
+
+func CheckPassword(hashedPassword, password string) error {
+	err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
+	return err
 }
