@@ -6,7 +6,7 @@ export function renderRegisterForm() {
   app.innerHTML = `
     <div class="form-container">
       <h2>Register</h2>
-      <form id="registerForm">
+      <form id="registerForm" action="/register" method="POST">
         <label for="nickname">Nickname:</label>
         <input type="text" id="nickname" name="nickname" required />
 
@@ -51,34 +51,38 @@ export function renderRegisterForm() {
 
 // Placeholder for registration logic
 export function handleRegister(event) {
-  document.getElementById("register-form").addEventListener("submit", function (e) {
-    e.preventDefault();
+  event.preventDefault();
 
-    const data = {
-      Nickname: document.getElementById("nickname").value,
-      Age: parseInt(document.getElementById("age").value),
-      Gender: document.getElementById("gender").value,
-      FirstName: document.getElementById("first-name").value,
-      LastName: document.getElementById("last-name").value,
-      Email: document.getElementById("email").value,
-      Password: document.getElementById("password").value
-    };
+  const form = event.target;
+  const formData = {
+    nickname: form.nickname.value,
+    first_name: form.firstName.value,
+    last_name: form.lastName.value,
+    email: form.email.value,
+    password: form.password.value,
+    age: parseInt(form.age.value),
+    gender: form.gender.value
+  };
 
-    fetch("/register", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(data)
+  fetch("/register", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(formData)
+  })
+    .then(res => {
+      if (!res.ok) {
+        throw new Error("Registration failed");
+      }
+      return res.text();
     })
-      .then(res => {
-        if (res.ok) {
-          window.location.href = "/login";
-        } else {
-          alert("Something went wrong");
-        }
-      })
-      .catch(err => console.error("Error:", err));
-  });
-
+    .then(data => {
+      alert("Registration successful");
+      renderLoginForm();
+    })
+    .catch(err => {
+      alert("Error: " + err.message);
+      console.error(err);
+    });
 }

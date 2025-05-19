@@ -15,23 +15,18 @@ type Server struct {
 
 func (S *Server) Run() {
 	var err error
-	S.db, err = sql.Open("sqlite3", "./forum.db")
+	S.db, err = sql.Open("sqlite3", "database/forum.db")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer S.db.Close()
 
-	// http.HandleFunc("/static/", S.StaticFileHandler)
-	// http.HandleFunc("/", S.HomeHandler)
-
 	http.Handle("/", http.FileServer(http.Dir("./static")))
-
 	http.HandleFunc("/register", S.RegisterHandler)
+	
 	fmt.Println("Server running on http://localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
-
-
 
 func (S *Server) UserFound(user User) (error, bool) {
 	var exists int
@@ -50,14 +45,11 @@ func (S *Server) AddUser(user User) string {
 	if err != nil {
 		return "hash Password Error"
 	}
-	_, err = S.db.Exec(`
-		INSERT INTO users (nickname, email, password, first_name, last_name, age, gender)
-		VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		user.Nickname, user.Email, string(hashedPassword),
-		user.FirstName, user.LastName, user.Age, user.Gender)
-
+	query := `INSERT INTO users (nickname, first_name, last_name, email, password, age, gender)
+		VALUES (?, ?, ?, ?, ?, ?, ?)`
+	_, err = S.db.Exec(query, user.Nickname, user.FirstName, user.LastName, user.Email, string(hashedPassword), user.Age, user.Gender)
 	if err != nil {
-		return "Add user error"
+		return error.Error(err)
 	}
 	return ""
 }
