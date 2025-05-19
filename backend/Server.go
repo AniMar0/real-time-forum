@@ -19,7 +19,7 @@ func (S *Server) Run() {
 	}
 	defer S.db.Close()
 
-	http.HandleFunc("/", HomeHandler)
+	http.HandleFunc("/", S.HomeHandler)
 
 	fmt.Println("Server running on http://localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
