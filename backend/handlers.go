@@ -42,5 +42,9 @@ func (S *Server) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	
+	Err := S.AddUser(user)
+	if Err != "" {
+		renderErrorPage(w, Err, http.StatusInternalServerError)
+		return
+	}
 }

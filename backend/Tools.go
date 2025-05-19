@@ -42,10 +42,10 @@ func (S *Server) UserFound(user User) (error, bool) {
 	return nil, false
 }
 
-func (S *Server) AddUser(user User) int {
+func (S *Server) AddUser(user User) string {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {
-		return 1
+		return "hash Password Error"
 	}
 	_, err = S.db.Exec(`
 		INSERT INTO users (nickname, email, password, first_name, last_name, age, gender)
@@ -54,7 +54,7 @@ func (S *Server) AddUser(user User) int {
 		user.FirstName, user.LastName, user.Age, user.Gender)
 
 	if err != nil {
-		return 2
+		return "Add user error"
 	}
-	return 0
+	return ""
 }
