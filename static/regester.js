@@ -27,11 +27,9 @@ export function handleRegister(event) {
       return res.text();
     })
     .then(data => {
-      alert("Registration successful");
       showSection('loginSection');
     })
     .catch(err => {
-      alert("Error: " + err.message);
       console.error(err);
     });
 }

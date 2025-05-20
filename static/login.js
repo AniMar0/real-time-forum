@@ -1,4 +1,4 @@
-import { showSection } from './app.js';
+import { showSection,logged } from './app.js';
 
 
 export function handleLogin(event) {
@@ -19,16 +19,13 @@ export function handleLogin(event) {
       if (!res.ok) {
         throw new Error("Registration failed");
       }
-      return res.text();
+      return res.json();
     })
     .then(data => {
-      alert("Registration successful");
       showSection('postsSection');
+      logged(true,data.username);
     })
     .catch(err => {
-      alert("Error: " + err.message);
       console.error(err);
     });
 }
-
-
