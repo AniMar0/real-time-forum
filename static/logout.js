@@ -15,11 +15,9 @@ export function logout(event) {
       return res.text();
     })
     .then(data => {
-      alert("logout successful");
       showSection('postsSection');
     })
     .catch(err => {
-      alert("Error: " + err.message);
       console.error(err);
     });
 }

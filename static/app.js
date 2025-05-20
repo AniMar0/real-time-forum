@@ -20,9 +20,7 @@ document.getElementById('showRegister').addEventListener('click', () => {
 
 document.getElementById('logoutBtn').addEventListener('click', (e) => {
   logout(e);
-  document.getElementById('showLogin').classList.remove('hidden');
-  document.getElementById('showRegister').classList.remove('hidden');
-  document.getElementById('logoutBtn').classList.add('hidden');
+  document.getElementById('usernameDisplay').textContent = logged(false);
 });
 
 document.getElementById('registerForm').addEventListener('submit', async function (e) {
@@ -31,9 +29,7 @@ document.getElementById('registerForm').addEventListener('submit', async functio
 
 document.getElementById('loginForm').addEventListener('submit', async function (e) {
   handleLogin(e);
-  document.getElementById('showLogin').classList.add('hidden');
-  document.getElementById('showRegister').classList.add('hidden');
-  document.getElementById('logoutBtn').classList.remove('hidden');
+  logged(true);
 });
 
 document.getElementById('createPostForm').addEventListener('submit', async function (e) {
@@ -64,7 +60,37 @@ document.getElementById('createPostForm').addEventListener('submit', async funct
   }
 });
 
-document.addEventListener('DOMContentLoaded', function () {
-  loadPosts();
+function checkLoggedIn() {
+  fetch('/logged', {
+    credentials: 'include'
+  })
+    .then(res => {
+      if (!res.ok) throw new Error('Not logged in');
+      return res.json();
+    })
+    .then(data => {
+      logged(true, data.username);
+    })
+    .catch(() => {
+      logged(false);
+    });
+}
 
+document.addEventListener('DOMContentLoaded', function () {
+  checkLoggedIn();
+  loadPosts();
 });
+
+export function logged(bool, user) {
+  if (bool) {
+    document.getElementById('usernameDisplay').textContent = user
+    document.getElementById('showLogin').classList.add('hidden');
+    document.getElementById('showRegister').classList.add('hidden');
+    document.getElementById('logoutBtn').classList.remove('hidden');
+  } else {
+    document.getElementById('usernameDisplay').textContent = ""
+    document.getElementById('showLogin').classList.remove('hidden');
+    document.getElementById('showRegister').classList.remove('hidden');
+    document.getElementById('logoutBtn').classList.add('hidden');
+  }
+}

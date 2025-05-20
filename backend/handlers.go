@@ -65,6 +65,9 @@ func (S *Server) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	S.MakeToken(w, nickname)
+
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprintf(w, `{"username":"%s"}`, nickname)
 }
 
 func (S *Server) CreatePostHandler(w http.ResponseWriter, r *http.Request) {
@@ -173,4 +176,15 @@ func (S *Server) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 	})
 
 	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+func (S *Server) LoggedHandler(w http.ResponseWriter, r *http.Request) {
+	username, err := S.CheckSession(r)
+
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprintf(w, `{"username":"%s"}`, username)
 }

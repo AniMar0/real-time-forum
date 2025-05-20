@@ -56,31 +56,39 @@ func (S *Server) AddUser(user User) string {
 	return ""
 }
 
-func (s *Server) SessionMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		cookie, err := r.Cookie("session_token")
-		if err != nil {
-			fmt.Println("kaka")
-			http.Error(w, "Unauthorized - no session", http.StatusUnauthorized)
-			return
-		}
+func (S *Server) SessionMiddleware(next http.Handler) http.Handler {
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        username, err := S.CheckSession(r)
+        if err != nil {
+            http.Error(w, "Unauthorized", http.StatusUnauthorized)
+            return
+        }
 
-		var nickname string
-		err = s.db.QueryRow(`
-			SELECT nickname FROM sessions 
-			WHERE session_id = ? AND expires_at > CURRENT_TIMESTAMP
-		`, cookie.Value).Scan(&nickname)
-		if err != nil {
-			fmt.Println(err.Error())
-			http.Error(w, "Unauthorized - invalid session", http.StatusUnauthorized)
-			return
-		}
-
-		ctx := context.WithValue(r.Context(), "nickname", nickname)
-
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
+        ctx := context.WithValue(r.Context(), "username", username)
+        next.ServeHTTP(w, r.WithContext(ctx))
+    })
 }
+
+func (S *Server) CheckSession(r *http.Request) (string, error) {
+    cookie, err := r.Cookie("session_token")
+    if err != nil {
+        return "", fmt.Errorf("no session cookie")
+    }
+    sessionID := cookie.Value
+
+    var username string
+    err = S.db.QueryRow(`
+        SELECT nickname FROM sessions 
+        WHERE session_id = ? AND expires_at > CURRENT_TIMESTAMP
+    `, sessionID).Scan(&username)
+
+    if err != nil {
+        return "", fmt.Errorf("invalid or expired session")
+    }
+
+    return username, nil
+}
+
 
 func (S *Server) MakeToken(Writer http.ResponseWriter, username string) {
 	sessionID := uuid.NewV4().String()
@@ -121,6 +129,7 @@ func (S *Server) GetHashedPasswordFromDB(identifier string) (string, string, err
 
 func (S *Server) initRoutes() {
 	S.Mux.Handle("/", http.FileServer(http.Dir("./static")))
+	S.Mux.HandleFunc("/logged",S.LoggedHandler)
 
 	S.Mux.Handle("/createPost", S.SessionMiddleware(http.HandlerFunc(S.CreatePostHandler)))
 	S.Mux.HandleFunc("/posts", S.GetPostsHandler)
