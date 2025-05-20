@@ -1,28 +1,21 @@
 import { showSection } from './app.js';
 
-
-export function handleLogin(event) {
+export function logout(event) {
   event.preventDefault();
-  const formData = {
-    identifier: document.getElementById("identifier").value,
-    password: document.getElementById("loginPassword").value
-  };
-
-  fetch("/login", {
+  fetch("/logout", {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
-    },
-    body: JSON.stringify(formData)
+    }
   })
     .then(res => {
       if (!res.ok) {
-        throw new Error("Registration failed");
+        throw new Error("logout failed");
       }
       return res.text();
     })
     .then(data => {
-      alert("Registration successful");
+      alert("logout successful");
       showSection('postsSection');
     })
     .catch(err => {
@@ -30,5 +23,3 @@ export function handleLogin(event) {
       console.error(err);
     });
 }
-
-

@@ -18,18 +18,16 @@ type Server struct {
 }
 
 func (S *Server) Run() {
+	S.Mux = http.NewServeMux()
 	S.DataBase()
 	S.initRoutes()
 
+	fmt.Println("Server running on http://localhost:8080")
 	err := http.ListenAndServe(":8080", S.Mux)
-
 	if err != nil {
 		log.Println("Server error:", err)
 		return
 	}
-
-	fmt.Println("Server running on http://localhost:8080")
-
 }
 
 func (S *Server) UserFound(user User) (error, bool) {
@@ -62,6 +60,7 @@ func (s *Server) SessionMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie("session_token")
 		if err != nil {
+			fmt.Println("kaka")
 			http.Error(w, "Unauthorized - no session", http.StatusUnauthorized)
 			return
 		}
@@ -72,6 +71,7 @@ func (s *Server) SessionMiddleware(next http.Handler) http.Handler {
 			WHERE session_id = ? AND expires_at > CURRENT_TIMESTAMP
 		`, cookie.Value).Scan(&nickname)
 		if err != nil {
+			fmt.Println(err.Error())
 			http.Error(w, "Unauthorized - invalid session", http.StatusUnauthorized)
 			return
 		}
@@ -82,13 +82,14 @@ func (s *Server) SessionMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func (S *Server) MakeTocken(Writer http.ResponseWriter, username string) {
+func (S *Server) MakeToken(Writer http.ResponseWriter, username string) {
 	sessionID := uuid.NewV4().String()
 	expirationTime := time.Now().Add(24 * time.Hour)
 
-	_, err := S.db.Exec("INSERT INTO sessions (session_id, username, expires_at) VALUES (?, ?, ?)",
+	_, err := S.db.Exec("INSERT INTO sessions (session_id, nickname, expires_at) VALUES (?, ?, ?)",
 		sessionID, username, expirationTime)
 	if err != nil {
+		fmt.Println("'tocken err'")
 		http.Error(Writer, "Error creating session", http.StatusInternalServerError)
 		return
 	}
@@ -120,8 +121,14 @@ func (S *Server) GetHashedPasswordFromDB(identifier string) (string, string, err
 
 func (S *Server) initRoutes() {
 	S.Mux.Handle("/", http.FileServer(http.Dir("./static")))
+
+	S.Mux.Handle("/createPost", S.SessionMiddleware(http.HandlerFunc(S.CreatePostHandler)))
+	S.Mux.HandleFunc("/posts", S.GetPostsHandler)
+
 	S.Mux.HandleFunc("/register", S.RegisterHandler)
 	S.Mux.HandleFunc("/login", S.LoginHandler)
+
+	S.Mux.HandleFunc("/logout", S.LogoutHandler)
 }
 
 func (S *Server) DataBase() {
