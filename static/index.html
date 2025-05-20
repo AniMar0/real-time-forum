@@ -10,6 +10,104 @@
   <div id="app">
     
   </div>
+
+  <div class="Postes" id="Postes">
+        <header>
+            <h1>Forum Discussion</h1>
+        </header>
+
+        <section class="create-post">
+            <h2>Create a New Post</h2>
+            <form class="post-form">
+                <input type="text" placeholder="Post Title" required>
+                <textarea placeholder="Write your post content here..." required></textarea>
+                <button type="submit">Post</button>
+            </form>
+        </section>
+
+        <article class="main-post">
+            <div class="post-header">
+                <div class="avatar">Av</div>
+                <div class="post-info">
+                    <div class="post-author">Zaki Zaml</div>
+                    <div class="post-date">Posted on May 19, 2025</div>
+                </div>
+            </div>
+            <div class="post-content">
+                <h2>Post</h2>
+                <p>Post post post post post post post post post post post post post post post post post 
+                    post post post post post post post post post post post post post post post post 
+                    post post post post post post post post post post 
+                    post post post post post post post post post post post post post post post post 
+                </p>
+            </div>
+            <div class="post-actions">
+                <button class="action-button like-button">
+                    <svg class="icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path
+                            d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20V10h2V7a2 2 0 012-2h2.5a1.5 1.5 0 011.5 1.5v3.5z">
+                        </path>
+                    </svg>
+                    <span>42 Likes</span>
+                </button>
+                <button class="action-button dislike-button">
+                    <svg class="icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path
+                            d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018c.163 0 .326.02.485.06L17 4v10h-2v3a2 2 0 01-2 2h-2.5a1.5 1.5 0 01-1.5-1.5V14z">
+                        </path>
+                    </svg>
+                    <span>5 Dislikes</span>
+                </button>
+            </div>
+        </article>
+
+        <section class="comments-section">
+            <h3 class="comments-header">Comments (3)</h3>
+
+            <div class="comment">
+                <div class="comment-header">
+                    <div class="avatar">As</div>
+                    <div class="comment-info">
+                        <div class="post-author">Amine mazamlch</div>
+                        <div class="post-date">May 19, 2025 at 2:15 PM</div>
+                    </div>
+                </div>
+                <div class="comment-content">
+                    <p>comment comment comment comment comment comment comment comment comment </p>
+                    comment comment comment comment comment comment comment comment comment 
+                    comment comment comment comment comment comment comment comment comment 
+                </div>
+                <div class="comment-actions">
+                    <button class="action-button like-button">
+                        <svg class="icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20V10h2V7a2 2 0 012-2h2.5a1.5 1.5 0 011.5 1.5v3.5z">
+                            </path>
+                        </svg>
+                        <span>18 Likes</span>
+                    </button>
+                    <button class="action-button dislike-button">
+                        <svg class="icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018c.163 0 .326.02.485.06L17 4v10h-2v3a2 2 0 01-2 2h-2.5a1.5 1.5 0 01-1.5-1.5V14z">
+                            </path>
+                        </svg>
+                        <span>2 Dislikes</span>
+                    </button>
+                </div>
+            </div>
+
+            
+
+            <div class="add-comment">
+                <h4>Add a Comment</h4>
+                <form>
+                    <textarea placeholder="Write your comment here..." required></textarea>
+                    <button type="submit">Comment</button>
+                </form>
+            </div>
+        </section>
+    </div>
   <script type="module" src="app.js"></script>
 </body>
 </html>

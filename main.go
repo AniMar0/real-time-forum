@@ -6,6 +6,7 @@ import (
 
 func main()  {
 	var Server backend.Server
-	backend.RunDataBas()
+	backend.MakeDataBase()
 	Server.Run()
+	Server.Shutdown()
 }

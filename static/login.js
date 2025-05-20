@@ -1,4 +1,5 @@
 import {renderRegisterForm} from './regester.js';
+import {showPosts,showApps} from './app.js';
 export function renderLoginForm() {
   const app = document.getElementById("app");
 
@@ -51,7 +52,8 @@ export function handleLogin(event) {
     })
     .then(data => {
       alert("Registration successful");
-      renderLoginForm();
+      showApps(false);
+      showPosts(true);
     })
     .catch(err => {
       alert("Error: " + err.message);
