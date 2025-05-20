@@ -13,23 +13,23 @@ import (
 )
 
 type Server struct {
-	db *sql.DB
+	db  *sql.DB
+	Mux *http.ServeMux
 }
 
 func (S *Server) Run() {
-	var err error
-	S.db, err = sql.Open("sqlite3", "database/forum.db")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer S.db.Close()
+	S.DataBase()
+	S.initRoutes()
 
-	http.Handle("/", http.FileServer(http.Dir("./static")))
-	http.HandleFunc("/register", S.RegisterHandler)
-	http.HandleFunc("/login", S.LoginHandler)
+	err := http.ListenAndServe(":8080", S.Mux)
+
+	if err != nil {
+		log.Println("Server error:", err)
+		return
+	}
 
 	fmt.Println("Server running on http://localhost:8080")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+
 }
 
 func (S *Server) UserFound(user User) (error, bool) {
@@ -116,4 +116,22 @@ func (S *Server) GetHashedPasswordFromDB(identifier string) (string, string, err
 		return "", "", err
 	}
 	return hashedPassword, nickname, nil
+}
+
+func (S *Server) initRoutes() {
+	S.Mux.Handle("/", http.FileServer(http.Dir("./static")))
+	S.Mux.HandleFunc("/register", S.RegisterHandler)
+	S.Mux.HandleFunc("/login", S.LoginHandler)
+}
+
+func (S *Server) DataBase() {
+	var err error
+	S.db, err = sql.Open("sqlite3", "database/forum.db")
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func (S *Server) Shutdown() {
+	S.db.Close()
 }

@@ -8,7 +8,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-func RunDataBas() {
+func MakeDataBase() {
 	db, err := sql.Open("sqlite3", "database/forum.db")
 	if err != nil {
 		log.Fatal(err)
