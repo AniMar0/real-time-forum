@@ -35,21 +35,16 @@ export async function loadPosts() {
     `
     postsList.appendChild(div)
 
-    // Set up event listener for the toggle comments button
     const toggleBtn = div.querySelector(".toggle-comments-btn")
     toggleBtn.addEventListener("click", () => {
       const postId = toggleBtn.getAttribute("data-post-id")
       toggleComments(postId)
-
-      // Update button text
       if (toggleBtn.textContent.trim() === "Show Comments") {
         toggleBtn.textContent = "Hide Comments"
       } else {
         toggleBtn.textContent = "Show Comments"
       }
     })
-
-    // Set up comment submission
     setupCommentSubmission(post.id)
   })
 }
