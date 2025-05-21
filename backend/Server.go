@@ -129,17 +129,20 @@ func (S *Server) GetHashedPasswordFromDB(identifier string) (string, string, err
 
 func (S *Server) initRoutes() {
 	S.Mux.Handle("/", http.FileServer(http.Dir("./static")))
-	S.Mux.HandleFunc("/logged",S.LoggedHandler)
+	S.Mux.HandleFunc("/logged", S.LoggedHandler)
 
 	S.Mux.Handle("/createPost", S.SessionMiddleware(http.HandlerFunc(S.CreatePostHandler)))
 	S.Mux.HandleFunc("/posts", S.GetPostsHandler)
+
+	// Add these new comment routes
+	S.Mux.Handle("/createComment", S.SessionMiddleware(http.HandlerFunc(S.CreateCommentHandler)))
+	S.Mux.HandleFunc("/comments", S.GetCommentsHandler)
 
 	S.Mux.HandleFunc("/register", S.RegisterHandler)
 	S.Mux.HandleFunc("/login", S.LoginHandler)
 
 	S.Mux.HandleFunc("/logout", S.LogoutHandler)
 }
-
 func (S *Server) DataBase() {
 	var err error
 	S.db, err = sql.Open("sqlite3", "database/forum.db")

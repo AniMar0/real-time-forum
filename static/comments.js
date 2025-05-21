@@ -1,7 +1,7 @@
 // Function to load comments for a specific post
 export async function loadComments(postId) {
     try {
-      const response = await fetch(`/comments/${postId}`)
+      const response = await fetch(`comments?post_id=${postId}`)
       if (!response.ok) {
         throw new Error("Failed to load comments")
       }
@@ -50,7 +50,7 @@ export async function loadComments(postId) {
       if (!commentContent) return
   
       try {
-        const response = await fetch("/comments", {
+        const response = await fetch("/createComment", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
