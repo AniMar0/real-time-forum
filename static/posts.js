@@ -1,3 +1,5 @@
+import { loadComments, setupCommentSubmission } from './comments.js';
+
 export async function loadPosts() {
   const response = await fetch('/posts');
   const posts = await response.json();
