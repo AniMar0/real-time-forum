@@ -134,7 +134,6 @@ func (S *Server) initRoutes() {
 	S.Mux.Handle("/createPost", S.SessionMiddleware(http.HandlerFunc(S.CreatePostHandler)))
 	S.Mux.HandleFunc("/posts", S.GetPostsHandler)
 
-	// Add these new comment routes
 	S.Mux.Handle("/createComment", S.SessionMiddleware(http.HandlerFunc(S.CreateCommentHandler)))
 	S.Mux.HandleFunc("/comments", S.GetCommentsHandler)
 

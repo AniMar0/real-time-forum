@@ -192,20 +192,17 @@ func (S *Server) LoggedHandler(w http.ResponseWriter, r *http.Request) {
 
 // comments 
 
-// Add these handlers to your handlers.go file
 
 func (S *Server) CreateCommentHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		return
 	}
-
 	cookie, err := r.Cookie("session_token")
 	if err != nil {
 		http.Error(w, "Unauthorized - No session", http.StatusUnauthorized)
 		return
 	}
-
 	sessionID := cookie.Value
 	var nickname string
 	err = S.db.QueryRow("SELECT nickname FROM sessions WHERE session_id = ? AND expires_at > datetime('now')", sessionID).Scan(&nickname)
@@ -213,7 +210,6 @@ func (S *Server) CreateCommentHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Unauthorized - Invalid session", http.StatusUnauthorized)
 		return
 	}
-
 	var comment struct {
 		PostID  int    `json:"post_id"`
 		Content string `json:"content"`
@@ -223,7 +219,6 @@ func (S *Server) CreateCommentHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
-
 	_, err = S.db.Exec(
 		"INSERT INTO comments (post_id, user_id, content) VALUES (?, (SELECT id FROM users WHERE nickname = ?), ?)",
 		comment.PostID, nickname, comment.Content,
@@ -232,7 +227,6 @@ func (S *Server) CreateCommentHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-
 	w.WriteHeader(http.StatusCreated)
 }
 
@@ -241,13 +235,11 @@ func (S *Server) GetCommentsHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		return
 	}
-
 	postID := r.URL.Query().Get("post_id")
 	if postID == "" {
 		http.Error(w, "Missing post_id parameter", http.StatusBadRequest)
 		return
 	}
-
 	rows, err := S.db.Query(`
         SELECT comments.id, comments.content, comments.created_at, users.nickname
         FROM comments
@@ -260,14 +252,12 @@ func (S *Server) GetCommentsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer rows.Close()
-
 	type Comment struct {
 		ID        int    `json:"id"`
 		Content   string `json:"content"`
 		CreatedAt string `json:"created_at"`
 		Author    string `json:"author"`
 	}
-
 	var comments []Comment
 	for rows.Next() {
 		var c Comment
@@ -278,7 +268,6 @@ func (S *Server) GetCommentsHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		comments = append(comments, c)
 	}
-
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(comments)
 }
