@@ -1,4 +1,3 @@
-// Function to load comments for a specific post
 export async function loadComments(postId) {
     try {
       const response = await fetch(`comments?post_id=${postId}`)
@@ -12,18 +11,14 @@ export async function loadComments(postId) {
     }
   }
   
-  // Function to display comments for a post
   function displayComments(postId, comments) {
     const commentsContainer = document.getElementById(`comments-${postId}`)
     if (!commentsContainer) return
-  
     commentsContainer.innerHTML = ""
-  
     if (comments.length === 0) {
       commentsContainer.innerHTML = '<p class="no-comments">No comments yet. Be the first to comment!</p>'
       return
     }
-  
     comments.forEach((comment) => {
       const commentElement = document.createElement("div")
       commentElement.classList.add("comment")
@@ -38,17 +33,13 @@ export async function loadComments(postId) {
     })
   }
   
-  // Function to set up comment submission for a post
   export function setupCommentSubmission(postId) {
     const form = document.getElementById(`comment-form-${postId}`)
     if (!form) return
-  
     form.addEventListener("submit", async (e) => {
       e.preventDefault()
-  
       const commentContent = form.querySelector(".comment-input").value.trim()
       if (!commentContent) return
-  
       try {
         const response = await fetch("/createComment", {
           method: "POST",
@@ -66,10 +57,7 @@ export async function loadComments(postId) {
           throw new Error("Failed to submit comment")
         }
   
-        // Clear the input field
         form.querySelector(".comment-input").value = ""
-  
-        // Reload comments to show the new one
         loadComments(postId)
       } catch (error) {
         console.error("Error submitting comment:", error)
@@ -77,7 +65,6 @@ export async function loadComments(postId) {
     })
   }
   
-  // Function to toggle comment section visibility
   export function toggleComments(postId) {
     const commentsSection = document.getElementById(`comments-section-${postId}`)
     if (commentsSection.classList.contains("hidden")) {
