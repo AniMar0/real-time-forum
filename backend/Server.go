@@ -142,6 +142,7 @@ func (S *Server) initRoutes() {
 
 	S.Mux.HandleFunc("/logout", S.LogoutHandler)
 }
+
 func (S *Server) DataBase() {
 	var err error
 	S.db, err = sql.Open("sqlite3", "database/forum.db")
