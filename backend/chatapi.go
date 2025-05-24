@@ -2,6 +2,7 @@ package backend
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -18,4 +19,10 @@ func getMessageHistor(w http.ResponseWriter, r *http.Request) {
 		return 
 	}
 	messages, err := loadMessages(MessageDB, userID, otherID)
+	if err != nil {
+		http.Error(w, "Failed loading messages", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(messages)
 }
