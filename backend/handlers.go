@@ -90,11 +90,8 @@ func (S *Server) CreatePostHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var post struct {
-		Title    string `json:"title"`
-		Content  string `json:"content"`
-		Category string `json:"category"`
-	}
+	var post Post
+
 	err = json.NewDecoder(r.Body).Decode(&post)
 	if err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
@@ -130,15 +127,6 @@ func (S *Server) GetPostsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer rows.Close()
-
-	type Post struct {
-		ID        int    `json:"id"`
-		Title     string `json:"title"`
-		Content   string `json:"content"`
-		Category  string `json:"category"`
-		CreatedAt string `json:"created_at"`
-		Author    string `json:"author"`
-	}
 
 	var posts []Post
 	for rows.Next() {
@@ -210,10 +198,7 @@ func (S *Server) CreateCommentHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Unauthorized - Invalid session", http.StatusUnauthorized)
 		return
 	}
-	var comment struct {
-		PostID  int    `json:"post_id"`
-		Content string `json:"content"`
-	}
+	var comment Comment 
 	err = json.NewDecoder(r.Body).Decode(&comment)
 	if err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
@@ -252,12 +237,7 @@ func (S *Server) GetCommentsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer rows.Close()
-	type Comment struct {
-		ID        int    `json:"id"`
-		Content   string `json:"content"`
-		CreatedAt string `json:"created_at"`
-		Author    string `json:"author"`
-	}
+	
 	var comments []Comment
 	for rows.Next() {
 		var c Comment
