@@ -3,7 +3,6 @@ package backend
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 )
@@ -16,7 +15,7 @@ func getMessageHistor(w http.ResponseWriter, r *http.Request) {
 	otherID, err := strconv.Atoi(otherIDstr)
 	if err != nil {
 		http.Error(w, "Ivalid user ID", http.StatusBadRequest)
-		return 
+		return
 	}
 	messages, err := loadMessages(MessageDB, userID, otherID)
 	if err != nil {
