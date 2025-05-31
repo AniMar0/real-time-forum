@@ -1,5 +1,7 @@
 package backend
 
+import "github.com/gorilla/websocket"
+
 type Post struct {
 	ID        int    `json:"id"`
 	Title     string `json:"title"`
@@ -15,4 +17,32 @@ type Comment struct {
 	Content   string `json:"content"`
 	CreatedAt string `json:"created_at"`
 	Author    string `json:"author"`
+}
+
+type Message struct {
+	From      string `json:"from"`
+	To        string `json:"to"`
+	Content   string `json:"content"`
+	Timestamp string `json:"timestamp"`
+}
+
+type Client struct {
+	Conn     *websocket.Conn
+	Username string
+}
+
+type User struct {
+	ID        int    `json:"id"`
+	Nickname  string `json:"nickname"`
+	FirstName string `json:"first_name"`
+	LastName  string `json:"last_name"`
+	Email     string `json:"email"`
+	Password  string `json:"password"`
+	Age       int    `json:"age"`
+	Gender    string `json:"gender"`
+}
+
+type LoginUser struct {
+	Identifier  string `json:"identifier"`
+	Password  string `json:"password"`
 }

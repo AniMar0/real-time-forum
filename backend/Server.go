@@ -8,19 +8,30 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/gorilla/websocket"
 	"github.com/twinj/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type Server struct {
-	db  *sql.DB
-	Mux *http.ServeMux
+	db        *sql.DB
+	Mux       *http.ServeMux
+	clients   map[string]*Client
+	broadcast chan Message
+	upgrader  websocket.Upgrader
 }
 
 func (S *Server) Run() {
 	S.Mux = http.NewServeMux()
 	S.DataBase()
 	S.initRoutes()
+
+	S.upgrader = websocket.Upgrader{
+		CheckOrigin: func(r *http.Request) bool { return true },
+	}
+
+	S.clients = make(map[string]*Client)
+	S.broadcast = make(chan Message)
 
 	fmt.Println("Server running on http://localhost:8080")
 	err := http.ListenAndServe(":8080", S.Mux)
@@ -57,38 +68,37 @@ func (S *Server) AddUser(user User) string {
 }
 
 func (S *Server) SessionMiddleware(next http.Handler) http.Handler {
-    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-        username, err := S.CheckSession(r)
-        if err != nil {
-            http.Error(w, "Unauthorized", http.StatusUnauthorized)
-            return
-        }
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		username, err := S.CheckSession(r)
+		if err != nil {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
 
-        ctx := context.WithValue(r.Context(), "username", username)
-        next.ServeHTTP(w, r.WithContext(ctx))
-    })
+		ctx := context.WithValue(r.Context(), "username", username)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
 }
 
 func (S *Server) CheckSession(r *http.Request) (string, error) {
-    cookie, err := r.Cookie("session_token")
-    if err != nil {
-        return "", fmt.Errorf("no session cookie")
-    }
-    sessionID := cookie.Value
+	cookie, err := r.Cookie("session_token")
+	if err != nil {
+		return "", fmt.Errorf("no session cookie")
+	}
+	sessionID := cookie.Value
 
-    var username string
-    err = S.db.QueryRow(`
+	var username string
+	err = S.db.QueryRow(`
         SELECT nickname FROM sessions 
         WHERE session_id = ? AND expires_at > CURRENT_TIMESTAMP
     `, sessionID).Scan(&username)
 
-    if err != nil {
-        return "", fmt.Errorf("invalid or expired session")
-    }
+	if err != nil {
+		return "", fmt.Errorf("invalid or expired session")
+	}
 
-    return username, nil
+	return username, nil
 }
-
 
 func (S *Server) MakeToken(Writer http.ResponseWriter, username string) {
 	sessionID := uuid.NewV4().String()
@@ -140,7 +150,47 @@ func (S *Server) initRoutes() {
 	S.Mux.HandleFunc("/register", S.RegisterHandler)
 	S.Mux.HandleFunc("/login", S.LoginHandler)
 
+	S.Mux.HandleFunc("/ws", S.HandleWebSocket)
+
 	S.Mux.HandleFunc("/logout", S.LogoutHandler)
+}
+
+func (s *Server) receiveMessages(client *Client) {
+	defer func() {
+		client.Conn.Close()
+		delete(s.clients, client.Username)
+		fmt.Println(client.Username, "disconnected")
+	}()
+
+	for {
+		var msg Message
+		err := client.Conn.ReadJSON(&msg)
+		if err != nil {
+			fmt.Println("WebSocket Read Error:", err)
+			break
+		}
+
+		msg.From = client.Username
+		msg.Timestamp = time.Now().Format(time.RFC3339)
+
+		// حفظ الرسالة في قاعدة البيانات
+		_, err = s.db.Exec(`
+			INSERT INTO messages (sender, receiver, content, timestamp)
+			VALUES (?, ?, ?, ?)`,
+			msg.From, msg.To, msg.Content, msg.Timestamp)
+		if err != nil {
+			fmt.Println("DB Insert Error:", err)
+			continue
+		}
+
+		// إرسال الرسالة للطرف الآخر إن كان متصلًا
+		if recipient, ok := s.clients[msg.To]; ok {
+			err := recipient.Conn.WriteJSON(msg)
+			if err != nil {
+				fmt.Println("Send Error:", err)
+			}
+		}
+	}
 }
 
 func (S *Server) DataBase() {
