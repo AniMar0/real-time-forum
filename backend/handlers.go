@@ -177,9 +177,7 @@ func (S *Server) LoggedHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, `{"username":"%s"}`, username)
 }
 
-
-// comments 
-
+// comments
 
 func (S *Server) CreateCommentHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -198,7 +196,7 @@ func (S *Server) CreateCommentHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Unauthorized - Invalid session", http.StatusUnauthorized)
 		return
 	}
-	var comment Comment 
+	var comment Comment
 	err = json.NewDecoder(r.Body).Decode(&comment)
 	if err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
@@ -237,7 +235,7 @@ func (S *Server) GetCommentsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer rows.Close()
-	
+
 	var comments []Comment
 	for rows.Next() {
 		var c Comment
@@ -250,4 +248,30 @@ func (S *Server) GetCommentsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(comments)
+}
+
+//chats
+
+func (S *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
+	username, err := S.CheckSession(r)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	conn, err := S.upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		fmt.Println("WebSocket Upgrade Error:", err)
+		return
+	}
+
+	client := &Client{
+		Conn:     conn,
+		Username: username,
+	}
+
+	S.clients[username] = client
+	fmt.Println(username, "connected to WebSocket")
+
+	go S.receiveMessages(client)
 }
