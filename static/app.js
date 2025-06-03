@@ -1,7 +1,9 @@
 import { handleRegister } from './regester.js';
+import { startChatFeature } from './chat.js'
 import { handleLogin } from './login.js';
 import { loadPosts } from './posts.js';
 import { logout } from './logout.js';
+
 
 export function showSection(sectionId) {
   document.querySelectorAll('section').forEach(section => {
@@ -70,6 +72,7 @@ function checkLoggedIn() {
     })
     .then(data => {
       logged(true, data.username);
+      startChatFeature(data.username)
     })
     .catch(() => {
       logged(false);

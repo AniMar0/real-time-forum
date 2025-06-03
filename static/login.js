@@ -22,6 +22,7 @@ export function handleLogin(event) {
       return res.json();
     })
     .then(data => {
+      
       showSection('postsSection');
       logged(true,data.username);
     })

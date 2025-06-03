@@ -41,6 +41,25 @@ func (S *Server) Run() {
 	}
 }
 
+func (S *Server) initRoutes() {
+	S.Mux.Handle("/", http.FileServer(http.Dir("./static")))
+	S.Mux.HandleFunc("/logged", S.LoggedHandler)
+
+	S.Mux.Handle("/createPost", S.SessionMiddleware(http.HandlerFunc(S.CreatePostHandler)))
+	S.Mux.HandleFunc("/posts", S.GetPostsHandler)
+
+	S.Mux.Handle("/createComment", S.SessionMiddleware(http.HandlerFunc(S.CreateCommentHandler)))
+	S.Mux.HandleFunc("/comments", S.GetCommentsHandler)
+
+	S.Mux.HandleFunc("/register", S.RegisterHandler)
+	S.Mux.HandleFunc("/login", S.LoginHandler)
+
+	S.Mux.HandleFunc("/ws", S.HandleWebSocket)
+	S.Mux.HandleFunc("/messages", S.GetMessagesHandler)
+
+	S.Mux.HandleFunc("/logout", S.LogoutHandler)
+}
+
 func (S *Server) UserFound(user User) (error, bool) {
 	var exists int
 	err := S.db.QueryRow("SELECT COUNT(*) FROM users WHERE email = ? OR nickname = ?", user.Email, user.Nickname).Scan(&exists)
@@ -137,28 +156,11 @@ func (S *Server) GetHashedPasswordFromDB(identifier string) (string, string, err
 	return hashedPassword, nickname, nil
 }
 
-func (S *Server) initRoutes() {
-	S.Mux.Handle("/", http.FileServer(http.Dir("./static")))
-	S.Mux.HandleFunc("/logged", S.LoggedHandler)
-
-	S.Mux.Handle("/createPost", S.SessionMiddleware(http.HandlerFunc(S.CreatePostHandler)))
-	S.Mux.HandleFunc("/posts", S.GetPostsHandler)
-
-	S.Mux.Handle("/createComment", S.SessionMiddleware(http.HandlerFunc(S.CreateCommentHandler)))
-	S.Mux.HandleFunc("/comments", S.GetCommentsHandler)
-
-	S.Mux.HandleFunc("/register", S.RegisterHandler)
-	S.Mux.HandleFunc("/login", S.LoginHandler)
-
-	S.Mux.HandleFunc("/ws", S.HandleWebSocket)
-
-	S.Mux.HandleFunc("/logout", S.LogoutHandler)
-}
-
 func (s *Server) receiveMessages(client *Client) {
 	defer func() {
 		client.Conn.Close()
 		delete(s.clients, client.Username)
+		s.broadcastUserList()
 		fmt.Println(client.Username, "disconnected")
 	}()
 
@@ -173,7 +175,6 @@ func (s *Server) receiveMessages(client *Client) {
 		msg.From = client.Username
 		msg.Timestamp = time.Now().Format(time.RFC3339)
 
-		// حفظ الرسالة في قاعدة البيانات
 		_, err = s.db.Exec(`
 			INSERT INTO messages (sender, receiver, content, timestamp)
 			VALUES (?, ?, ?, ?)`,
@@ -183,13 +184,26 @@ func (s *Server) receiveMessages(client *Client) {
 			continue
 		}
 
-		// إرسال الرسالة للطرف الآخر إن كان متصلًا
 		if recipient, ok := s.clients[msg.To]; ok {
 			err := recipient.Conn.WriteJSON(msg)
 			if err != nil {
 				fmt.Println("Send Error:", err)
 			}
 		}
+	}
+}
+
+func (S *Server) broadcastUserList() {
+	var usernames []string
+	for username := range S.clients {
+		usernames = append(usernames, username)
+	}
+
+	for _, client := range S.clients {
+		client.Conn.WriteJSON(map[string]interface{}{
+			"type":  "user_list",
+			"users": usernames,
+		})
 	}
 }
 
