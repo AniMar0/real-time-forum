@@ -316,7 +316,7 @@ button[type="submit"]:hover {
 }
 
 .hidden {
-  display: none;
+  display: none !important;
 }
 
 /* Responsive Design */

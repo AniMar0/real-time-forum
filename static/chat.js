@@ -1,9 +1,11 @@
-import { showSection } from './app.js';
+import { showSection } from './app.js'
 
 let socket = null
 let selectedUser = null
+let currentUser = null
 
-export function startChatFeature(currentUser) {
+export function startChatFeature(currentUsername) {
+  currentUser = currentUsername
 
   socket = new WebSocket("ws://" + window.location.host + "/ws")
 
@@ -15,20 +17,19 @@ export function startChatFeature(currentUser) {
     const data = JSON.parse(event.data)
 
     if (data.type === "user_list") {
-      setUserList(data.users, currentUser)
+      setUserList(data.users)
     } else {
-      // استلام رسالة
       if (data.from === selectedUser || data.to === selectedUser) {
         renderMessage(data)
       }
     }
   })
 
-  const form = document.getElementById("chatForm")
-  if (form) {
-    form.addEventListener("submit", (e) => {
-      e.preventDefault()
-      const input = document.getElementById("chatInput")
+  const sendBtn = document.getElementById("sendBtn")
+  const input = document.getElementById("messageInput")
+
+  if (sendBtn && input) {
+    sendBtn.addEventListener("click", () => {
       const content = input.value.trim()
       if (!content || !selectedUser) return
 
@@ -54,16 +55,12 @@ function renderMessage(msg) {
   container.scrollTop = container.scrollHeight
 }
 
-function setUserList(users, currentUser) {
+function setUserList(users) {
   const list = document.getElementById("userList")
   list.innerHTML = ""
-  users.forEach((userObj) => {
 
-    const username = userObj
-    const isOnline = true
-
-    if (currentUser === userObj) return
-
+  users.forEach((username) => {
+    if (username === currentUser) return
 
     const div = document.createElement("div")
     div.className = "user"
@@ -78,8 +75,7 @@ function setUserList(users, currentUser) {
     nameSpan.textContent = username
 
     const statusSpan = document.createElement("span")
-    statusSpan.classList.add("status")
-    if (isOnline) statusSpan.classList.add("online")
+    statusSpan.classList.add("status", "online")
 
     div.appendChild(nameSpan)
     div.appendChild(statusSpan)
@@ -87,12 +83,12 @@ function setUserList(users, currentUser) {
     div.addEventListener("click", async () => {
       selectedUser = username
 
-      showSection("chatWindow")
+      document.getElementById("chatWindow").classList.remove("hidden")
 
       document.getElementById("chatMessages").innerHTML = ""
 
       try {
-        const res = await fetch(`/messages?from=${username}&to=${selectedUser}`)
+        const res = await fetch(`/messages?from=${currentUser}&to=${selectedUser}`)
         if (!res.ok) throw new Error("Failed to load chat history")
         const messages = await res.json()
         messages.forEach(renderMessage)
@@ -100,6 +96,7 @@ function setUserList(users, currentUser) {
         console.error("Chat history error:", err)
       }
     })
+
     list.appendChild(div)
   })
 }
