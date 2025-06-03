@@ -273,5 +273,44 @@ func (S *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	S.clients[username] = client
 	fmt.Println(username, "connected to WebSocket")
 
+	S.broadcastUserList()
+
 	go S.receiveMessages(client)
+}
+
+func (s *Server) GetMessagesHandler(w http.ResponseWriter, r *http.Request) {
+	from := r.URL.Query().Get("from")
+	to := r.URL.Query().Get("to")
+
+	if from == "" || to == "" {
+		http.Error(w, "Missing parameters", http.StatusBadRequest)
+		return
+	}
+
+	rows, err := s.db.Query(`
+		SELECT sender, receiver, content, timestamp
+		FROM messages
+		WHERE (sender = ? AND receiver = ?) OR (sender = ? AND receiver = ?)
+		ORDER BY timestamp DESC
+		LIMIT 10
+	`, from, to, to, from)
+	if err != nil {
+		http.Error(w, "DB error", http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	var messages []Message
+	for rows.Next() {
+		var msg Message
+		err := rows.Scan(&msg.From, &msg.To, &msg.Content, &msg.Timestamp)
+		if err != nil {
+			http.Error(w, "Scan error", http.StatusInternalServerError)
+			return
+		}
+		messages = append([]Message{msg}, messages...)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(messages)
 }

@@ -21,23 +21,19 @@
   <main class="flex-container">
     <!-- Users Section - Now displayed on the left -->
     <div id="userList">
-      <h2>Users</h2>
       <!-- Sample user items (you can dynamically add these via JS) -->
-      <div class="user"><span>User 1</span><span class="status online"></span></div>
-      <div class="user"><span>User 2</span><span class="status"></span></div>
-      <div class="user active"><span>User 3</span><span class="status online"></span></div>
     </div>
 
-    <!-- Right Side: Chat + Forum Sections -->
     <div class="main-content">
-      <div id="chatWindow" hidden>
+      <!-- Chats Section -->
+      <section id="chatWindow" class="hidden">
         <div id="chatHeader">Chat</div>
-        <div id="messages"></div>
-        <div id="inputArea" style="display:none;">
+        <div id="chatMessages"></div>
+        <div id="inputArea">
           <input type="text" id="messageInput" placeholder="Type your message..." />
-          <button id="sendBtn" disabled>Send</button>
+          <button id="sendBtn" >Send</button>
         </div>
-      </div>
+      </section>
 
       <!-- Register Section -->
       <section id="registerSection" class="hidden">
