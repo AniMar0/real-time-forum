@@ -1,5 +1,5 @@
 import { showSection,logged } from './app.js';
-
+import { startChatFeature } from './chat.js';
 
 export function handleLogin(event) {
   event.preventDefault();
@@ -22,7 +22,7 @@ export function handleLogin(event) {
       return res.json();
     })
     .then(data => {
-      
+      startChatFeature(data.username);
       showSection('postsSection');
       logged(true,data.username);
     })
