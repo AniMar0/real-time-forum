@@ -35,10 +35,12 @@ export function startChatFeature(currentUsername) {
 
       const message = {
         to: selectedUser,
+        from: currentUser,
         content: content,
       }
 
       socket.send(JSON.stringify(message))
+      renderMessage(message) 
       input.value = ""
     })
   }
