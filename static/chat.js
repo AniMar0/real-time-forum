@@ -37,10 +37,11 @@ export function startChatFeature(currentUsername) {
         to: selectedUser,
         from: currentUser,
         content: content,
+        timestamp: new Date().toISOString(),
       }
 
       socket.send(JSON.stringify(message))
-      renderMessage(message) 
+      renderMessage(message)
       input.value = ""
     })
   }
