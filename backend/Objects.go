@@ -46,3 +46,8 @@ type LoginUser struct {
 	Identifier  string `json:"identifier"`
 	Password  string `json:"password"`
 }
+
+type WSMessage struct {
+	Type string      `json:"type"`
+	Data interface{} `json:"data"`
+}
