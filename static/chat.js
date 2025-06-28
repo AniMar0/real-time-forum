@@ -11,7 +11,7 @@ export function startChatFeature(currentUsername) {
 
   socket.addEventListener("message", (event) => {
     const data = JSON.parse(event.data);
-  
+
     if (data.type === "user_list") {
       setUserList(data.users);
     } else {
@@ -26,7 +26,7 @@ export function startChatFeature(currentUsername) {
       }
     }
   });
-  
+
   const sendBtn = document.getElementById("sendBtn")
   const input = document.getElementById("messageInput")
 
@@ -91,6 +91,11 @@ function setUserList(users) {
       document.getElementById("chatWithName").textContent = username;
       document.getElementById("chatWindow").classList.remove("hidden")
       document.getElementById("chatMessages").innerHTML = ""
+
+      const badge = div.querySelector(".notification-badge");
+      if (badge) {
+        badge.remove();
+      }
 
       try {
         const res = await fetch(`/messages?from=${currentUser}&to=${selectedUser}`)
