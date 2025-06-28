@@ -262,13 +262,14 @@ button[type="submit"]:hover {
   font-size: 1.1rem;
 }
 
-#messages {
-  flex: 1;
-  padding: 1rem;
+#chatMessages {
+  max-height: 300px;
   overflow-y: auto;
   display: flex;
-  flex-direction: column-reverse;
+  flex-direction: column;
   gap: 0.8rem;
+  padding: 1rem;
+  flex: 1;
 }
 
 .message {
