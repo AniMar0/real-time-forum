@@ -9,22 +9,24 @@ export function startChatFeature(currentUsername) {
 
   socket = new WebSocket("ws://" + window.location.host + "/ws")
 
-  socket.addEventListener("open", () => {
-    console.log("✅ WebSocket connected")
-  })
-
   socket.addEventListener("message", (event) => {
-    const data = JSON.parse(event.data)
-
+    const data = JSON.parse(event.data);
+  
     if (data.type === "user_list") {
-      setUserList(data.users)
+      setUserList(data.users);
     } else {
+      // ✅ If it's from or to the selected user, just show it
       if (data.from === selectedUser || data.to === selectedUser) {
-        renderMessage(data)
+        renderMessage(data);
+      } else {
+        // ✅ Notify if user receives message from someone not actively selected
+        if (data.to === currentUser) {
+          showNotificationBadge(data.from);
+        }
       }
     }
-  })
-
+  });
+  
   const sendBtn = document.getElementById("sendBtn")
   const input = document.getElementById("messageInput")
 
@@ -102,4 +104,23 @@ function setUserList(users) {
 
     list.appendChild(div)
   })
+}
+
+
+function showNotificationBadge(fromUser) {
+  const userList = document.getElementById("userList");
+  const users = userList.getElementsByClassName("user");
+
+  for (let div of users) {
+    const nameSpan = div.querySelector("span:first-child");
+    if (nameSpan && nameSpan.textContent === fromUser) {
+      // Prevent adding multiple badges
+      if (!div.querySelector(".notification-badge")) {
+        const badge = document.createElement("span");
+        badge.classList.add("notification-badge");
+        badge.textContent = "•";
+        div.appendChild(badge);
+      }
+    }
+  }
 }
