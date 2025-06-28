@@ -86,9 +86,8 @@ function setUserList(users) {
 
     div.addEventListener("click", async () => {
       selectedUser = username
-
+      document.getElementById("chatWithName").textContent = username;
       document.getElementById("chatWindow").classList.remove("hidden")
-
       document.getElementById("chatMessages").innerHTML = ""
 
       try {
