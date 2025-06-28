@@ -287,9 +287,15 @@ button[type="submit"]:hover {
 }
 
 .notification-badge {
-  color: red;
-  font-size: 1.5rem;
-  margin-left: 8px;
+  background-color: red;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 12px;
+  margin-left: 6px;
+  min-width: 20px;
+  text-align: center;
 }
 
 
