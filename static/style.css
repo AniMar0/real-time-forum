@@ -286,6 +286,13 @@ button[type="submit"]:hover {
   align-self: flex-end;
 }
 
+.notification-badge {
+  color: red;
+  font-size: 1.5rem;
+  margin-left: 8px;
+}
+
+
 #inputArea {
   padding: 1rem;
   border-top: 1px solid #eee;
