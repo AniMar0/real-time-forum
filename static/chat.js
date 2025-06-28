@@ -55,6 +55,7 @@ function renderMessage(msg) {
     <small>${new Date(msg.timestamp).toLocaleTimeString()}</small></p>
   `
   container.appendChild(div)
+
   container.scrollTop = container.scrollHeight
 }
 
