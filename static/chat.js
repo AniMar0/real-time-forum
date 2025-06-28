@@ -1,5 +1,7 @@
 import { showSection } from './app.js'
 
+
+const unreadCounts = new Map()
 let socket = null
 let selectedUser = null
 let currentUser = null
@@ -11,21 +13,21 @@ export function startChatFeature(currentUsername) {
 
   socket.addEventListener("message", (event) => {
     const data = JSON.parse(event.data);
-
+  
     if (data.type === "user_list") {
       setUserList(data.users);
     } else {
-      // ✅ If it's from or to the selected user, just show it
       if (data.from === selectedUser || data.to === selectedUser) {
         renderMessage(data);
-      } else {
-        // ✅ Notify if user receives message from someone not actively selected
-        if (data.to === currentUser) {
-          showNotificationBadge(data.from);
-        }
+      } else if (data.to === currentUser) {
+        // Increase unread count
+        const prev = unreadCounts.get(data.from) || 0;
+        unreadCounts.set(data.from, prev + 1);
+        updateNotificationBadge(data.from);
       }
     }
   });
+  
 
   const sendBtn = document.getElementById("sendBtn")
   const input = document.getElementById("messageInput")
@@ -92,11 +94,10 @@ function setUserList(users) {
       document.getElementById("chatWindow").classList.remove("hidden")
       document.getElementById("chatMessages").innerHTML = ""
 
+      unreadCounts.set(username, 0);
       const badge = div.querySelector(".notification-badge");
-      if (badge) {
-        badge.remove();
-      }
-
+      if (badge) badge.remove();
+    
       try {
         const res = await fetch(`/messages?from=${currentUser}&to=${selectedUser}`)
         if (!res.ok) throw new Error("Failed to load chat history")
@@ -112,20 +113,42 @@ function setUserList(users) {
 }
 
 
-function showNotificationBadge(fromUser) {
+//function showNotificationBadge(fromUser) {
+  //const userList = document.getElementById("userList");
+ // const users = userList.getElementsByClassName("user");
+
+  //for (let div of users) {
+    //const nameSpan = div.querySelector("span:first-child");
+    //if (nameSpan && nameSpan.textContent === fromUser) {
+      // Prevent adding multiple badges
+      //if (!div.querySelector(".notification-badge")) {
+        //const badge = document.createElement("span");
+        //badge.classList.add("notification-badge");
+        //badge.textContent = "•";
+        //div.appendChild(badge);
+      //}
+    //}
+  //}
+//}
+
+
+function updateNotificationBadge(fromUser) {
   const userList = document.getElementById("userList");
   const users = userList.getElementsByClassName("user");
 
   for (let div of users) {
     const nameSpan = div.querySelector("span:first-child");
     if (nameSpan && nameSpan.textContent === fromUser) {
-      // Prevent adding multiple badges
-      if (!div.querySelector(".notification-badge")) {
-        const badge = document.createElement("span");
+      let badge = div.querySelector(".notification-badge");
+
+      // Create badge if it doesn't exist
+      if (!badge) {
+        badge = document.createElement("span");
         badge.classList.add("notification-badge");
-        badge.textContent = "•";
         div.appendChild(badge);
       }
+
+      badge.textContent = unreadCounts.get(fromUser);
     }
   }
 }
