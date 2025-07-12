@@ -14,9 +14,7 @@ export function logout(event) {
       }
       return res.text();
     })
-    .then(data => {
-      showSection('postsSection');
-    })
+    .then(() => window.location.reload())
     .catch(err => {
       console.error(err);
     });
