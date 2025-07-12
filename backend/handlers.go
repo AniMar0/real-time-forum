@@ -162,7 +162,7 @@ func (S *Server) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 		Expires: time.Unix(0, 0),
 		Path:    "/",
 	})
-
+	
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
