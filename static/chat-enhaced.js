@@ -25,6 +25,9 @@ export function startChatFeature(currentUsername) {
     }
   })
 
+  // Add close button functionality
+  addChatCloseButton()
+
   const sendBtn = document.getElementById("sendBtn")
   const input = document.getElementById("messageInput")
 
@@ -44,6 +47,32 @@ export function startChatFeature(currentUsername) {
       renderMessage(message)
       input.value = ""
     })
+
+    // Add Enter key support
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault()
+        sendBtn.click()
+      }
+    })
+  }
+}
+
+function addChatCloseButton() {
+  const chatHeader = document.getElementById("chatHeader")
+  if (chatHeader && !chatHeader.querySelector("#chatCloseBtn")) {
+    const closeBtn = document.createElement("button")
+    closeBtn.id = "chatCloseBtn"
+    closeBtn.innerHTML = "×"
+    closeBtn.title = "Close chat"
+
+    closeBtn.addEventListener("click", () => {
+      const chatWindow = document.getElementById("chatWindow")
+      chatWindow.classList.add("hidden")
+      selectedUser = null
+    })
+
+    chatHeader.appendChild(closeBtn)
   }
 }
 
@@ -56,12 +85,16 @@ function renderMessage(msg) {
   `
   container.appendChild(div)
 
-  container.scrollTop = container.scrollHeight
+  // Smooth scroll to bottom
+  container.scrollTo({
+    top: container.scrollHeight,
+    behavior: "smooth",
+  })
 }
 
 function setUserList(users) {
   const list = document.getElementById("userList")
-  list.innerHTML = ""
+  list.innerHTML = "<h2>Online Users</h2>"
 
   users.forEach((username) => {
     if (username === currentUser) return
@@ -72,8 +105,6 @@ function setUserList(users) {
     div.style.justifyContent = "space-between"
     div.style.alignItems = "center"
     div.style.cursor = "pointer"
-    div.style.padding = "5px"
-    div.style.borderBottom = "1px solid #ddd"
 
     const nameSpan = document.createElement("span")
     nameSpan.textContent = username
@@ -106,59 +137,6 @@ function setUserList(users) {
 
     list.appendChild(div)
   })
-}
-
-// Enhanced chat functionality for floating window
-export function enhanceChatWindow() {
-  // Add close button to chat header
-  const chatHeader = document.getElementById("chatHeader")
-  if (chatHeader && !chatHeader.querySelector("#chatCloseBtn")) {
-    const closeBtn = document.createElement("button")
-    closeBtn.id = "chatCloseBtn"
-    closeBtn.innerHTML = "×"
-    closeBtn.title = "Close chat"
-
-    closeBtn.addEventListener("click", () => {
-      const chatWindow = document.getElementById("chatWindow")
-      chatWindow.classList.add("hidden")
-    })
-
-    chatHeader.appendChild(closeBtn)
-  }
-
-  // Add smooth scrolling for new messages
-  const chatMessages = document.getElementById("chatMessages")
-  if (chatMessages) {
-    const observer = new MutationObserver(() => {
-      chatMessages.scrollTo({
-        top: chatMessages.scrollHeight,
-        behavior: "smooth",
-      })
-    })
-
-    observer.observe(chatMessages, { childList: true })
-  }
-
-  // Add typing indicator functionality
-  let typingTimer
-  const messageInput = document.getElementById("messageInput")
-
-  if (messageInput) {
-    messageInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault()
-        const sendBtn = document.getElementById("sendBtn")
-        if (sendBtn) sendBtn.click()
-      }
-    })
-  }
-}
-
-// Auto-initialize when DOM is loaded
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", enhanceChatWindow)
-} else {
-  enhanceChatWindow()
 }
 
 function updateNotificationBadge(fromUser) {
