@@ -23,11 +23,20 @@
   <main class="flex-container">
     <!-- Users Section - Now displayed on the left -->
     <div id="userList">
-      <h2>Online Users</h2>
       <!-- Sample user items (you can dynamically add these via JS) -->
     </div>
 
     <div class="main-content">
+      <!-- Chats Section -->
+      <section id="chatWindow" class="hidden">
+        <div id="chatHeader">Chat with <span id="chatWithName">...</span></div>
+        <div id="chatMessages"></div>
+        <div id="inputArea">
+          <input type="text" id="messageInput" placeholder="Type your message..." />
+          <button id="sendBtn">Send</button>
+        </div>
+      </section>
+
       <!-- Register Section -->
       <section id="registerSection" class="hidden">
         <h2>Register</h2>
@@ -78,16 +87,6 @@
       </section>
     </div>
   </main>
-
-  <!-- Floating Chat Window -->
-  <section id="chatWindow" class="hidden">
-    <div id="chatHeader">Chat with <span id="chatWithName">...</span></div>
-    <div id="chatMessages"></div>
-    <div id="inputArea">
-      <input type="text" id="messageInput" placeholder="Type your message..." />
-      <button id="sendBtn">Send</button>
-    </div>
-  </section>
 
   <!-- JavaScript file -->
   <script type="module" src="app.js"></script>
