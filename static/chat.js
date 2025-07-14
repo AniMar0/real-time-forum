@@ -13,7 +13,7 @@ export function startChatFeature(currentUsername) {
 
   socket.addEventListener("message", (event) => {
     const data = JSON.parse(event.data);
-  
+
     if (data.type === "user_list") {
       setUserList(data.users);
     } else {
@@ -27,7 +27,7 @@ export function startChatFeature(currentUsername) {
       }
     }
   });
-  
+
 
   const sendBtn = document.getElementById("sendBtn")
   const input = document.getElementById("messageInput")
@@ -97,7 +97,18 @@ function setUserList(users) {
       unreadCounts.set(username, 0);
       const badge = div.querySelector(".notification-badge");
       if (badge) badge.remove();
-    
+
+      const closeChatBtn = document.getElementById("closeChatBtn");
+      if (closeChatBtn) {
+        closeChatBtn.onclick = () => {
+          document.getElementById("chatWindow").classList.add("hidden");
+          selectedUser = null;
+          document.getElementById("chatMessages").innerHTML = "";
+          document.getElementById("chatWithName").textContent = "";
+        };
+      }
+F
+
       try {
         const res = await fetch(`/messages?from=${currentUser}&to=${selectedUser}`)
         if (!res.ok) throw new Error("Failed to load chat history")
@@ -114,21 +125,21 @@ function setUserList(users) {
 
 
 //function showNotificationBadge(fromUser) {
-  //const userList = document.getElementById("userList");
- // const users = userList.getElementsByClassName("user");
+//const userList = document.getElementById("userList");
+// const users = userList.getElementsByClassName("user");
 
-  //for (let div of users) {
-    //const nameSpan = div.querySelector("span:first-child");
-    //if (nameSpan && nameSpan.textContent === fromUser) {
-      // Prevent adding multiple badges
-      //if (!div.querySelector(".notification-badge")) {
-        //const badge = document.createElement("span");
-        //badge.classList.add("notification-badge");
-        //badge.textContent = "•";
-        //div.appendChild(badge);
-      //}
-    //}
-  //}
+//for (let div of users) {
+//const nameSpan = div.querySelector("span:first-child");
+//if (nameSpan && nameSpan.textContent === fromUser) {
+// Prevent adding multiple badges
+//if (!div.querySelector(".notification-badge")) {
+//const badge = document.createElement("span");
+//badge.classList.add("notification-badge");
+//badge.textContent = "•";
+//div.appendChild(badge);
+//}
+//}
+//}
 //}
 
 
@@ -152,3 +163,4 @@ function updateNotificationBadge(fromUser) {
     }
   }
 }
+
