@@ -28,15 +28,17 @@
 
     <div class="main-content">
       <!-- Chats Section -->
-      <section id="chatWindow" class="hidden">
-        <div id="chatHeader">Chat with <span id="chatWithName">...</span></div>
-        <div id="chatMessages"></div>
-        <div id="inputArea">
-          <input type="text" id="messageInput" placeholder="Type your message..." />
-          <button id="sendBtn">Send</button>
-        </div>
-      </section>
 
+      <div id="chatWindow" class="hidden chat-box">
+        <div class="chat-header">
+          <strong>Chat with: <span id="chatWithName"></span></strong>
+          <button id="closeChatBtn">Close</button>
+        </div>
+        <div id="chatMessages"></div>
+        <input id="messageInput" type="text" placeholder="Type a message..." />
+        <button id="sendBtn">Send</button>
+      </div>
+    
       <!-- Register Section -->
       <section id="registerSection" class="hidden">
         <h2>Register</h2>
