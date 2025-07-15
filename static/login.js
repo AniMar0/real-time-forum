@@ -27,6 +27,8 @@ export function handleLogin(event) {
       logged(true,data.username);
     })
     .catch(err => {
+      alert("Invalid login")
+      logged(false)
       console.error(err);
     });
 }
