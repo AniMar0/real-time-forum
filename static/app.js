@@ -31,7 +31,6 @@ document.getElementById('registerForm').addEventListener('submit', async functio
 
 document.getElementById('loginForm').addEventListener('submit', async function (e) {
   handleLogin(e);
-  logged(true);
 });
 
 document.getElementById('createPostForm').addEventListener('submit', async function (e) {
