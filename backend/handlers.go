@@ -252,6 +252,7 @@ func (S *Server) GetCommentsHandler(w http.ResponseWriter, r *http.Request) {
 
 //chats
 
+// Modified HandleWebSocket function
 func (S *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	username, err := S.CheckSession(r)
 	if err != nil {
@@ -266,11 +267,17 @@ func (S *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 
 	client := &Client{
+		ID:       uuid.NewV4().String(), // Generate unique ID
 		Conn:     conn,
 		Username: username,
 	}
 
-	S.clients[username] = client
+	// Add client to the user's session list
+	if S.clients[username] == nil {
+		S.clients[username] = []*Client{}
+	}
+	S.clients[username] = append(S.clients[username], client)
+	
 	fmt.Println(username, "connected to WebSocket")
 
 	S.broadcastUserList()
