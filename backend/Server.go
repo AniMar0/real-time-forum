@@ -223,17 +223,21 @@ func (s *Server) receiveMessages(client *Client) {
 	}
 }
 
+// Modified broadcastUserList function
 func (S *Server) broadcastUserList() {
 	var usernames []string
 	for username := range S.clients {
 		usernames = append(usernames, username)
 	}
 
-	for _, client := range S.clients {
-		client.Conn.WriteJSON(map[string]interface{}{
-			"type":  "user_list",
-			"users": usernames,
-		})
+	// Send to all client sessions
+	for _, clientSessions := range S.clients {
+		for _, client := range clientSessions {
+			client.Conn.WriteJSON(map[string]interface{}{
+				"type":  "user_list",
+				"users": usernames,
+			})
+		}
 	}
 }
 
