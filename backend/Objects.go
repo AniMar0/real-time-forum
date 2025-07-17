@@ -27,6 +27,7 @@ type Message struct {
 }
 
 type Client struct {
+	ID       string          // Add unique identifier
 	Conn     *websocket.Conn
 	Username string
 }
