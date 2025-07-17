@@ -156,10 +156,25 @@ func (S *Server) GetHashedPasswordFromDB(identifier string) (string, string, err
 	return hashedPassword, nickname, nil
 }
 
+// Modified receiveMessages function
 func (s *Server) receiveMessages(client *Client) {
 	defer func() {
 		client.Conn.Close()
-		delete(s.clients, client.Username)
+		
+		// Remove this specific client from the user's session list
+		if sessions, exists := s.clients[client.Username]; exists {
+			for i, c := range sessions {
+				if c.ID == client.ID {
+					s.clients[client.Username] = append(sessions[:i], sessions[i+1:]...)
+					break
+				}
+			}
+			// If no more sessions for this user, remove the user entirely
+			if len(s.clients[client.Username]) == 0 {
+				delete(s.clients, client.Username)
+			}
+		}
+		
 		s.broadcastUserList()
 		fmt.Println(client.Username, "disconnected")
 	}()
@@ -184,10 +199,25 @@ func (s *Server) receiveMessages(client *Client) {
 			continue
 		}
 
-		if recipient, ok := s.clients[msg.To]; ok {
-			err := recipient.Conn.WriteJSON(msg)
-			if err != nil {
-				fmt.Println("Send Error:", err)
+		// Send to all sessions of the recipient
+		if recipientSessions, ok := s.clients[msg.To]; ok {
+			for _, recipient := range recipientSessions {
+				err := recipient.Conn.WriteJSON(msg)
+				if err != nil {
+					fmt.Println("Send Error to recipient:", err)
+				}
+			}
+		}
+
+		// Send to all other sessions of the sender (excluding current session)
+		if senderSessions, ok := s.clients[msg.From]; ok {
+			for _, senderClient := range senderSessions {
+				if senderClient.ID != client.ID { // Don't send back to the same session
+					err := senderClient.Conn.WriteJSON(msg)
+					if err != nil {
+						fmt.Println("Send Error to sender session:", err)
+					}
+				}
 			}
 		}
 	}
