@@ -253,6 +253,7 @@ func (S *Server) GetCommentsHandler(w http.ResponseWriter, r *http.Request) {
 //chats
 
 // Modified HandleWebSocket function
+// Modified HandleWebSocket function
 func (S *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	username, err := S.CheckSession(r)
 	if err != nil {

@@ -27,9 +27,9 @@ type Message struct {
 }
 
 type Client struct {
-	ID       string          // Add unique identifier
-	Conn     *websocket.Conn
-	Username string
+	ID       string          `json:"id"`        // Added ID field
+	Conn     *websocket.Conn `json:"-"`         // Added json:"-" to exclude from JSON
+	Username string          `json:"username"`
 }
 
 type User struct {
