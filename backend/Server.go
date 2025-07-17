@@ -16,7 +16,7 @@ import (
 type Server struct {
 	db        *sql.DB
 	Mux       *http.ServeMux
-	clients   map[string]*Client
+	clients   map[string][]*Client // Changed: map username to slice of clients
 	broadcast chan Message
 	upgrader  websocket.Upgrader
 }
