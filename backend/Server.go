@@ -30,7 +30,7 @@ func (S *Server) Run() {
 		CheckOrigin: func(r *http.Request) bool { return true },
 	}
 
-	S.clients = make(map[string]*Client)
+	S.clients = make(map[string][]*Client) // Updated initialization
 	S.broadcast = make(chan Message)
 
 	fmt.Println("Server running on http://localhost:8080")
