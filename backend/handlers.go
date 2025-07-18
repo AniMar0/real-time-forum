@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 	"time"
+
+	"github.com/twinj/uuid"
 )
 
 func (S *Server) RegisterHandler(w http.ResponseWriter, r *http.Request) {
@@ -50,7 +52,7 @@ func (S *Server) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//fmt.Println(user)
+	// fmt.Println(user)
 
 	nickname, hashedPassword, err := S.GetHashedPasswordFromDB(user.Identifier)
 	if err != nil {
@@ -162,13 +164,12 @@ func (S *Server) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 		Expires: time.Unix(0, 0),
 		Path:    "/",
 	})
-	
+
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 func (S *Server) LoggedHandler(w http.ResponseWriter, r *http.Request) {
 	username, err := S.CheckSession(r)
-
 	if err != nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
@@ -250,7 +251,7 @@ func (S *Server) GetCommentsHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(comments)
 }
 
-//chats
+// chats
 
 // Modified HandleWebSocket function
 // Modified HandleWebSocket function
@@ -278,7 +279,7 @@ func (S *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 		S.clients[username] = []*Client{}
 	}
 	S.clients[username] = append(S.clients[username], client)
-	
+
 	fmt.Println(username, "connected to WebSocket")
 
 	S.broadcastUserList()
