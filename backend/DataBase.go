@@ -15,17 +15,17 @@ func MakeDataBase() {
 	}
 	defer db.Close()
 
-	err = createTables(db)
+	err, table := createTables(db)
 	if err != nil {
-		log.Fatal("Failed to create tables:", err)
+		log.Fatalf("Failed to create tables in %d: %v ", table, err)
 	}
 
 	fmt.Println("Database and tables created successfully!")
 }
 
-func createTables(db *sql.DB) error {
-	schema := `
-	CREATE TABLE IF NOT EXISTS users (
+func createTables(db *sql.DB) (error, int) {
+	tables := []string{
+		`CREATE TABLE IF NOT EXISTS users (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		nickname TEXT UNIQUE,
 		first_name TEXT,
@@ -34,9 +34,8 @@ func createTables(db *sql.DB) error {
 		password TEXT,
 		age INTEGER,
 		gender TEXT
-	);
-
-	CREATE TABLE IF NOT EXISTS posts (
+	)`,
+		`CREATE TABLE IF NOT EXISTS posts (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		user_id INTEGER,
 		title TEXT,
@@ -44,9 +43,9 @@ func createTables(db *sql.DB) error {
 		category TEXT,
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 		FOREIGN KEY(user_id) REFERENCES users(id)
-	);
+	)`,
 
-	CREATE TABLE IF NOT EXISTS comments (
+		`CREATE TABLE IF NOT EXISTS comments (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		post_id INTEGER,
 		user_id INTEGER,
@@ -54,24 +53,27 @@ func createTables(db *sql.DB) error {
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 		FOREIGN KEY(post_id) REFERENCES posts(id),
 		FOREIGN KEY(user_id) REFERENCES users(id)
-	);
+	)`,
 
-	CREATE TABLE IF NOT EXISTS messages (
+		`CREATE TABLE IF NOT EXISTS messages (
 	id INTEGER PRIMARY KEY AUTOINCREMENT,
 	sender TEXT,
 	receiver TEXT,
 	content TEXT,
 	timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-	);
-
-
-	CREATE TABLE IF NOT EXISTS sessions (
+	)`,
+		`CREATE TABLE IF NOT EXISTS sessions (
     session_id TEXT PRIMARY KEY,
     nickname TEXT,
     expires_at DATETIME,
     FOREIGN KEY(nickname) REFERENCES users(nickname)
-	);
-	`
-	_, err := db.Exec(schema)
-	return err
+	)`}
+
+	for i := 0; i < len(tables); i++ {
+		_, err := db.Exec(tables[i])
+		if err != nil {
+			return err, i + 1
+		}
+	}
+	return nil, 0
 }
