@@ -56,7 +56,6 @@ document.getElementById('createPostForm').addEventListener('submit', async funct
     alert('Post created!');
     form.reset();
     loadPosts();
-    setInterval(loadPosts, 5000) // added for other users see posts in real time
   } else {
     alert('Failed to create post');
   }
