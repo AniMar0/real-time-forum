@@ -14,27 +14,21 @@ import (
 )
 
 type Server struct {
-	db        *sql.DB
-	Mux       *http.ServeMux
-	clients   map[string][]*Client // Changed: map username to slice of clients
-	broadcast chan Message
-	upgrader  websocket.Upgrader
+	db       *sql.DB
+	Mux      *http.ServeMux
+	clients  map[string][]*Client // Changed: map username to slice of clients
+	upgrader websocket.Upgrader
 }
 
-func (S *Server) Run() {
+func (S *Server) Run(port string) {
 	S.Mux = http.NewServeMux()
 	S.DataBase()
 	S.initRoutes()
 
-	S.upgrader = websocket.Upgrader{
-		CheckOrigin: func(r *http.Request) bool { return true },
-	}
-
 	S.clients = make(map[string][]*Client) // Updated initialization
-	S.broadcast = make(chan Message)
 
-	fmt.Println("Server running on http://localhost:8080")
-	err := http.ListenAndServe(":8080", S.Mux)
+	fmt.Println("Server running on http://localhost:" + port)
+	err := http.ListenAndServe(":"+port, S.Mux)
 	if err != nil {
 		log.Println("Server error:", err)
 		return
@@ -160,7 +154,7 @@ func (S *Server) GetHashedPasswordFromDB(identifier string) (string, string, err
 func (s *Server) receiveMessages(client *Client) {
 	defer func() {
 		client.Conn.Close()
-		
+
 		// Remove this specific client from the user's session list
 		if sessions, exists := s.clients[client.Username]; exists {
 			for i, c := range sessions {
@@ -174,7 +168,7 @@ func (s *Server) receiveMessages(client *Client) {
 				delete(s.clients, client.Username)
 			}
 		}
-		
+
 		s.broadcastUserList()
 		fmt.Println(client.Username, "disconnected")
 	}()
@@ -251,4 +245,5 @@ func (S *Server) DataBase() {
 
 func (S *Server) Shutdown() {
 	S.db.Close()
+	fmt.Println("chi 9alwa")
 }
