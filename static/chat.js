@@ -39,6 +39,7 @@ export function startChatFeature(currentUsername) {
 
   if (sendBtn && input) {
     sendBtn.addEventListener("click", () => {
+      
       const content = input.value.trim();
       if (!content || !selectedUser) return;
 
@@ -61,16 +62,15 @@ export function startChatFeature(currentUsername) {
   }
 }
 
-function renderMessage(msg) {
-  const container = document.getElementById("chatMessages");
-  const div = document.createElement("div");
+const renderMessage = (msg) => {
+  const container = document.getElementById("chatMessages")
+  const div = document.createElement("div")
   div.innerHTML = `
     <p><strong>${msg.from}</strong>: ${msg.content}<br/>
     <small>${new Date(msg.timestamp).toLocaleTimeString()}</small></p>
-  `;
-  container.appendChild(div);
-
-  container.scrollTop = container.scrollHeight;
+  `
+  container.appendChild(div)
+  container.scrollTop = container.scrollHeight
 }
 
 function setUserList(users) {
