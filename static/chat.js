@@ -196,17 +196,20 @@ function setUserList(users) {
 
     div.appendChild(nameSpan);
     div.appendChild(statusSpan);
-
+    
     div.addEventListener("click", async () => {
       selectedUser = username;
       document.getElementById("chatWithName").textContent = username;
       document.getElementById("chatWindow").classList.remove("hidden");
       document.getElementById("chatMessages").innerHTML = "";
-
+    
+      // Reset pagination for new user
+      messageOffsets.set(username, 0);
+      
       unreadCounts.set(username, 0);
       const badge = div.querySelector(".notification-badge");
       if (badge) badge.remove();
-
+    
       // Close chat button setup
       const closeChatBtn = document.getElementById("closeChatBtn");
       if (closeChatBtn) {
@@ -214,24 +217,19 @@ function setUserList(users) {
           document.getElementById("chatWindow").classList.add("hidden");
           selectedUser = null;
           document.getElementById("chatWithName").textContent = "";
+          // Remove scroll listener when closing chat
+          const chatMessages = document.getElementById("chatMessages");
+          if (chatMessages) {
+            chatMessages.replaceWith(chatMessages.cloneNode(true));
+          }
         };
       }
-
-      // Load from cache or fetch
-      const cachedMessages = chatCache.get(username);
-      if (cachedMessages) {
-        cachedMessages.forEach(renderMessage);
-      } else {
-        try {
-          const res = await fetch(`/messages?from=${currentUser}&to=${selectedUser}`);
-          if (!res.ok) throw new Error("Failed to load chat history");
-          const messages = await res.json();
-          chatCache.set(selectedUser, messages);
-          messages.forEach(renderMessage);
-        } catch (err) {
-          console.error("Chat history error:", err);
-        }
-      }
+    
+      // Load initial 10 messages
+      await loadInitialMessages(username);
+      
+      // Setup scroll listener for this chat
+      setupScrollListener();
     });
 
     list.appendChild(div);
