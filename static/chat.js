@@ -144,6 +144,33 @@ async function loadMoreMessages() {
   }
 }
 
+async function loadInitialMessages(username) {
+  try {
+    // Load last 10 messages
+    const response = await fetch(`/messages?from=${currentUser}&to=${username}&offset=0&limit=10&order=desc`);
+    if (!response.ok) throw new Error("Failed to load chat history");
+    
+    const messages = await response.json();
+    
+    if (messages.length > 0) {
+      // Clear any existing messages
+      document.getElementById("chatMessages").innerHTML = "";
+      
+      // Render messages in correct order (oldest first)
+      messages.reverse().forEach(msg => renderMessage(msg));
+      
+      // Update offset and cache
+      messageOffsets.set(username, messages.length);
+      chatCache.set(username, messages);
+      
+      // Scroll to bottom
+      const chatMessages = document.getElementById("chatMessages");
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+  } catch (error) {
+    console.error("Error loading initial messages:", error);
+  }
+}
 
 function setUserList(users) {
   const list = document.getElementById("userList");
