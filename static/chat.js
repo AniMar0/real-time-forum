@@ -62,17 +62,21 @@ export function startChatFeature(currentUsername) {
   }
 }
 
-const renderMessage = (msg) => {
+const  renderMessage = (msg, prepend = false) => {
   const container = document.getElementById("chatMessages")
   const div = document.createElement("div")
   div.innerHTML = `
     <p><strong>${msg.from}</strong>: ${msg.content}<br/>
     <small>${new Date(msg.timestamp).toLocaleTimeString()}</small></p>
   `
-  container.appendChild(div)
-  container.scrollTop = container.scrollHeight
-}
 
+  if (prepend) {
+    container.insertBefore(div, container.firstChild)
+  } else {
+    container.appendChild(div)
+    container.scrollTop = container.scrollHeight
+  }
+}
 function setUserList(users) {
   const list = document.getElementById("userList");
   list.innerHTML = "";
