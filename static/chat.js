@@ -1,10 +1,12 @@
 import { showSection } from './app.js';
 
-const unreadCounts = new Map();
-const chatCache = new Map(); // Cache messages per user
-let socket = null;
-let selectedUser = null;
-let currentUser = null;
+const unreadCounts = new Map()
+const chatCache = new Map() // Cache messages per user
+let socket = null
+let selectedUser = null
+let currentUser = null
+let isLoadingMessages = false
+const messageOffsets = new Map()
 
 export function startChatFeature(currentUsername) {
   currentUser = currentUsername;
