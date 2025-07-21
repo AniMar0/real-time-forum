@@ -77,6 +77,74 @@ const  renderMessage = (msg, prepend = false) => {
     container.scrollTop = container.scrollHeight
   }
 }
+
+// Throttled scroll handler to prevent excessive API calls
+function throttle(func, limit) {
+  let inThrottle;
+  return function() {
+    const args = arguments;
+    const context = this;
+    if (!inThrottle) {
+      func.apply(context, args);
+      inThrottle = true;
+      setTimeout(() => inThrottle = false, limit);
+    }
+  };
+}
+
+function setupScrollListener() {
+  const chatMessages = document.getElementById("chatMessages");
+  if (!chatMessages) return;
+
+  const throttledScrollHandler = throttle(async function() {
+    // Check if scrolled to top (with small threshold)
+    if (chatMessages.scrollTop <= 10 && !isLoadingMessages && selectedUser) {
+      await loadMoreMessages();
+    }
+  }, 300); // Throttle to 300ms
+
+  chatMessages.addEventListener('scroll', throttledScrollHandler);
+}
+
+async function loadMoreMessages() {
+  if (!selectedUser || isLoadingMessages) return;
+  
+  isLoadingMessages = true;
+  const currentOffset = messageOffsets.get(selectedUser) || 0;
+  
+  try {
+    const response = await fetch(`/messages?from=${currentUser}&to=${selectedUser}&offset=${currentOffset}&limit=10`);
+    if (!response.ok) throw new Error("Failed to load more messages");
+    
+    const messages = await response.json();
+    
+    if (messages.length > 0) {
+      // Store scroll position before adding messages
+      const chatMessages = document.getElementById("chatMessages");
+      const oldScrollHeight = chatMessages.scrollHeight;
+      
+      // Add messages to the beginning of the container
+      messages.reverse().forEach(msg => renderMessage(msg, true));
+      
+      // Restore scroll position (maintain user's view)
+      const newScrollHeight = chatMessages.scrollHeight;
+      chatMessages.scrollTop = newScrollHeight - oldScrollHeight;
+      
+      // Update offset for next load
+      messageOffsets.set(selectedUser, currentOffset + messages.length);
+      
+      // Update cache
+      const cached = chatCache.get(selectedUser) || [];
+      chatCache.set(selectedUser, [...messages, ...cached]);
+    }
+  } catch (error) {
+    console.error("Error loading more messages:", error);
+  } finally {
+    isLoadingMessages = false;
+  }
+}
+
+
 function setUserList(users) {
   const list = document.getElementById("userList");
   list.innerHTML = "";
