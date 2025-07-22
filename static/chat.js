@@ -2,9 +2,11 @@ import { showSection } from './app.js';
 
 const unreadCounts = new Map();
 const chatCache = new Map(); // Cache messages per user
+const messageOffsets = new Map(); // Track how many messages loaded per user
 let socket = null;
 let selectedUser = null;
 let currentUser = null;
+let isLoadingMessages = false;
 
 export function startChatFeature(currentUsername) {
   currentUser = currentUsername;
@@ -18,7 +20,7 @@ export function startChatFeature(currentUsername) {
       setUserList(data.users);
     } else {
       if (data.from === selectedUser || data.to === selectedUser) {
-        renderMessage(data);
+        renderMessage(data, false); // false = append to bottom
 
         // Also update cache
         const chatKey = data.from === currentUser ? data.to : data.from;
@@ -48,7 +50,7 @@ export function startChatFeature(currentUsername) {
       };
 
       socket.send(JSON.stringify(message));
-      renderMessage(message);
+      renderMessage(message, false); // false = append to bottom
 
       // Update cache
       const cached = chatCache.get(selectedUser) || [];
@@ -56,20 +58,94 @@ export function startChatFeature(currentUsername) {
 
       input.value = "";
     });
+
+    // Allow sending with Enter key
+    input.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") {
+        sendBtn.click();
+      }
+    });
   }
 }
 
-function renderMessage(msg) {
+function renderMessage(msg, prepend = false) {
   const container = document.getElementById("chatMessages");
   const div = document.createElement("div");
+  div.className = "message";
   div.innerHTML = `
     <p><strong>${msg.from}</strong>: ${msg.content}<br/>
     <small>${new Date(msg.timestamp).toLocaleTimeString()}</small></p>
   `;
-  container.appendChild(div);
 
-  container.scrollTop = container.scrollHeight;
+  if (prepend) {
+    container.insertBefore(div, container.firstChild);
+  } else {
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+  }
 }
+
+// Throttle function to limit how often a function can be called
+function throttle(func, limit) {
+  let inThrottle;
+  return function() {
+    const args = arguments;
+    const context = this;
+    if (!inThrottle) {
+      func.apply(context, args);
+      inThrottle = true;
+      setTimeout(() => inThrottle = false, limit);
+    }
+  }
+}
+
+// Load more messages from server
+async function loadMoreMessages(username, offset) {
+  if (isLoadingMessages) return;
+  
+  isLoadingMessages = true;
+  
+  try {
+    const res = await fetch(`/messages?from=${currentUser}&to=${username}&offset=${offset}&limit=10`);
+    if (!res.ok) throw new Error("Failed to load more messages");
+    
+    const messages = await res.json();
+    
+    if (messages.length > 0) {
+      const chatMessages = document.getElementById("chatMessages");
+      const scrollHeight = chatMessages.scrollHeight;
+      
+      // Prepend messages to the top
+      messages.reverse().forEach(msg => renderMessage(msg, true));
+      
+      // Update offset
+      const currentOffset = messageOffsets.get(username) || 10;
+      messageOffsets.set(username, currentOffset + messages.length);
+      
+      // Update cache
+      const cached = chatCache.get(username) || [];
+      chatCache.set(username, [...messages, ...cached]);
+      
+      // Maintain scroll position
+      chatMessages.scrollTop = chatMessages.scrollHeight - scrollHeight;
+    }
+  } catch (err) {
+    console.error("Error loading more messages:", err);
+  } finally {
+    isLoadingMessages = false;
+  }
+}
+
+// Throttled scroll handler
+const handleScroll = throttle((e) => {
+  const container = e.target;
+  
+  // Check if scrolled to top (with small buffer)
+  if (container.scrollTop < 50 && selectedUser && !isLoadingMessages) {
+    const currentOffset = messageOffsets.get(selectedUser) || 10;
+    loadMoreMessages(selectedUser, currentOffset);
+  }
+}, 200); // Throttle to 200ms
 
 function setUserList(users) {
   const list = document.getElementById("userList");
@@ -100,11 +176,19 @@ function setUserList(users) {
       selectedUser = username;
       document.getElementById("chatWithName").textContent = username;
       document.getElementById("chatWindow").classList.remove("hidden");
-      document.getElementById("chatMessages").innerHTML = "";
+      const chatMessages = document.getElementById("chatMessages");
+      chatMessages.innerHTML = "";
+
+      // Reset offset for this user
+      messageOffsets.set(username, 10);
 
       unreadCounts.set(username, 0);
       const badge = div.querySelector(".notification-badge");
       if (badge) badge.remove();
+
+      // Setup scroll event listener for infinite scrolling
+      chatMessages.removeEventListener("scroll", handleScroll); // Remove previous listener
+      chatMessages.addEventListener("scroll", handleScroll);
 
       // Close chat button setup
       const closeChatBtn = document.getElementById("closeChatBtn");
@@ -113,23 +197,22 @@ function setUserList(users) {
           document.getElementById("chatWindow").classList.add("hidden");
           selectedUser = null;
           document.getElementById("chatWithName").textContent = "";
+          chatMessages.removeEventListener("scroll", handleScroll);
         };
       }
 
-      // Load from cache or fetch
-      const cachedMessages = chatCache.get(username);
-      if (cachedMessages) {
-        cachedMessages.forEach(renderMessage);
-      } else {
-        try {
-          const res = await fetch(`/messages?from=${currentUser}&to=${selectedUser}`);
-          if (!res.ok) throw new Error("Failed to load chat history");
-          const messages = await res.json();
-          chatCache.set(selectedUser, messages);
-          messages.forEach(renderMessage);
-        } catch (err) {
-          console.error("Chat history error:", err);
-        }
+      // Load initial messages (last 10)
+      try {
+        const res = await fetch(`/messages?from=${currentUser}&to=${selectedUser}&limit=10`);
+        if (!res.ok) throw new Error("Failed to load chat history");
+        const messages = await res.json();
+        
+        // Clear and update cache
+        chatCache.set(selectedUser, messages);
+        
+        messages.forEach(msg => renderMessage(msg, false));
+      } catch (err) {
+        console.error("Chat history error:", err);
       }
     });
 
