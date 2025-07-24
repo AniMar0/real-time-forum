@@ -301,7 +301,8 @@ func (s *Server) GetMessagesHandler(w http.ResponseWriter, r *http.Request) {
 		FROM messages
 		WHERE (sender = ? AND receiver = ?) OR (sender = ? AND receiver = ?)
 		ORDER BY timestamp DESC
-		LIMIT 10
+		LIMIT 10 OFFSET ?
+
 	`, from, to, to, from)
 	if err != nil {
 		http.Error(w, "DB error", http.StatusInternalServerError)
