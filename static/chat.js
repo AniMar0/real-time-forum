@@ -52,6 +52,15 @@ async function loadMessagesPage(from, to, page) {
   }
 }
 
+const renderMessageAtTop = (msg) => {
+  const container = document.getElementById("chatMessages")
+  const div = document.createElement("div")
+  div.innerHTML = `
+    <p><strong>${msg.from}</strong>: ${msg.content}<br/>
+    <small>${new Date(msg.timestamp).toLocaleTimeString()}</small></p>
+  `;
+  container.insertBefore(div, container.firstChild)
+}
 
 
 export function startChatFeature(currentUsername) {
