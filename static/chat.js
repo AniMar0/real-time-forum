@@ -23,6 +23,35 @@ const throttle = (fn, wait) => {
   }
 }
 
+async function loadMessagesPage(from, to, page) {
+  const offset = page * MESSAGES_PER_PAGE
+  try {
+    const res = await fetch(`/messages?from=${from}&to=${to}&offset=${offset}`)
+    if (!res.ok) throw new Error("Failed to load chat messages")
+
+    const messages = await res.json()
+    if (messages.length === 0) {
+      noMoreMessages = true
+      return
+    }
+
+    const container = document.getElementById("chatMessages")
+    const oldScrollHeight = container.scrollHeight
+
+    messages.reverse().forEach(msg => renderMessageAtTop(msg))
+
+    container.scrollTop = container.scrollHeight - oldScrollHeight
+
+    // Cache update
+    const cached = chatCache.get(to) || []
+    chatCache.set(to, [...messages, ...cached])
+  } catch (err) {
+    console.error("Pagination error:", err)
+  } finally {
+    isFetching = false
+  }
+}
+
 
 
 export function startChatFeature(currentUsername) {
