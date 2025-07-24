@@ -191,7 +191,9 @@ function setUserList(users) {
         cachedMessages.forEach(renderMessage);
       } else {
         try {
-          const res = await fetch(`/messages?from=${currentUser}&to=${selectedUser}`);
+          chatPage = 0;
+          noMoreMessages = false;
+          const res = await fetch(`/messages?from=${currentUser}&to=${selectedUser}&offset=0`);
           if (!res.ok) throw new Error("Failed to load chat history");
           const messages = await res.json();
           chatCache.set(selectedUser, messages);
