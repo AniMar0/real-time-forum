@@ -6,6 +6,14 @@ let socket = null;
 let selectedUser = null;
 let currentUser = null;
 
+let chatPage = 0;
+const MESSAGES_PER_PAGE = 10;
+let isFetching = false;
+let noMoreMessages = false;
+let chatContainer = null;
+
+
+
 export function startChatFeature(currentUsername) {
   currentUser = currentUsername;
 
