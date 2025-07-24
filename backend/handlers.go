@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/twinj/uuid"
@@ -287,22 +288,44 @@ func (S *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	go S.receiveMessages(client)
 }
 
+// Update the GetMessagesHandler function in handlers.go
 func (s *Server) GetMessagesHandler(w http.ResponseWriter, r *http.Request) {
 	from := r.URL.Query().Get("from")
 	to := r.URL.Query().Get("to")
+	offsetStr := r.URL.Query().Get("offset")
+	limitStr := r.URL.Query().Get("limit")
 
 	if from == "" || to == "" {
 		http.Error(w, "Missing parameters", http.StatusBadRequest)
 		return
 	}
 
+	// Set default values
+	offset := 0
+	limit := 10
+
+	// Parse offset and limit if provided
+	if offsetStr != "" {
+		if parsedOffset, err := strconv.Atoi(offsetStr); err == nil && parsedOffset >= 0 {
+			offset = parsedOffset
+		}
+	}
+
+	if limitStr != "" {
+		if parsedLimit, err := strconv.Atoi(limitStr); err == nil && parsedLimit > 0 && parsedLimit <= 50 {
+			limit = parsedLimit
+		}
+	}
+
+	// Updated query with pagination support
 	rows, err := s.db.Query(`
 		SELECT sender, receiver, content, timestamp
 		FROM messages
 		WHERE (sender = ? AND receiver = ?) OR (sender = ? AND receiver = ?)
 		ORDER BY timestamp DESC
-		LIMIT 10
-	`, from, to, to, from)
+		LIMIT ? OFFSET ?
+	`, from, to, to, from, limit, offset)
+
 	if err != nil {
 		http.Error(w, "DB error", http.StatusInternalServerError)
 		return
