@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/twinj/uuid"
@@ -296,14 +297,20 @@ func (s *Server) GetMessagesHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rows, err := s.db.Query(`
-		SELECT sender, receiver, content, timestamp
-		FROM messages
-		WHERE (sender = ? AND receiver = ?) OR (sender = ? AND receiver = ?)
-		ORDER BY timestamp DESC
-		LIMIT 10 OFFSET ?
+	offsetStr := r.URL.Query().Get("offset")
+	offset, err := strconv.Atoi(offsetStr)
+	if err != nil {
+		offset = 0
+	}
 
-	`, from, to, to, from)
+	rows, err := s.db.Query(`
+	SELECT sender, receiver, content, timestamp
+	FROM messages
+	WHERE (sender = ? AND receiver = ?) OR (sender = ? AND receiver = ?)
+	ORDER BY timestamp DESC
+	LIMIT 10 OFFSET ?
+`, from, to, to, from, offset)
+
 	if err != nil {
 		http.Error(w, "DB error", http.StatusInternalServerError)
 		return
