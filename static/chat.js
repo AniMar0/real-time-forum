@@ -154,6 +154,18 @@ function setUserList(users) {
     div.appendChild(statusSpan);
 
     div.addEventListener("click", async () => {
+      chatPage = 0;
+      noMoreMessages = false;
+      chatContainer = document.getElementById("chatMessages");
+
+      chatContainer.addEventListener("scroll", throttle(async () => {
+        if (chatContainer.scrollTop < 50 && !isFetching && !noMoreMessages) {
+          isFetching = true;
+          chatPage += 1;
+          await loadMessagesPage(currentUser, selectedUser, chatPage);
+        }
+      }, 300));
+
       selectedUser = username;
       document.getElementById("chatWithName").textContent = username;
       document.getElementById("chatWindow").classList.remove("hidden");
