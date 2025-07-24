@@ -2,9 +2,11 @@ import { showSection } from './app.js';
 
 const unreadCounts = new Map();
 const chatCache = new Map(); // Cache messages per user
+const messageOffsets = new Map(); // Track how many messages we've loaded per user
 let socket = null;
 let selectedUser = null;
 let currentUser = null;
+let isLoadingMessages = false; // Prevent multiple simultaneous loads
 
 export function startChatFeature(currentUsername) {
   currentUser = currentUsername;
@@ -59,17 +61,94 @@ export function startChatFeature(currentUsername) {
   }
 }
 
-function renderMessage(msg) {
+function renderMessage(msg, prepend = false) {
   const container = document.getElementById("chatMessages");
   const div = document.createElement("div");
   div.innerHTML = `
     <p><strong>${msg.from}</strong>: ${msg.content}<br/>
     <small>${new Date(msg.timestamp).toLocaleTimeString()}</small></p>
   `;
-  container.appendChild(div);
-
-  container.scrollTop = container.scrollHeight;
+  
+  if (prepend) {
+    container.insertBefore(div, container.firstChild);
+  } else {
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+  }
 }
+
+// Throttle function to limit how often scroll handler executes
+function throttle(func, delay) {
+  let timeoutId;
+  let lastExecTime = 0;
+  return function (...args) {
+    const currentTime = Date.now();
+    
+    if (currentTime - lastExecTime > delay) {
+      func.apply(this, args);
+      lastExecTime = currentTime;
+    } else {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        func.apply(this, args);
+        lastExecTime = Date.now();
+      }, delay - (currentTime - lastExecTime));
+    }
+  };
+}
+
+// Load more messages when scrolling to top
+async function loadMoreMessages() {
+  if (!selectedUser || isLoadingMessages) return;
+  
+  isLoadingMessages = true;
+  const currentOffset = messageOffsets.get(selectedUser) || 10;
+  
+  try {
+    const res = await fetch(`/messages?from=${currentUser}&to=${selectedUser}&offset=${currentOffset}&limit=10`);
+    if (!res.ok) throw new Error("Failed to load more messages");
+    
+    const messages = await res.json();
+    
+    if (messages.length === 0) {
+      // No more messages to load
+      isLoadingMessages = false;
+      return;
+    }
+    
+    // Store scroll position to maintain it after adding messages
+    const container = document.getElementById("chatMessages");
+    const oldScrollHeight = container.scrollHeight;
+    
+    // Add messages to the beginning of the chat
+    messages.forEach(msg => renderMessage(msg, true));
+    
+    // Update cache by prepending new messages
+    const cached = chatCache.get(selectedUser) || [];
+    chatCache.set(selectedUser, [...messages, ...cached]);
+    
+    // Update offset
+    messageOffsets.set(selectedUser, currentOffset + messages.length);
+    
+    // Maintain scroll position
+    const newScrollHeight = container.scrollHeight;
+    container.scrollTop = newScrollHeight - oldScrollHeight;
+    
+  } catch (err) {
+    console.error("Error loading more messages:", err);
+  } finally {
+    isLoadingMessages = false;
+  }
+}
+
+// Throttled scroll handler
+const throttledScrollHandler = throttle((e) => {
+  const container = e.target;
+  // Check if scrolled to top (with small threshold)
+  if (container.scrollTop <= 10) {
+    loadMoreMessages();
+  }
+}, 300); // 300ms throttle delay
 
 function setUserList(users) {
   const list = document.getElementById("userList");
@@ -100,7 +179,12 @@ function setUserList(users) {
       selectedUser = username;
       document.getElementById("chatWithName").textContent = username;
       document.getElementById("chatWindow").classList.remove("hidden");
-      document.getElementById("chatMessages").innerHTML = "";
+      
+      const messagesContainer = document.getElementById("chatMessages");
+      messagesContainer.innerHTML = "";
+
+      // Reset offset for this user
+      messageOffsets.set(username, 10);
 
       unreadCounts.set(username, 0);
       const badge = div.querySelector(".notification-badge");
@@ -113,16 +197,24 @@ function setUserList(users) {
           document.getElementById("chatWindow").classList.add("hidden");
           selectedUser = null;
           document.getElementById("chatWithName").textContent = "";
+          
+          // Remove scroll event listener
+          messagesContainer.removeEventListener('scroll', throttledScrollHandler);
         };
       }
 
-      // Load from cache or fetch
+      // Add scroll event listener for infinite scroll
+      messagesContainer.addEventListener('scroll', throttledScrollHandler);
+
+      // Load from cache or fetch initial messages
       const cachedMessages = chatCache.get(username);
       if (cachedMessages) {
-        cachedMessages.forEach(renderMessage);
+        // Show only the last 10 messages initially
+        const recentMessages = cachedMessages.slice(-10);
+        recentMessages.forEach(renderMessage);
       } else {
         try {
-          const res = await fetch(`/messages?from=${currentUser}&to=${selectedUser}`);
+          const res = await fetch(`/messages?from=${currentUser}&to=${selectedUser}&offset=0&limit=10`);
           if (!res.ok) throw new Error("Failed to load chat history");
           const messages = await res.json();
           chatCache.set(selectedUser, messages);
