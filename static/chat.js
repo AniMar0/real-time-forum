@@ -24,36 +24,34 @@ const throttle = (fn, wait) => {
 }
 
 async function loadMessagesPage(from, to, page) {
-  const offset = page * MESSAGES_PER_PAGE;
-  const loader = document.getElementById("chatLoader");
-  if (loader) loader.classList.remove("hidden"); // ✅ Show loader
-
+  const offset = page * MESSAGES_PER_PAGE
+  const loader = document.getElementById("chatLoader")
+  loader.classList.remove("hidden")
   try {
-    const res = await fetch(`/messages?from=${from}&to=${to}&offset=${offset}`);
-    if (!res.ok) throw new Error("Failed to load chat messages");
+    const res = await fetch(`/messages?from=${from}&to=${to}&offset=${offset}`)
+    if (!res.ok) throw new Error("Failed to load chat messages")
 
-    const messages = await res.json();
-
+    const messages = await res.json()
     if (messages.length === 0) {
-      noMoreMessages = true;
-      return;
+      noMoreMessages = true
+      return
     }
 
-    const container = document.getElementById("chatMessages");
-    const oldScrollHeight = container.scrollHeight;
+    const container = document.getElementById("chatMessages")
+    const oldScrollHeight = container.scrollHeight
 
-    messages.reverse().forEach(msg => renderMessageAtTop(msg));
+    messages.reverse().forEach(msg => renderMessageAtTop(msg))
 
-    container.scrollTop = container.scrollHeight - oldScrollHeight;
+    container.scrollTop = container.scrollHeight - oldScrollHeight
 
     // Cache update
-    const cached = chatCache.get(to) || [];
-    chatCache.set(to, [...messages, ...cached]);
+    const cached = chatCache.get(to) || []
+    chatCache.set(to, [...messages, ...cached])
   } catch (err) {
-    console.error("Pagination error:", err);
+    console.error("Pagination error:", err)
   } finally {
-    if (loader) loader.classList.add("hidden"); // ✅ Hide loader
-    isFetching = false;
+    loader.classList.add("hidden")
+    isFetching = false
   }
 }
 
