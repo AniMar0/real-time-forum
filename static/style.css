@@ -272,6 +272,10 @@ button[type="submit"]:hover {
   flex: 1;
 }
 
+#chatLoader i {
+  font-size: 18px;
+  color: #555;
+}
 .message {
   max-width: 70%;
   padding: 0.8rem 1rem;
