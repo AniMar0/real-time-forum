@@ -33,7 +33,7 @@ async function loadMessagesPage(from, to, page) {
 
     const messages = await res.json()
     if (messages.length === 0) {
-      noMoreMessages = true
+      // noMoreMessages = true
       return
     }
 
