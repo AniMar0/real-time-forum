@@ -50,6 +50,7 @@ async function loadMessagesPage(from, to, page) {
   } catch (err) {
     console.error("Pagination error:", err)
   } finally {
+    loader.classList.add("hidden")
     isFetching = false
   }
 }
