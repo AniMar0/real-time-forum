@@ -61,21 +61,21 @@ document.getElementById('createPostForm').addEventListener('submit', async funct
   }
 });
 
-function checkLoggedIn() {
+const checkLoggedIn = () => {
   fetch('/logged', {
     credentials: 'include'
   })
     .then(res => {
-      if (!res.ok) throw new Error('Not logged in');
-      return res.json();
+      if (!res.ok) throw new Error('Not logged in')
+      return res.json()
     })
     .then(data => {
-      logged(true, data.username);
-      startChatFeature(data.username);
+      logged(true, data.username)
+      startChatFeature(data.username)
     })
     .catch(() => {
-      logged(false);
-    });
+      logged(false)
+    })
 }
 
 document.addEventListener('DOMContentLoaded', function () {
