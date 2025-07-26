@@ -35,11 +35,15 @@
           <strong>Chat with: <span id="chatWithName"></span></strong>
           <i id="closeChatBtn" class="fa-solid fa-xmark" style="cursor: pointer;"></i>
         </div>
+        <div id="chatLoader" class="hidden" style="text-align: center; padding: 5px;">
+          <i class="fa fa-spinner fa-spin"></i> Loading more...
+        </div>
+
         <div id="chatMessages"></div>
         <input id="messageInput" type="text" placeholder="Type a message..." />
         <button id="sendBtn">Send</button>
       </div>
-    
+
       <!-- Register Section -->
       <section id="registerSection" class="hidden">
         <h2>Register</h2>
