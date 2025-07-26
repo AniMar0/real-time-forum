@@ -25,6 +25,8 @@ const throttle = (fn, wait) => {
 
 async function loadMessagesPage(from, to, page) {
   const offset = page * MESSAGES_PER_PAGE
+  const loader = document.getElementById("chatLoader")
+  loader.classList.remove("hidden")
   try {
     const res = await fetch(`/messages?from=${from}&to=${to}&offset=${offset}`)
     if (!res.ok) throw new Error("Failed to load chat messages")
