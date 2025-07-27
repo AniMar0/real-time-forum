@@ -3,13 +3,20 @@ import { showSection } from './app.js';
 export function handleRegister(event) {
   event.preventDefault();
 
+  const Age = parseInt(document.getElementById("age").value);
+
+  if (Age < 1) {
+    alert("you age is not accepted")
+    return
+  }
+
   const formData = {
     nickname: document.getElementById("nickname").value,
     first_name: document.getElementById("firstName").value,
     last_name: document.getElementById("lastName").value,
     email: document.getElementById("email").value,
     password: document.getElementById("password").value,
-    age: parseInt(document.getElementById("age").value),
+    age: Age,
     gender: document.getElementById("gender").value
   };
 

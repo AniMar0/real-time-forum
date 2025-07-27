@@ -15,7 +15,7 @@ func MakeDataBase() {
 	}
 	defer db.Close()
 
-	err, table := createTables(db)
+	table, err := createTables(db)
 	if err != nil {
 		log.Fatalf("Failed to create tables in %d: %v ", table, err)
 	}
@@ -23,7 +23,7 @@ func MakeDataBase() {
 	fmt.Println("Database and tables created successfully!")
 }
 
-func createTables(db *sql.DB) (error, int) {
+func createTables(db *sql.DB) (int, error) {
 	tables := []string{
 		`CREATE TABLE IF NOT EXISTS users (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -32,7 +32,7 @@ func createTables(db *sql.DB) (error, int) {
 		last_name TEXT,
 		email TEXT UNIQUE,
 		password TEXT,
-		age INTEGER PRIMARY,
+		age INTEGER PRIMARY KEY,
 		gender TEXT
 	)`,
 		`CREATE TABLE IF NOT EXISTS posts (
@@ -72,8 +72,8 @@ func createTables(db *sql.DB) (error, int) {
 	for i := 0; i < len(tables); i++ {
 		_, err := db.Exec(tables[i])
 		if err != nil {
-			return err, i + 1
+			return i + 1, err
 		}
 	}
-	return nil, 0
+	return 0, nil
 }
