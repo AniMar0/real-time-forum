@@ -32,7 +32,7 @@ func createTables(db *sql.DB) (error, int) {
 		last_name TEXT,
 		email TEXT UNIQUE,
 		password TEXT,
-		age INTEGER,
+		age INTEGER PRIMARY,
 		gender TEXT
 	)`,
 		`CREATE TABLE IF NOT EXISTS posts (
