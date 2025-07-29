@@ -84,7 +84,8 @@ export function startChatFeature(currentUsername) {
     const data = JSON.parse(event.data);
 
     if (data.type === "user_list") {
-      setUserList(data.users);
+      usersFromServer = data.users;
+      generateSortedUserList(currentUser, usersFromServer);
     } else {
       if (data.from === selectedUser || data.to === selectedUser) {
         renderMessage(data);
