@@ -5,6 +5,7 @@ const chatCache = new Map(); // Cache messages per user
 let socket = null;
 let selectedUser = null;
 let currentUser = null;
+let usersFromServer = []; // store latest list
 
 let chatPage = 0
 const MESSAGES_PER_PAGE = 10
@@ -84,6 +85,7 @@ export function startChatFeature(currentUsername) {
     const data = JSON.parse(event.data);
 
     if (data.type === "user_list") {
+      usersFromServer = data.users;
       setUserList(data.users);
     } else {
       if (data.from === selectedUser || data.to === selectedUser) {
@@ -93,6 +95,7 @@ export function startChatFeature(currentUsername) {
         const chatKey = data.from === currentUser ? data.to : data.from;
         const cached = chatCache.get(chatKey) || [];
         chatCache.set(chatKey, [...cached, data]);
+        setUserList([...new Set([...chatCache.keys(), ...usersFromServer])]);
       } else if (data.to === currentUser) {
         const prev = unreadCounts.get(data.from) || 0;
         unreadCounts.set(data.from, prev + 1);
