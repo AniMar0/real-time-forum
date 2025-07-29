@@ -283,7 +283,7 @@ func (S *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Println(username, "connected to WebSocket")
 
-	S.broadcastUserList()
+	S.broadcastUserList("")
 
 	go S.receiveMessages(client)
 }
@@ -327,7 +327,6 @@ func (s *Server) GetMessagesHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		messages = append([]Message{msg}, messages...)
 	}
-
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(messages)
 }
