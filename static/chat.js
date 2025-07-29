@@ -281,3 +281,81 @@ async function generateSortedUserList(currentUser, allUsers) {
 
   updateUserListDOM(userMeta);
 }
+
+
+function updateUserListDOM(sortedUsers) {
+  const list = document.getElementById("userList");
+  list.innerHTML = "";
+
+  sortedUsers.forEach(({ username }) => {
+    const div = document.createElement("div");
+    div.className = "user";
+    div.style.display = "flex";
+    div.style.justifyContent = "space-between";
+    div.style.alignItems = "center";
+    div.style.cursor = "pointer";
+    div.style.padding = "5px";
+    div.style.borderBottom = "1px solid #ddd";
+
+    const nameSpan = document.createElement("span");
+    nameSpan.textContent = username;
+
+    const statusSpan = document.createElement("span");
+    statusSpan.classList.add("status", "online");
+
+    div.appendChild(nameSpan);
+    div.appendChild(statusSpan);
+
+    // 👇 Reuse your existing click logic here
+    div.addEventListener("click", async () => {
+      chatPage = 0;
+      noMoreMessages = false;
+      chatContainer = document.getElementById("chatMessages");
+
+      chatContainer.addEventListener("scroll", throttle(async () => {
+        if (chatContainer.scrollTop < 50 && !isFetching && !noMoreMessages) {
+          isFetching = true;
+          chatPage += 1;
+          await loadMessagesPage(currentUser, selectedUser, chatPage);
+        }
+      }, 300));
+
+      selectedUser = username;
+      document.getElementById("chatWithName").textContent = username;
+      document.getElementById("chatWindow").classList.remove("hidden");
+      document.getElementById("chatMessages").innerHTML = "";
+
+      unreadCounts.set(username, 0);
+      const badge = div.querySelector(".notification-badge");
+      if (badge) badge.remove();
+
+      const closeChatBtn = document.getElementById("closeChatBtn");
+      if (closeChatBtn) {
+        closeChatBtn.onclick = () => {
+          document.getElementById("chatWindow").classList.add("hidden");
+          selectedUser = null;
+          document.getElementById("chatWithName").textContent = "";
+        };
+      }
+
+      const cachedMessages = chatCache.get(username);
+      if (cachedMessages) {
+        cachedMessages.forEach(renderMessage);
+      } else {
+        try {
+          chatPage = 0;
+          noMoreMessages = false;
+          const res = await fetch(`/messages?from=${currentUser}&to=${selectedUser}&offset=0`);
+          if (!res.ok) throw new Error("Failed to load chat history");
+          const messages = await res.json();
+          chatCache.set(selectedUser, messages);
+          messages.forEach(renderMessage);
+        } catch (err) {
+          console.error("Chat history error:", err);
+        }
+      }
+    });
+
+    list.appendChild(div);
+  });
+}
