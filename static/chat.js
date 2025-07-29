@@ -239,3 +239,21 @@ function updateNotificationBadge(fromUser) {
     }
   }
 }
+
+
+// sort 
+
+async function fetchLastMessageTimestamp(userA, userB) {
+  try {
+    const res = await fetch(`/messages?from=${userA}&to=${userB}&limit=1&offset=0`);
+    if (!res.ok) return null;
+    const messages = await res.json();
+
+    return messages.length > 0 ? new Date(messages[0].timestamp).getTime() : null;
+  } catch (err) {
+    console.error(`Error fetching last message between ${userA} and ${userB}`, err);
+    return null;
+  }
+}
+
+
