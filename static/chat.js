@@ -144,9 +144,29 @@ function setUserList(users) {
   const list = document.getElementById("userList");
   list.innerHTML = "";
 
-  users.forEach((username) => {
-    if (username === currentUser) return;
+  const userMeta = users
+    .filter(username => username !== currentUser)
+    .map(username => {
+      const messages = chatCache.get(username);
+      const lastTimestamp = messages && messages.length > 0
+        ? new Date(messages[messages.length - 1].timestamp).getTime()
+        : null;
+      return { username, lastTimestamp };
+    });
 
+  // Sort users: by last message timestamp DESC, then alphabetically
+  userMeta.sort((a, b) => {
+    if (a.lastTimestamp && b.lastTimestamp) {
+      return b.lastTimestamp - a.lastTimestamp;
+    } else if (a.lastTimestamp) {
+      return -1;
+    } else if (b.lastTimestamp) {
+      return 1;
+    }
+    return a.username.localeCompare(b.username);
+  });
+
+  userMeta.forEach(({ username }) => {
     const div = document.createElement("div");
     div.className = "user";
     div.style.display = "flex";
@@ -165,6 +185,7 @@ function setUserList(users) {
     div.appendChild(nameSpan);
     div.appendChild(statusSpan);
 
+    // click event handler (unchanged)
     div.addEventListener("click", async () => {
       chatPage = 0;
       noMoreMessages = false;
@@ -187,7 +208,6 @@ function setUserList(users) {
       const badge = div.querySelector(".notification-badge");
       if (badge) badge.remove();
 
-      // Close chat button setup
       const closeChatBtn = document.getElementById("closeChatBtn");
       if (closeChatBtn) {
         closeChatBtn.onclick = () => {
@@ -197,7 +217,6 @@ function setUserList(users) {
         };
       }
 
-      // Load from cache or fetch
       const cachedMessages = chatCache.get(username);
       if (cachedMessages) {
         cachedMessages.forEach(renderMessage);
