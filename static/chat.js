@@ -243,7 +243,7 @@ function updateNotificationBadge(fromUser) {
 
 // sort 
 
-async function fetchLastMessageTimestamp(userA, userB) {
+async function fetchLastMessage(userA, userB) {
   try {
     const res = await fetch(`/messages?from=${userA}&to=${userB}&limit=1&offset=0`);
     if (!res.ok) return null;
@@ -257,3 +257,27 @@ async function fetchLastMessageTimestamp(userA, userB) {
 }
 
 
+async function generateSortedUserList(currentUser, allUsers) {
+  const userMeta = [];
+
+  for (const otherUser of allUsers) {
+    if (otherUser === currentUser) continue;
+
+    const ts1 = await fetchLastMessage(currentUser, otherUser);
+    const ts2 = await fetchLastMessage(otherUser, currentUser);
+
+    const latestTimestamp = Math.max(ts1 || 0, ts2 || 0) || null;
+
+    userMeta.push({ username: otherUser, timestamp: latestTimestamp });
+  }
+
+  // Sort by last message (latest first), fallback to alphabetical
+  userMeta.sort((a, b) => {
+    if (a.timestamp && b.timestamp) return b.timestamp - a.timestamp;
+    if (a.timestamp) return -1;
+    if (b.timestamp) return 1;
+    return a.username.localeCompare(b.username);
+  });
+
+  updateUserListDOM(userMeta);
+}
