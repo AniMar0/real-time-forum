@@ -5,7 +5,6 @@ const chatCache = new Map(); // Cache messages per user
 let socket = null;
 let selectedUser = null;
 let currentUser = null;
-let usersFromServer = []; // store latest list
 
 let chatPage = 0
 const MESSAGES_PER_PAGE = 10
@@ -85,7 +84,6 @@ export function startChatFeature(currentUsername) {
     const data = JSON.parse(event.data);
 
     if (data.type === "user_list") {
-      usersFromServer = data.users;
       setUserList(data.users);
     } else {
       if (data.from === selectedUser || data.to === selectedUser) {
@@ -95,7 +93,6 @@ export function startChatFeature(currentUsername) {
         const chatKey = data.from === currentUser ? data.to : data.from;
         const cached = chatCache.get(chatKey) || [];
         chatCache.set(chatKey, [...cached, data]);
-        setUserList([...new Set([...chatCache.keys(), ...usersFromServer])]);
       } else if (data.to === currentUser) {
         const prev = unreadCounts.get(data.from) || 0;
         unreadCounts.set(data.from, prev + 1);
@@ -147,29 +144,9 @@ function setUserList(users) {
   const list = document.getElementById("userList");
   list.innerHTML = "";
 
-  const userMeta = users
-    .filter(username => username !== currentUser)
-    .map(username => {
-      const messages = chatCache.get(username);
-      const lastTimestamp = messages && messages.length > 0
-        ? new Date(messages[messages.length - 1].timestamp).getTime()
-        : null;
-      return { username, lastTimestamp };
-    });
+  users.forEach((username) => {
+    if (username === currentUser) return;
 
-  // Sort users: by last message timestamp DESC, then alphabetically
-  userMeta.sort((a, b) => {
-    if (a.lastTimestamp && b.lastTimestamp) {
-      return b.lastTimestamp - a.lastTimestamp;
-    } else if (a.lastTimestamp) {
-      return -1;
-    } else if (b.lastTimestamp) {
-      return 1;
-    }
-    return a.username.localeCompare(b.username);
-  });
-
-  userMeta.forEach(({ username }) => {
     const div = document.createElement("div");
     div.className = "user";
     div.style.display = "flex";
@@ -188,7 +165,6 @@ function setUserList(users) {
     div.appendChild(nameSpan);
     div.appendChild(statusSpan);
 
-    // click event handler (unchanged)
     div.addEventListener("click", async () => {
       chatPage = 0;
       noMoreMessages = false;
@@ -211,6 +187,7 @@ function setUserList(users) {
       const badge = div.querySelector(".notification-badge");
       if (badge) badge.remove();
 
+      // Close chat button setup
       const closeChatBtn = document.getElementById("closeChatBtn");
       if (closeChatBtn) {
         closeChatBtn.onclick = () => {
@@ -220,6 +197,7 @@ function setUserList(users) {
         };
       }
 
+      // Load from cache or fetch
       const cachedMessages = chatCache.get(username);
       if (cachedMessages) {
         cachedMessages.forEach(renderMessage);
