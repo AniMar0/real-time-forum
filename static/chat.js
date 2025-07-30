@@ -1,13 +1,13 @@
 import { showSection } from './app.js';
 
-const unreadCounts = new Map();
-const chatCache = new Map(); // Cache messages per user
-let socket = null;
-let selectedUser = null;
-let currentUser = null;
+const unreadCounts = new Map() // Messages unread
+const chatCache = new Map() // Cache messages per user
+let socket = null //Websocket connection
+let selectedUser = null // Active chat now
+let currentUser = null // Logged username
 
 let chatPage = 0
-const MESSAGES_PER_PAGE = 10
+const messagePerPage = 10
 let isFetching = false
 let noMoreMessages = false
 let chatContainer = null
@@ -24,7 +24,7 @@ const throttle = (fn, wait) => {
 }
 
 async function loadMessagesPage(from, to, page) {
-  const offset = page * MESSAGES_PER_PAGE;
+  const offset = page * messagePerPage;
   const loader = document.getElementById("chatLoader");
 
   const MIN_DISPLAY_TIME = 500; // milliseconds
@@ -238,4 +238,5 @@ function updateNotificationBadge(fromUser) {
       badge.textContent = unreadCounts.get(fromUser);
     }
   }
+
 }
