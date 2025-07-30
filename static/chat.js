@@ -12,6 +12,8 @@ let isFetching = false
 let noMoreMessages = false
 let chatContainer = null
 
+
+// throttle function with func and wait time as args
 const throttle = (fn, wait) => {
   let lastTime = 0
   return function (...args) {
@@ -24,43 +26,37 @@ const throttle = (fn, wait) => {
 }
 
 async function loadMessagesPage(from, to, page) {
-  const offset = page * messagePerPage;
-  const loader = document.getElementById("chatLoader");
-
-  const MIN_DISPLAY_TIME = 500; // milliseconds
-  const start = Date.now();
-
-  if (loader) loader.classList.remove("hidden");
+  const offset = page * messagePerPage
+  const loader = document.getElementById("chatLoader")
+  const minDisplayTime = 500 // milliseconds
+  const start = Date.now()
+  if (loader) loader.classList.remove("hidden")
 
   try {
-    const res = await fetch(`/messages?from=${from}&to=${to}&offset=${offset}`);
-    if (!res.ok) throw new Error("Failed to load chat messages");
-
-    const messages = await res.json();
-
+    const res = await fetch(`/messages?from=${from}&to=${to}&offset=${offset}`)
+    if (!res.ok) throw new Error("Failed to load chat messages")
+    const messages = await res.json()
     if (messages.length === 0) {
-      noMoreMessages = true;
+      noMoreMessages = true
     } else {
-      const container = document.getElementById("chatMessages");
-      const oldScrollHeight = container.scrollHeight;
-
-      messages.reverse().forEach(msg => renderMessageAtTop(msg));
-      container.scrollTop = container.scrollHeight - oldScrollHeight;
-
+      const container = document.getElementById("chatMessages")
+      const oldScrollHeight = container.scrollHeight
+      messages.reverse().forEach(msg => renderMessageAtTop(msg))
+      container.scrollTop = container.scrollHeight - oldScrollHeight
       const cached = chatCache.get(to) || [];
-      chatCache.set(to, [...messages, ...cached]);
+      chatCache.set(to, [...messages, ...cached])
     }
   } catch (err) {
-    console.error("Pagination error:", err);
+    console.error("Pagination error:", err)
   } finally {
-    const timeElapsed = Date.now() - start;
-    const remainingTime = MIN_DISPLAY_TIME - timeElapsed;
+    const timeElapsed = Date.now() - start
+    const remainingTime = minDisplayTime - timeElapsed
 
     // Wait remaining time if too fast
     setTimeout(() => {
-      if (loader) loader.classList.add("hidden");
-      isFetching = false;
-    }, remainingTime > 0 ? remainingTime : 0);
+      if (loader) loader.classList.add("hidden")
+      isFetching = false
+    }, remainingTime > 0 ? remainingTime : 0)
   }
 }
 
