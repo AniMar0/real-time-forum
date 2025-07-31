@@ -175,7 +175,7 @@ function setUserList(users) {
       const badge = div.querySelector(".notification-badge")
       if (badge) badge.remove()
 
-      // Close chat button setup
+      // Close chat button 
       const closeChatBtn = document.getElementById("closeChatBtn")
       if (closeChatBtn) {
         closeChatBtn.onclick = () => {
