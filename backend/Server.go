@@ -253,5 +253,4 @@ func (S *Server) DataBase() {
 
 func (S *Server) Shutdown() {
 	S.db.Close()
-	fmt.Println("chi 9alwa")
 }
