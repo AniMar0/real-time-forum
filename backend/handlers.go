@@ -70,7 +70,10 @@ func (S *Server) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	S.MakeToken(w, nickname)
 
 	w.Header().Set("Content-Type", "application/json")
-	fmt.Fprintf(w, `{"username":"%s"}`, nickname)
+	//fmt.Fprintf(w, `{"username":"%s"}`, nickname)
+	json.NewEncoder(w).Encode(map[string]string{
+		"username": nickname,
+	})
 }
 
 func (S *Server) CreatePostHandler(w http.ResponseWriter, r *http.Request) {
@@ -176,7 +179,10 @@ func (S *Server) LoggedHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	fmt.Fprintf(w, `{"username":"%s"}`, username)
+	// fmt.Fprintf(w, `{"username":"%s"}`, username)
+	json.NewEncoder(w).Encode(map[string]string{
+		"username": username,
+	})
 }
 
 // comments
@@ -254,7 +260,6 @@ func (S *Server) GetCommentsHandler(w http.ResponseWriter, r *http.Request) {
 
 // chats
 
-// Modified HandleWebSocket function
 // Modified HandleWebSocket function
 func (S *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	username, err := S.CheckSession(r)
