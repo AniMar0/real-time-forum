@@ -1,4 +1,4 @@
-import { showSection } from './app.js';
+import { logged, showSection } from './app.js';
 
 const unreadCounts = new Map() // Messages unread
 const chatCache = new Map() // Cache messages per user
@@ -99,23 +99,38 @@ export function startChatFeature(currentUsername) {
 
   if (sendBtn && input) {
     sendBtn.addEventListener("click", () => {
-      const content = input.value.trim()
-      if (!content || !selectedUser) return
+      fetch('/logged', {
+        credentials: 'include'
+      })
+        .then(res => {
+          if (!res.ok) throw new Error('Not logged in')
+          return res.json()
+        })
+        .then(data => {
+          const content = input.value.trim()
+          if (!content || !selectedUser) return
 
-      const message = {
-        to: selectedUser,
-        from: currentUser,
-        content: content,
-        timestamp: new Date().toISOString(),
-      }
+          const message = {
+            to: selectedUser,
+            from: currentUser,
+            content: content,
+            timestamp: new Date().toISOString(),
+          }
 
-      socket.send(JSON.stringify(message))
-      renderMessage(message)
+          socket.send(JSON.stringify(message))
+          renderMessage(message)
 
-      // Update cache
-      const cached = chatCache.get(selectedUser) || []
-      chatCache.set(selectedUser, [...cached, message])
-      input.value = ""
+          // Update cache
+          const cached = chatCache.get(selectedUser) || []
+          chatCache.set(selectedUser, [...cached, message])
+          input.value = ""
+
+        })
+        .catch(() => {
+          logged(false)
+          showSection('loginSection')
+          document.getElementById("chatWindow").classList.add('hidden');
+        })
     })
   }
 }
