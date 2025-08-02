@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"html"
 	"log"
 	"net/http"
 	"time"
@@ -73,7 +74,7 @@ func (S *Server) AddUser(user User) string {
 	}
 	query := `INSERT INTO users (nickname, first_name, last_name, email, password, age, gender)
 		VALUES (?, ?, ?, ?, ?, ?, ?)`
-	_, err = S.db.Exec(query, user.Nickname, user.FirstName, user.LastName, user.Email, string(hashedPassword), user.Age, user.Gender)
+	_, err = S.db.Exec(query, html.EscapeString(user.Nickname), html.EscapeString(user.FirstName), html.EscapeString(user.LastName), html.EscapeString(user.Email), string(hashedPassword), user.Age, user.Gender)
 	if err != nil {
 		return error.Error(err)
 	}
@@ -187,7 +188,7 @@ func (s *Server) receiveMessages(client *Client) {
 		_, err = s.db.Exec(`
 			INSERT INTO messages (sender, receiver, content, timestamp)
 			VALUES (?, ?, ?, ?)`,
-			msg.From, msg.To, msg.Content, msg.Timestamp)
+			msg.From, msg.To, html.EscapeString(msg.Content), msg.Timestamp)
 		if err != nil {
 			fmt.Println("DB Insert Error:", err)
 			continue
