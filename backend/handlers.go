@@ -54,8 +54,6 @@ func (S *Server) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// fmt.Println(user)
-
 	nickname, hashedPassword, err := S.GetHashedPasswordFromDB(user.Identifier)
 	if err != nil {
 		fmt.Println("undif")
@@ -63,7 +61,6 @@ func (S *Server) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := CheckPassword(hashedPassword, user.Password); err != nil {
-		fmt.Println("err")
 		renderErrorPage(w, "Inccorect password", http.StatusInternalServerError)
 		return
 	}

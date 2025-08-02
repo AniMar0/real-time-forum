@@ -121,7 +121,6 @@ func (S *Server) MakeToken(Writer http.ResponseWriter, username string) {
 	_, err := S.db.Exec("INSERT INTO sessions (session_id, nickname, expires_at) VALUES (?, ?, ?)",
 		sessionID, username, expirationTime)
 	if err != nil {
-		fmt.Println("'tocken err'")
 		http.Error(Writer, "Error creating session", http.StatusInternalServerError)
 		return
 	}
@@ -197,7 +196,6 @@ func (s *Server) receiveMessages(client *Client) {
 		// Send to all sessions of the recipient
 		if recipientSessions, ok := s.clients[msg.To]; ok {
 			for _, recipient := range recipientSessions {
-				fmt.Println(msg.To)
 				s.broadcastUserList(msg.To)
 				err := recipient.Conn.WriteJSON(msg)
 				if err != nil {
