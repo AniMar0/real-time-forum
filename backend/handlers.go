@@ -3,6 +3,7 @@ package backend
 import (
 	"encoding/json"
 	"fmt"
+	"html"
 	"net/http"
 	"strconv"
 	"time"
@@ -106,7 +107,7 @@ func (S *Server) CreatePostHandler(w http.ResponseWriter, r *http.Request) {
 
 	_, err = S.db.Exec(
 		"INSERT INTO posts (user_id, title, content, category) VALUES ((SELECT id FROM users WHERE nickname = ?), ?, ?, ?)",
-		nickname, post.Title, post.Content, post.Category,
+		html.EscapeString(nickname), html.EscapeString(post.Title), html.EscapeString(post.Content), html.EscapeString(post.Category),
 	)
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -212,7 +213,7 @@ func (S *Server) CreateCommentHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	_, err = S.db.Exec(
 		"INSERT INTO comments (post_id, user_id, content) VALUES (?, (SELECT id FROM users WHERE nickname = ?), ?)",
-		comment.PostID, nickname, comment.Content,
+		(comment.PostID), html.EscapeString(nickname), html.EscapeString(comment.Content),
 	)
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
