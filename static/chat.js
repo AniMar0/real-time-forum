@@ -214,7 +214,9 @@ function setUserList(users) {
       // Load from cache or fetch
       const cachedMessages = chatCache.get(username)
       if (cachedMessages) {
-        cachedMessages.forEach(renderMessage)
+        cachedMessages
+          .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
+          .forEach(renderMessage)
       } else {
         try {
           chatPage = 0
