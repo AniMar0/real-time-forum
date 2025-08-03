@@ -73,65 +73,74 @@ const renderMessageAtTop = (msg) => {
 
 // real time connexion using websockets, listens for msg, update
 export function startChatFeature(currentUsername) {
-  currentUser = currentUsername
+  currentUser = currentUsername;
   socket = new WebSocket("ws://" + window.location.host + "/ws");
+
   socket.addEventListener("message", (event) => {
-    const data = JSON.parse(event.data)
+    const data = JSON.parse(event.data);
     if (data.type === "user_list") {
-      setUserList(data.users)
+      setUserList(data.users);
     } else {
       if (data.from === selectedUser || data.to === selectedUser) {
-        renderMessage(data)
-        // update cache
-        const chatKey = data.from === currentUser ? data.to : data.from
-        const cached = chatCache.get(chatKey) || []
-        chatCache.set(chatKey, [...cached, data])
+        renderMessage(data);
+        // Update cache
+        const chatKey = data.from === currentUser ? data.to : data.from;
+        const cached = chatCache.get(chatKey) || [];
+        chatCache.set(chatKey, [...cached, data]);
       } else if (data.to === currentUser) {
-        const prev = unreadCounts.get(data.from) || 0
-        unreadCounts.set(data.from, prev + 1)
-        updateNotificationBadge(data.from)
+        const prev = unreadCounts.get(data.from) || 0;
+        unreadCounts.set(data.from, prev + 1);
+        updateNotificationBadge(data.from);
       }
     }
-  })
+  });
 
-  const sendBtn = document.getElementById("sendBtn")
-  const input = document.getElementById("messageInput")
+  const sendBtn = document.getElementById("sendBtn");
+  const input = document.getElementById("messageInput");
 
   if (sendBtn && input) {
-    sendBtn.addEventListener("click", () => {
+    const sendMessage = () => {
       fetch('/logged', {
         credentials: 'include'
       })
         .then(res => {
-          if (!res.ok) throw new Error('Not logged in')
-          return res.json()
+          if (!res.ok) throw new Error('Not logged in');
+          return res.json();
         })
         .then(data => {
-          const content = input.value.trim()
-          if (!content || !selectedUser) return
+          const content = input.value.trim();
+          if (!content || !selectedUser) return;
 
           const message = {
             to: selectedUser,
             from: currentUser,
             content: content,
             timestamp: new Date().toISOString(),
-          }
+          };
 
-          socket.send(JSON.stringify(message))
-          renderMessage(message)
+          socket.send(JSON.stringify(message));
+          renderMessage(message);
 
           // Update cache
-          const cached = chatCache.get(selectedUser) || []
-          chatCache.set(selectedUser, [...cached, message])
-          input.value = ""
-
+          const cached = chatCache.get(selectedUser) || [];
+          chatCache.set(selectedUser, [...cached, message]);
+          input.value = "";
         })
         .catch(() => {
-          logged(false)
-          showSection('loginSection')
+          logged(false);
+          showSection('loginSection');
           document.getElementById("chatWindow").classList.add('hidden');
-        })
-    })
+        });
+    };
+
+    sendBtn.addEventListener("click", sendMessage);
+
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
   }
 }
 
