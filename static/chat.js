@@ -1,10 +1,10 @@
 import { logged, showSection } from './app.js';
 
-const unreadCounts = new Map() // Messages unread
-const chatCache = new Map() // Cache messages per user
-let socket = null //Websocket connection
-let selectedUser = null // Active chat now
-let currentUser = null // Logged username
+const unreadCounts = new Map() // messages unread
+const chatCache = new Map() // cache messages per user
+let socket = null //websocket connection
+let selectedUser = null // wctive chat now
+let currentUser = null // logged username
 
 let chatPage = 0
 const messagePerPage = 10
@@ -40,19 +40,10 @@ async function loadMessagesPage(from, to, page) {
     } else {
       const container = document.getElementById("chatMessages")
       const oldScrollHeight = container.scrollHeight
-      
-      // FIXED: Render messages in reverse order (newest first when inserting at top)
-      // Sort by timestamp to ensure correct order
       const sortedMessages = messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
-      
-      // Insert in reverse order so newest appear at bottom of loaded chunk
       sortedMessages.reverse().forEach(msg => renderMessageAtTop(msg))
-      
       container.scrollTop = container.scrollHeight - oldScrollHeight
-      
-      // FIXED: Merge cache correctly - older messages should be at the beginning
       const cached = chatCache.get(to) || []
-      // Sort the fetched messages back to chronological order for cache
       const chronologicalMessages = messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
       chatCache.set(to, [...chronologicalMessages, ...cached])
     }
@@ -213,10 +204,8 @@ function setUserList(users) {
         };
       }
 
-      // Load from cache or fetch
       const cachedMessages = chatCache.get(username)
       if (cachedMessages) {
-        // FIXED: Sort cached messages by timestamp before rendering
         const sortedCached = [...cachedMessages].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
         sortedCached.forEach(renderMessage)
       } else {
@@ -227,7 +216,6 @@ function setUserList(users) {
           if (!res.ok) throw new Error("Failed to load chat history")
           const messages = await res.json()
           
-          // FIXED: Sort messages before caching and rendering
           const sortedMessages = messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
           chatCache.set(selectedUser, sortedMessages)
           sortedMessages.forEach(renderMessage)
