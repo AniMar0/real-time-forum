@@ -225,7 +225,9 @@ function setUserList(users) {
           if (!res.ok) throw new Error("Failed to load chat history")
           const messages = await res.json()
           chatCache.set(selectedUser, messages)
-          messages.forEach(renderMessage)
+          messages
+            .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
+            .forEach(renderMessage)
         } catch (err) {
           console.error("Chat history error:", err)
         }
