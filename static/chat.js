@@ -41,22 +41,14 @@ async function loadMessagesPage(from, to, page) {
       const container = document.getElementById("chatMessages")
       const oldScrollHeight = container.scrollHeight
       const oldScrollTop = container.scrollTop
-      
-      // FIXED: Render messages in reverse order (newest first when inserting at top)
-      // Sort by timestamp to ensure correct order
       const sortedMessages = messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
-      
-      // Insert in reverse order so newest appear at bottom of loaded chunk
       sortedMessages.reverse().forEach(msg => renderMessageAtTop(msg))
       
-      // Better scroll position calculation
       const newScrollHeight = container.scrollHeight
       const heightDifference = newScrollHeight - oldScrollHeight
       container.scrollTop = oldScrollTop + heightDifference
       
-      // FIXED: Merge cache correctly - older messages should be at the beginning
       const cached = chatCache.get(to) || []
-      // Sort the fetched messages back to chronological order for cache
       const chronologicalMessages = messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
       chatCache.set(to, [...chronologicalMessages, ...cached])
     }
@@ -70,12 +62,9 @@ async function loadMessagesPage(from, to, page) {
     setTimeout(() => {
       if (loader) loader.classList.add("hidden")
       isFetching = false
-      
-      // ADDED: Check if we need to load more messages immediately
-      // This handles the case where loaded content doesn't fill the viewport
+
       const container = document.getElementById("chatMessages")
       if (container && container.scrollTop <= 100 && !noMoreMessages) {
-        // Small delay to prevent rapid consecutive calls
         setTimeout(() => {
           if (container.scrollTop <= 100 && !isFetching && !noMoreMessages) {
             const event = new Event('scroll')
@@ -144,7 +133,6 @@ export function startChatFeature(currentUsername) {
           }
           socket.send(JSON.stringify(message))
           renderMessage(message)
-
           const cached = chatCache.get(selectedUser) || []
           chatCache.set(selectedUser, [...cached, message])
           input.value = ""
@@ -194,24 +182,18 @@ function setUserList(users) {
     nameSpan.textContent = username
     const statusSpan = document.createElement("span")
     statusSpan.classList.add("status", "online")
-
     div.appendChild(nameSpan)
     div.appendChild(statusSpan)
-
     div.addEventListener("click", async () => {
       chatPage = 0
       noMoreMessages = false
       chatContainer = document.getElementById("chatMessages")
-
-      // Remove any existing scroll listeners to prevent duplicates
       const existingHandler = chatContainer.scrollHandler
       if (existingHandler) {
         chatContainer.removeEventListener("scroll", existingHandler)
       }
 
-      // Create and store the scroll handler
       const scrollHandler = throttle(async () => {
-        // More generous threshold and check for exact top position
         const isNearTop = chatContainer.scrollTop <= 100
         const isAtTop = chatContainer.scrollTop === 0
         
@@ -220,11 +202,9 @@ function setUserList(users) {
           chatPage += 1
           await loadMessagesPage(currentUser, selectedUser, chatPage)
         }
-      }, 200) // Reduced throttle time for better responsiveness
-
+      }, 200) 
       chatContainer.scrollHandler = scrollHandler
       chatContainer.addEventListener("scroll", scrollHandler)
-
       selectedUser = username
       document.getElementById("chatWithName").textContent = username
       document.getElementById("chatWindow").classList.remove("hidden")
@@ -234,20 +214,18 @@ function setUserList(users) {
       const badge = div.querySelector(".notification-badge")
       if (badge) badge.remove()
 
-      // Close chat button 
+      // close chat button 
       const closeChatBtn = document.getElementById("closeChatBtn")
       if (closeChatBtn) {
         closeChatBtn.onclick = () => {
           document.getElementById("chatWindow").classList.add("hidden")
           selectedUser = null;
           document.getElementById("chatWithName").textContent = ""
-        };
+        }
       }
 
-      // Load from cache or fetch
       const cachedMessages = chatCache.get(username)
       if (cachedMessages) {
-        // FIXED: Sort cached messages by timestamp before rendering
         const sortedCached = [...cachedMessages].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
         sortedCached.forEach(renderMessage)
       } else {
@@ -257,8 +235,6 @@ function setUserList(users) {
           const res = await fetch(`/messages?from=${currentUser}&to=${selectedUser}&offset=0`)
           if (!res.ok) throw new Error("Failed to load chat history")
           const messages = await res.json()
-          
-          // FIXED: Sort messages before caching and rendering
           const sortedMessages = messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
           chatCache.set(selectedUser, sortedMessages)
           sortedMessages.forEach(renderMessage)
@@ -266,28 +242,27 @@ function setUserList(users) {
           console.error("Chat history error:", err)
         }
       }
-    });
+    })
 
     list.appendChild(div)
-  });
+  })
 }
 
 function updateNotificationBadge(fromUser) {
-  const userList = document.getElementById("userList");
-  const users = userList.getElementsByClassName("user");
+  const userList = document.getElementById("userList")
+  const users = userList.getElementsByClassName("user")
 
   for (let div of users) {
-    const nameSpan = div.querySelector("span:first-child");
+    const nameSpan = div.querySelector("span:first-child")
     if (nameSpan && nameSpan.textContent === fromUser) {
-      let badge = div.querySelector(".notification-badge");
+      let badge = div.querySelector(".notification-badge")
 
       if (!badge) {
-        badge = document.createElement("span");
-        badge.classList.add("notification-badge");
-        div.appendChild(badge);
+        badge = document.createElement("span")
+        badge.classList.add("notification-badge")
+        div.appendChild(badge)
       }
-
-      badge.textContent = unreadCounts.get(fromUser);
+      badge.textContent = unreadCounts.get(fromUser)
     }
   }
 }
