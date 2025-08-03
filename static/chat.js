@@ -41,7 +41,9 @@ async function loadMessagesPage(from, to, page) {
     } else {
       const container = document.getElementById("chatMessages")
       const oldScrollHeight = container.scrollHeight
-      messages.reverse().forEach(msg => renderMessageAtTop(msg))
+      messages
+        .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
+        .forEach(msg => renderMessageAtTop(msg))
       container.scrollTop = container.scrollHeight - oldScrollHeight
       const cached = chatCache.get(to) || [];
       chatCache.set(to, [...messages, ...cached])
