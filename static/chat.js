@@ -45,8 +45,11 @@ async function loadMessagesPage(from, to, page) {
         .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
         .forEach(msg => renderMessageAtTop(msg))
       container.scrollTop = container.scrollHeight - oldScrollHeight
-      const cached = chatCache.get(to) || [];
-      chatCache.set(to, [...messages, ...cached])
+      const cached = chatCache.get(to) || []
+      const merged = [...messages, ...cached]
+      const unique = Array.from(new Map(merged.map(msg => [msg.timestamp, msg])).values())
+      chatCache.set(to, unique)
+
     }
   } catch (err) {
     console.error("Pagination error:", err)
