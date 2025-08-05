@@ -11,6 +11,10 @@ import (
 	"github.com/twinj/uuid"
 )
 
+func (S *Server) Notification(w http.ResponseWriter, r *http.Request) {
+	
+}
+
 func (S *Server) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		renderErrorPage(w, "Method Not Allowed", http.StatusMethodNotAllowed)
