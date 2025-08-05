@@ -96,6 +96,7 @@ export function startChatFeature(currentUsername) {
     const data = JSON.parse(event.data)
     if (data.type === "user_list") {
       setUserList(data.users)
+
     } else {
       newMessages++
       if (data.from === selectedUser || data.to === selectedUser) {
@@ -215,7 +216,7 @@ function setUserList(users) {
           document.getElementById("chatWithName").textContent = ""
         }
       }
-
+      notification(currentUser,username)
       const cachedMessages = chatCache.get(username)
       if (cachedMessages) {
         const sortedCached = [...cachedMessages].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
