@@ -121,7 +121,7 @@ export function startChatFeature(currentUsername) {
           if (!res.ok) throw new Error('Not logged in')
           return res.json()
         })
-        .then(data => {
+        .then(() => {
           const content = input.value.trim();
           if (!content || !selectedUser) return;
 
