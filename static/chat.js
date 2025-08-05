@@ -104,9 +104,7 @@ export function startChatFeature(currentUsername) {
         const cached = chatCache.get(chatKey) || []
         chatCache.set(chatKey, [...cached, data])
       } else if (data.to === currentUser) {
-        const prev = unreadCounts.get(data.from) || 0
-        unreadCounts.set(data.from, prev + 1)
-        updateNotificationBadge(data.from)
+        notification(data.to,data.from)
       }
     }
   })
@@ -205,7 +203,6 @@ function setUserList(users) {
       document.getElementById("chatWindow").classList.remove("hidden")
       document.getElementById("chatMessages").innerHTML = ""
 
-      unreadCounts.set(username, 0)
       const badge = div.querySelector(".notification-badge")
       if (badge) badge.remove()
 
@@ -244,14 +241,13 @@ function setUserList(users) {
 }
 
 function updateNotificationBadge(data) {
-  let fromUser = data.sender_nickname
   const userList = document.getElementById("userList")
   const users = userList.getElementsByClassName("user")
   if (!userList) return;
 
   for (let div of users) {
     const nameSpan = div.querySelector("span:first-child")
-    if (nameSpan && nameSpan.textContent === fromUser) {
+    if (nameSpan && nameSpan.textContent === data.sender_nickname) {
       let badge = div.querySelector(".notification-badge")
 
       if (!badge) {
@@ -259,7 +255,7 @@ function updateNotificationBadge(data) {
         badge.classList.add("notification-badge")
         div.appendChild(badge)
       }
-      badge.textContent = unreadCounts.get(fromUser)
+      badge.textContent = data.unread_messages
     }
   }
 }
@@ -275,7 +271,7 @@ function notification(receiver,sender) {
     headers: {
       "Content-Type": "application/json"
     },
-    body: JSON.stringify(formData)
+    body: JSON.stringify(notifData)
   })
     .then(res => {
       if (!res.ok) {
