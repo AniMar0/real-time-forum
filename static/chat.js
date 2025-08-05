@@ -243,7 +243,8 @@ function setUserList(users) {
   })
 }
 
-function updateNotificationBadge(fromUser) {
+function updateNotificationBadge(data) {
+  let fromUser = data.sender_nickname
   const userList = document.getElementById("userList")
   const users = userList.getElementsByClassName("user")
 
@@ -260,4 +261,31 @@ function updateNotificationBadge(fromUser) {
       badge.textContent = unreadCounts.get(fromUser)
     }
   }
+}
+
+function notification(receiver,sender) {
+    const notifData = {
+    receiver_nickname: receiver,
+    sender_nickname: sender
+  };
+
+  fetch("/notification", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(formData)
+  })
+    .then(res => {
+      if (!res.ok) {
+        throw new Error("notif failed");
+      }
+      return res.json();
+    })
+    .then(data => {
+      updateNotificationBadge(data)
+    })
+    .catch(err => {
+      console.error(err);
+    });
 }
