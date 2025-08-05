@@ -51,7 +51,9 @@ func (S *Server) Notification(w http.ResponseWriter, r *http.Request) {
 	if err == sql.ErrNoRows {
 		newUnread = 1
 		if notif.Unread != nil {
-			newUnread = *notif.Unread
+			newUnread = 1
+		} else {
+			newUnread = 0
 		}
 		_, err = S.db.Exec(`
 			INSERT INTO notifications (receiver_nickname, sender_nickname, unread_messages) 
