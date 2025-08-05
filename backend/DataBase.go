@@ -4,11 +4,16 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"os"
 
 	_ "github.com/mattn/go-sqlite3"
 )
 
 func MakeDataBase() {
+	if err := os.MkdirAll("database", os.ModePerm); err != nil {
+		log.Fatalf("Failed to create database directory: %v", err)
+	}
+
 	db, err := sql.Open("sqlite3", "database/forum.db")
 	if err != nil {
 		log.Fatal(err)
