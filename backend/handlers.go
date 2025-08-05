@@ -1,6 +1,7 @@
 package backend
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"html"
@@ -12,7 +13,75 @@ import (
 )
 
 func (S *Server) Notification(w http.ResponseWriter, r *http.Request) {
-	
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	cookie, err := r.Cookie("session_token")
+	if err != nil {
+		http.Error(w, "Unauthorized - No session", http.StatusUnauthorized)
+		return
+	}
+
+	sessionID := cookie.Value
+	var nickname string
+	err = S.db.QueryRow("SELECT nickname FROM sessions WHERE session_id = ? AND expires_at > datetime('now')", sessionID).Scan(&nickname)
+	if err != nil {
+		http.Error(w, "Unauthorized - Invalid session", http.StatusUnauthorized)
+		return
+	}
+
+	var notif Notification
+	err = json.NewDecoder(r.Body).Decode(&notif)
+	if err != nil {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+
+	var oldUnread int
+	err = S.db.QueryRow("SELECT unread_messages FROM notifications WHERE receiver_nickname = ? AND sender_nickname = ?", nickname, notif.Sender).Scan(&oldUnread)
+
+	if err == sql.ErrNoRows {
+		initialUnread := 1
+		if notif.Unread != nil {
+			initialUnread = *notif.Unread
+		}
+		_, err = S.db.Exec("INSERT INTO notifications (receiver_nickname, sender_nickname, unread_messages) VALUES (?, ?, ?)", nickname, notif.Sender, initialUnread)
+		if err != nil {
+			http.Error(w, "Failed to insert notification", http.StatusInternalServerError)
+			return
+		}
+	} else if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	} else {
+		var newUnread int
+		if notif.Unread == nil {
+			newUnread = oldUnread
+		} else if *notif.Unread == 1 {
+			newUnread = oldUnread + 1
+		} else {
+			newUnread = *notif.Unread
+		}
+
+		_, err = S.db.Exec("UPDATE notifications SET unread_messages = ? WHERE receiver_nickname = ? AND sender_nickname = ?", newUnread, nickname, notif.Sender)
+		if err != nil {
+			http.Error(w, "Failed to update notification", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	response := struct {
+		SenderNickname string `json:"sender_nickname"`
+		UnreadMessages int    `json:"unread_messages"`
+	}{
+		SenderNickname: notif.Sender,
+		UnreadMessages: oldUnread + 1, 
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
 }
 
 func (S *Server) RegisterHandler(w http.ResponseWriter, r *http.Request) {

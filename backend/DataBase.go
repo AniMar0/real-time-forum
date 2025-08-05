@@ -73,7 +73,6 @@ func createTables(db *sql.DB) (int, error) {
 	receiver_nickname TEXT,
 	sender_nickname TEXT,
 	unread_messages INTEGER DEFAULT 0,
-	created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 	FOREIGN KEY(receiver_nickname) REFERENCES users(nickname),
 	FOREIGN KEY(sender_nickname) REFERENCES users(nickname)
 	)`}
