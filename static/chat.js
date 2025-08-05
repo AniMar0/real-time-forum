@@ -247,6 +247,7 @@ function updateNotificationBadge(data) {
   let fromUser = data.sender_nickname
   const userList = document.getElementById("userList")
   const users = userList.getElementsByClassName("user")
+  if (!userList) return;
 
   for (let div of users) {
     const nameSpan = div.querySelector("span:first-child")
