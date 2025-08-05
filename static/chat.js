@@ -11,7 +11,7 @@ const messagePerPage = 10
 let isFetching = false
 let noMoreMessages = false
 let chatContainer = null
-
+let newMessages = 0
 // throttle function with func and wait time as args
 const throttle = (fn, wait) => {
   let lastTime = 0
@@ -32,7 +32,7 @@ async function loadMessagesPage(from, to, page) {
   if (loader) loader.classList.remove("hidden")
 
   try {
-    const res = await fetch(`/messages?from=${from}&to=${to}&offset=${offset}`)
+    const res = await fetch(`/messages?from=${from}&to=${to}&offset=${offset+newMessages}`)
     if (!res.ok) throw new Error("Failed to load chat messages")
     const messages = await res.json()
     if (messages.length === 0) {
@@ -62,7 +62,7 @@ async function loadMessagesPage(from, to, page) {
     setTimeout(() => {
       if (loader) loader.classList.add("hidden")
       isFetching = false
-
+      
       const container = document.getElementById("chatMessages")
       if (container && container.scrollTop <= 100 && !noMoreMessages) {
         setTimeout(() => {
@@ -97,6 +97,7 @@ export function startChatFeature(currentUsername) {
     if (data.type === "user_list") {
       setUserList(data.users)
     } else {
+      newMessages++
       if (data.from === selectedUser || data.to === selectedUser) {
         renderMessage(data)
         const chatKey = data.from === currentUser ? data.to : data.from
