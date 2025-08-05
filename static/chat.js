@@ -96,7 +96,6 @@ export function startChatFeature(currentUsername) {
     const data = JSON.parse(event.data)
     if (data.type === "user_list") {
       setUserList(data.users)
-
     } else {
       newMessages++
       if (data.from === selectedUser || data.to === selectedUser) {
@@ -245,7 +244,7 @@ function setUserList(users) {
 function updateNotificationBadge(data) {
   const userList = document.getElementById("userList")
   const users = userList.getElementsByClassName("user")
-  if (!userList) return;
+  if (!userList || data.unread_messages == 0) return;
 
   for (let div of users) {
     const nameSpan = div.querySelector("span:first-child")

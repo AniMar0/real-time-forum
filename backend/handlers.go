@@ -26,7 +26,9 @@ func (S *Server) Notification(w http.ResponseWriter, r *http.Request) {
 
 	sessionID := cookie.Value
 	var nickname string
-	err = S.db.QueryRow("SELECT nickname FROM sessions WHERE session_id = ? AND expires_at > datetime('now')", sessionID).Scan(&nickname)
+	err = S.db.QueryRow(`
+		SELECT nickname FROM sessions 
+		WHERE session_id = ? AND expires_at > datetime('now')`, sessionID).Scan(&nickname)
 	if err != nil {
 		http.Error(w, "Unauthorized - Invalid session", http.StatusUnauthorized)
 		return
@@ -40,14 +42,20 @@ func (S *Server) Notification(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var oldUnread int
-	err = S.db.QueryRow("SELECT unread_messages FROM notifications WHERE receiver_nickname = ? AND sender_nickname = ?", nickname, notif.Sender).Scan(&oldUnread)
+	err = S.db.QueryRow(`
+		SELECT unread_messages FROM notifications 
+		WHERE receiver_nickname = ? AND sender_nickname = ?`, nickname, notif.Sender).Scan(&oldUnread)
+
+	var newUnread int
 
 	if err == sql.ErrNoRows {
-		initialUnread := 1
+		newUnread = 1
 		if notif.Unread != nil {
-			initialUnread = *notif.Unread
+			newUnread = *notif.Unread
 		}
-		_, err = S.db.Exec("INSERT INTO notifications (receiver_nickname, sender_nickname, unread_messages) VALUES (?, ?, ?)", nickname, notif.Sender, initialUnread)
+		_, err = S.db.Exec(`
+			INSERT INTO notifications (receiver_nickname, sender_nickname, unread_messages) 
+			VALUES (?, ?, ?)`, nickname, notif.Sender, newUnread)
 		if err != nil {
 			http.Error(w, "Failed to insert notification", http.StatusInternalServerError)
 			return
@@ -56,7 +64,6 @@ func (S *Server) Notification(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	} else {
-		var newUnread int
 		if notif.Unread == nil {
 			newUnread = oldUnread
 		} else if *notif.Unread == 1 {
@@ -65,23 +72,21 @@ func (S *Server) Notification(w http.ResponseWriter, r *http.Request) {
 			newUnread = *notif.Unread
 		}
 
-		_, err = S.db.Exec("UPDATE notifications SET unread_messages = ? WHERE receiver_nickname = ? AND sender_nickname = ?", newUnread, nickname, notif.Sender)
+		_, err = S.db.Exec(`
+			UPDATE notifications 
+			SET unread_messages = ? 
+			WHERE receiver_nickname = ? AND sender_nickname = ?`, newUnread, nickname, notif.Sender)
 		if err != nil {
 			http.Error(w, "Failed to update notification", http.StatusInternalServerError)
 			return
 		}
 	}
 
-	response := struct {
-		SenderNickname string `json:"sender_nickname"`
-		UnreadMessages int    `json:"unread_messages"`
-	}{
-		SenderNickname: notif.Sender,
-		UnreadMessages: oldUnread + 1, 
-	}
+	notif.Receiver = nickname
+	notif.Unread = &newUnread
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	json.NewEncoder(w).Encode(notif)
 }
 
 func (S *Server) RegisterHandler(w http.ResponseWriter, r *http.Request) {
