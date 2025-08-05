@@ -145,12 +145,6 @@ export function startChatFeature(currentUsername) {
         })
     }
     sendBtn.addEventListener("click", sendMessage);
-    input.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault()
-        sendMessage()
-      }
-    })
   }
 }
 
