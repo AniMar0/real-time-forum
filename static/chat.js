@@ -11,7 +11,8 @@ const messagePerPage = 10
 let isFetching = false
 let noMoreMessages = false
 let chatContainer = null
-let newMessages = 0
+let displayedMessagesCount = 0 // Track actual messages on screen
+
 // throttle function with func and wait time as args
 const throttle = (fn, wait) => {
   let lastTime = 0
@@ -25,14 +26,15 @@ const throttle = (fn, wait) => {
 }
 
 async function loadMessagesPage(from, to, page) {
-  const offset = page * messagePerPage
+  // Use displayed messages count for offset, not page * messagePerPage
+  const offset = displayedMessagesCount
   const loader = document.getElementById("chatLoader")
   const minDisplayTime = 500 // milliseconds
   const start = Date.now()
   if (loader) loader.classList.remove("hidden")
 
   try {
-    const res = await fetch(`/messages?from=${from}&to=${to}&offset=${offset + newMessages}`)
+    const res = await fetch(`/messages?from=${from}&to=${to}&offset=${offset}`)
     if (!res.ok) throw new Error("Failed to load chat messages")
     const messages = await res.json()
     if (messages.length === 0) {
@@ -43,11 +45,15 @@ async function loadMessagesPage(from, to, page) {
       const oldScrollTop = container.scrollTop
       const sortedMessages = messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
       sortedMessages.reverse().forEach(msg => renderMessageAtTop(msg))
+      
+      // Update displayed messages count
+      displayedMessagesCount += messages.length
 
       const newScrollHeight = container.scrollHeight
       const heightDifference = newScrollHeight - oldScrollHeight
       container.scrollTop = oldScrollTop + heightDifference
 
+      // Update cache with new messages (prepend to maintain chronological order)
       const cached = chatCache.get(to) || []
       const chronologicalMessages = messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
       chatCache.set(to, [...chronologicalMessages, ...cached])
@@ -97,14 +103,14 @@ export function startChatFeature(currentUsername) {
     if (data.type === "user_list") {
       setUserList(data.users)
     } else {
-      newMessages++
       if (data.from === selectedUser || data.to === selectedUser) {
         renderMessage(data)
+        displayedMessagesCount++ // Increment for real-time messages
         const chatKey = data.from === currentUser ? data.to : data.from
         const cached = chatCache.get(chatKey) || []
         chatCache.set(chatKey, [...cached, data])
       } else if (data.to === currentUser) {
-        notification(data.to, data.from,1)
+        notification(data.to, data.from, 1)
       }
     }
   })
@@ -132,6 +138,7 @@ export function startChatFeature(currentUsername) {
           }
           socket.send(JSON.stringify(message))
           renderMessage(message)
+          displayedMessagesCount++ // Increment for sent messages
           const cached = chatCache.get(selectedUser) || []
           chatCache.set(selectedUser, [...cached, message])
           input.value = ""
@@ -179,9 +186,13 @@ function setUserList(users) {
     div.appendChild(statusSpan)
     notification(currentUser, username)
     div.addEventListener("click", async () => {
+      // Reset pagination state for new chat
       chatPage = 0
       noMoreMessages = false
+      displayedMessagesCount = 0 // Reset message counter
       chatContainer = document.getElementById("chatMessages")
+      
+      // Remove existing scroll handler
       const existingHandler = chatContainer.scrollHandler
       if (existingHandler) {
         chatContainer.removeEventListener("scroll", existingHandler)
@@ -199,6 +210,7 @@ function setUserList(users) {
       }, 200)
       chatContainer.scrollHandler = scrollHandler
       chatContainer.addEventListener("scroll", scrollHandler)
+      
       selectedUser = username
       document.getElementById("chatWithName").textContent = username
       document.getElementById("chatWindow").classList.remove("hidden")
@@ -214,13 +226,19 @@ function setUserList(users) {
           document.getElementById("chatWindow").classList.add("hidden")
           selectedUser = null;
           document.getElementById("chatWithName").textContent = ""
+          // Reset pagination state when closing chat
+          chatPage = 0
+          noMoreMessages = false
+          displayedMessagesCount = 0 // Reset message counter
         }
       }
       notification(currentUser, username, 0)
+      
       const cachedMessages = chatCache.get(username)
       if (cachedMessages) {
         const sortedCached = [...cachedMessages].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
         sortedCached.forEach(renderMessage)
+        displayedMessagesCount = sortedCached.length // Set correct count
       } else {
         try {
           chatPage = 0
@@ -231,6 +249,7 @@ function setUserList(users) {
           const sortedMessages = messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
           chatCache.set(selectedUser, sortedMessages)
           sortedMessages.forEach(renderMessage)
+          displayedMessagesCount = sortedMessages.length // Set correct count
         } catch (err) {
           console.error("Chat history error:", err)
         }
@@ -267,7 +286,6 @@ function notification(receiver, sender, unread) {
     sender_nickname: sender,
     ...(unread != null && { unread_messages: unread })
   };
-
 
   fetch("/notification", {
     method: "POST",
