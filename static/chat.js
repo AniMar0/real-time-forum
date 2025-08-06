@@ -183,13 +183,11 @@ function setUserList(users) {
     div.appendChild(statusSpan)
     notification(currentUser, username)
     div.addEventListener("click", async () => {
-      // Reset pagination state for new chat
       chatPage = 0
       noMoreMessages = false
-      displayedMessagesCount = 0 // Reset message counter
+      displayedMessagesCount = 0 // reset message counter
       chatContainer = document.getElementById("chatMessages")
       
-      // Remove existing scroll handler
       const existingHandler = chatContainer.scrollHandler
       if (existingHandler) {
         chatContainer.removeEventListener("scroll", existingHandler)
