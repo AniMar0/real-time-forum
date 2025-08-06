@@ -11,7 +11,7 @@ const messagePerPage = 10
 let isFetching = false
 let noMoreMessages = false
 let chatContainer = null
-let displayedMessagesCount = 0 // Track actual messages on screen
+let displayedMessagesCount = 0 // actual messages on screen
 
 // throttle function with func and wait time as args
 const throttle = (fn, wait) => {
@@ -26,7 +26,6 @@ const throttle = (fn, wait) => {
 }
 
 async function loadMessagesPage(from, to, page) {
-  // Use displayed messages count for offset, not page * messagePerPage
   const offset = displayedMessagesCount
   const loader = document.getElementById("chatLoader")
   const minDisplayTime = 500 // milliseconds
@@ -46,14 +45,12 @@ async function loadMessagesPage(from, to, page) {
       const sortedMessages = messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
       sortedMessages.reverse().forEach(msg => renderMessageAtTop(msg))
       
-      // Update displayed messages count
       displayedMessagesCount += messages.length
 
       const newScrollHeight = container.scrollHeight
       const heightDifference = newScrollHeight - oldScrollHeight
       container.scrollTop = oldScrollTop + heightDifference
 
-      // Update cache with new messages (prepend to maintain chronological order)
       const cached = chatCache.get(to) || []
       const chronologicalMessages = messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
       chatCache.set(to, [...chronologicalMessages, ...cached])
@@ -105,7 +102,7 @@ export function startChatFeature(currentUsername) {
     } else {
       if (data.from === selectedUser || data.to === selectedUser) {
         renderMessage(data)
-        displayedMessagesCount++ // Increment for real-time messages
+        displayedMessagesCount++ 
         const chatKey = data.from === currentUser ? data.to : data.from
         const cached = chatCache.get(chatKey) || []
         chatCache.set(chatKey, [...cached, data])
@@ -138,7 +135,7 @@ export function startChatFeature(currentUsername) {
           }
           socket.send(JSON.stringify(message))
           renderMessage(message)
-          displayedMessagesCount++ // Increment for sent messages
+          displayedMessagesCount++ 
           const cached = chatCache.get(selectedUser) || []
           chatCache.set(selectedUser, [...cached, message])
           input.value = ""
