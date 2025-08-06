@@ -26,6 +26,7 @@ const throttle = (fn, wait) => {
 }
 
 async function loadMessagesPage(from, to, page) {
+  // Use displayed messages count for offset, not page * messagePerPage
   const offset = displayedMessagesCount
   const loader = document.getElementById("chatLoader")
   const minDisplayTime = 500 // milliseconds
@@ -45,12 +46,14 @@ async function loadMessagesPage(from, to, page) {
       const sortedMessages = messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
       sortedMessages.reverse().forEach(msg => renderMessageAtTop(msg))
       
+      // Update displayed messages count
       displayedMessagesCount += messages.length
 
       const newScrollHeight = container.scrollHeight
       const heightDifference = newScrollHeight - oldScrollHeight
       container.scrollTop = oldScrollTop + heightDifference
 
+      // Update cache with new messages (prepend to maintain chronological order)
       const cached = chatCache.get(to) || []
       const chronologicalMessages = messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
       chatCache.set(to, [...chronologicalMessages, ...cached])
@@ -102,7 +105,7 @@ export function startChatFeature(currentUsername) {
     } else {
       if (data.from === selectedUser || data.to === selectedUser) {
         renderMessage(data)
-        displayedMessagesCount++ 
+        displayedMessagesCount++ // Increment for real-time messages
         const chatKey = data.from === currentUser ? data.to : data.from
         const cached = chatCache.get(chatKey) || []
         chatCache.set(chatKey, [...cached, data])
@@ -135,7 +138,7 @@ export function startChatFeature(currentUsername) {
           }
           socket.send(JSON.stringify(message))
           renderMessage(message)
-          displayedMessagesCount++ 
+          displayedMessagesCount++ // Increment for sent messages
           const cached = chatCache.get(selectedUser) || []
           chatCache.set(selectedUser, [...cached, message])
           input.value = ""
@@ -183,11 +186,13 @@ function setUserList(users) {
     div.appendChild(statusSpan)
     notification(currentUser, username)
     div.addEventListener("click", async () => {
+      // Reset pagination state for new chat
       chatPage = 0
       noMoreMessages = false
-      displayedMessagesCount = 0 // reset message counter
+      displayedMessagesCount = 0 // Reset message counter
       chatContainer = document.getElementById("chatMessages")
       
+      // Remove existing scroll handler
       const existingHandler = chatContainer.scrollHandler
       if (existingHandler) {
         chatContainer.removeEventListener("scroll", existingHandler)
