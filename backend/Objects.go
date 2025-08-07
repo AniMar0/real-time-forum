@@ -37,7 +37,7 @@ type Client struct {
 	ID         string          `json:"id"` // Added ID field
 	Conn       *websocket.Conn `json:"-"`  // Added json:"-" to exclude from JSON
 	Username   string          `json:"username"`
-	Session_id string          `json:"session_id"`
+	SessionID string          `json:"session_id"`
 }
 
 type User struct {

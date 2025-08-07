@@ -45,7 +45,7 @@ async function loadMessagesPage(from, to, page) {
       const oldScrollTop = container.scrollTop
       const sortedMessages = messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
       sortedMessages.reverse().forEach(msg => renderMessageAtTop(msg))
-      
+
       // Update displayed messages count
       displayedMessagesCount += messages.length
 
@@ -100,6 +100,12 @@ export function startChatFeature(currentUsername) {
 
   socket.addEventListener("message", (event) => {
     const data = JSON.parse(event.data)
+
+    if (data.event === "logout") {
+      alert("تم إنهاء الجلسة، سيتم إعادة تحميل الصفحة.");
+      window.location.reload();
+    }
+
     if (data.type === "user_list") {
       setUserList(data.users)
     } else {
@@ -191,7 +197,7 @@ function setUserList(users) {
       noMoreMessages = false
       displayedMessagesCount = 0 // Reset message counter
       chatContainer = document.getElementById("chatMessages")
-      
+
       // Remove existing scroll handler
       const existingHandler = chatContainer.scrollHandler
       if (existingHandler) {
@@ -210,7 +216,7 @@ function setUserList(users) {
       }, 200)
       chatContainer.scrollHandler = scrollHandler
       chatContainer.addEventListener("scroll", scrollHandler)
-      
+
       selectedUser = username
       document.getElementById("chatWithName").textContent = username
       document.getElementById("chatWindow").classList.remove("hidden")
@@ -233,7 +239,7 @@ function setUserList(users) {
         }
       }
       notification(currentUser, username, 0)
-      
+
       const cachedMessages = chatCache.get(username)
       if (cachedMessages) {
         const sortedCached = [...cachedMessages].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))

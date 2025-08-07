@@ -370,7 +370,7 @@ func (S *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 		ID:         uuid.NewV4().String(), // Generate unique ID
 		Conn:       conn,
 		Username:   username,
-		Session_id: session_id,
+		SessionID: session_id,
 	}
 
 	S.Lock()
@@ -380,6 +380,28 @@ func (S *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 	S.clients[username] = append(S.clients[username], client)
 	defer S.Unlock()
+
+
+	go func() {
+		ticker := time.NewTicker(30 * time.Second)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ticker.C:
+				if _, err := S.ValidateSession(client.SessionID); err != nil {
+					// إذا الجلسة غير صالحة، أرسل رسالة وأغلق الاتصال
+					client.Conn.WriteJSON(map[string]string{
+						"event": "logout",
+						"msg":   "Session expired or invalid",
+					})
+					client.Conn.Close()
+					//S.removeClient(client)
+					return
+				}
+			}
+		}
+	}()
 
 	fmt.Println(username, "connected to WebSocket")
 
