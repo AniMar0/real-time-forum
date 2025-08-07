@@ -270,4 +270,23 @@ func (s *Server) ValidateSession(sessionID string) (string, error) {
 	return username, nil
 }
 
+func (s *Server) removeClient(client *Client) {
+	s.Lock()
+	defer s.Unlock()
 
+	clients, ok := s.clients[client.Username]
+	if !ok {
+		return
+	}
+
+	for i, c := range clients {
+		if c.ID == client.ID {
+			s.clients[client.Username] = append(clients[:i], clients[i+1:]...)
+			break
+		}
+	}
+
+	if len(s.clients[client.Username]) == 0 {
+		delete(s.clients, client.Username)
+	}
+}

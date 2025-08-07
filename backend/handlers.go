@@ -390,13 +390,12 @@ func (S *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 			select {
 			case <-ticker.C:
 				if _, err := S.ValidateSession(client.SessionID); err != nil {
-					// إذا الجلسة غير صالحة، أرسل رسالة وأغلق الاتصال
 					client.Conn.WriteJSON(map[string]string{
 						"event": "logout",
 						"msg":   "Session expired or invalid",
 					})
 					client.Conn.Close()
-					//S.removeClient(client)
+					S.removeClient(client)
 					return
 				}
 			}
