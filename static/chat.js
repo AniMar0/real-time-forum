@@ -102,7 +102,7 @@ export function startChatFeature(currentUsername) {
     const data = JSON.parse(event.data)
 
     if (data.event === "logout") {
-      alert("تم إنهاء الجلسة، سيتم إعادة تحميل الصفحة.");
+      alert("Sesion determ");
       window.location.reload();
     }
 
@@ -310,6 +310,8 @@ function notification(receiver, sender, unread) {
       updateNotificationBadge(data)
     })
     .catch(err => {
+      alert("Sesion determ");
+      window.location.reload();
       console.error(err);
     });
 }
