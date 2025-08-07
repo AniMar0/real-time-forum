@@ -70,9 +70,9 @@ func createTables(db *sql.DB) (int, error) {
 	sender TEXT,
 	receiver TEXT,
 	content TEXT,
-	timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+	timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
 	FOREIGN KEY(sender) REFERENCES users(nickname),
-	FOREIGN KEY(receiver) REFERENCES users(nickname)
+	FOREIGN KEY(receiver) REFERENCES users(nickname),
 	CHECK (sender != receiver)
 	)`,
 		`CREATE TABLE IF NOT EXISTS sessions (
