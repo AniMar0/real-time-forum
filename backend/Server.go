@@ -7,6 +7,7 @@ import (
 	"html"
 	"log"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -164,6 +165,11 @@ func (s *Server) receiveMessages(client *Client) {
 		if err != nil {
 			fmt.Println("WebSocket Read Error:", err)
 			break
+		}
+
+		if strings.TrimSpace(msg.Content) == "" {
+			fmt.Println("you cant't send an empty message")
+			continue
 		}
 
 		msg.From = client.Username
