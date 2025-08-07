@@ -15,7 +15,7 @@ type Notification struct {
 	ID       int    `json:"id"`
 	Receiver string `json:"receiver_nickname"`
 	Sender   string `json:"sender_nickname"`
-	Unread   *int    `json:"unread_messages"`
+	Unread   *int   `json:"unread_messages"`
 }
 
 type Comment struct {
@@ -34,9 +34,10 @@ type Message struct {
 }
 
 type Client struct {
-	ID       string          `json:"id"` // Added ID field
-	Conn     *websocket.Conn `json:"-"`  // Added json:"-" to exclude from JSON
-	Username string          `json:"username"`
+	ID         string          `json:"id"` // Added ID field
+	Conn       *websocket.Conn `json:"-"`  // Added json:"-" to exclude from JSON
+	Username   string          `json:"username"`
+	Session_id string          `json:"session_id"`
 }
 
 type User struct {
