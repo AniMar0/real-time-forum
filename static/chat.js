@@ -150,9 +150,8 @@ export function startChatFeature(currentUsername) {
           input.value = ""
         })
         .catch(() => {
-          logged(false)
-          showSection('loginSection')
-          document.getElementById("chatWindow").classList.add('hidden')
+          alert('session expired')
+          window.location.reload();
         })
     }
     sendBtn.addEventListener("click", sendMessage);
