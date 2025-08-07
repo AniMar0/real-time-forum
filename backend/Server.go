@@ -7,6 +7,7 @@ import (
 	"html"
 	"log"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -19,6 +20,7 @@ type Server struct {
 	Mux      *http.ServeMux
 	clients  map[string][]*Client // Changed: map username to slice of clients
 	upgrader websocket.Upgrader
+	sync.RWMutex
 }
 
 func (S *Server) Run(port string) {
@@ -156,7 +158,7 @@ func (S *Server) GetHashedPasswordFromDB(identifier string) (string, string, err
 func (s *Server) receiveMessages(client *Client) {
 	defer func() {
 		client.Conn.Close()
-
+		s.Lock()
 		// Remove this specific client from the user's session list
 		if sessions, exists := s.clients[client.Username]; exists {
 			for i, c := range sessions {
@@ -170,7 +172,7 @@ func (s *Server) receiveMessages(client *Client) {
 				delete(s.clients, client.Username)
 			}
 		}
-
+		s.Unlock()
 		s.broadcastUserList("")
 		fmt.Println(client.Username, "disconnected")
 	}()
@@ -226,7 +228,7 @@ func (S *Server) broadcastUserList(lastsender string) {
 	if lastsender != "" {
 		usernames = append(usernames, lastsender)
 	}
-
+	
 	for username := range S.clients {
 		if lastsender != username {
 			usernames = append(usernames, username)
