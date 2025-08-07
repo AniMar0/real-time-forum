@@ -133,10 +133,10 @@ func (S *Server) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		renderErrorPage(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
-
+	
 	nickname, hashedPassword, err := S.GetHashedPasswordFromDB(user.Identifier)
 	if err != nil {
-		fmt.Println("undif")
+		renderErrorPage(w, "User Undif", http.StatusBadRequest)
 		return
 	}
 
@@ -357,7 +357,7 @@ func (S *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 		Conn:     conn,
 		Username: username,
 	}
-	
+
 	S.Lock()
 	// Add client to the user's session list
 	if S.clients[username] == nil {

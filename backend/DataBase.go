@@ -20,6 +20,11 @@ func MakeDataBase() {
 	}
 	defer db.Close()
 
+	_, err = db.Exec("PRAGMA foreign_keys = ON;")
+	if err != nil {
+		log.Fatalf("Failed to enable foreign keys: %v", err)
+	}
+
 	table, err := createTables(db)
 	if err != nil {
 		log.Fatalf("Failed to create tables in %d: %v ", table, err)
@@ -66,6 +71,9 @@ func createTables(db *sql.DB) (int, error) {
 	receiver TEXT,
 	content TEXT,
 	timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+	FOREIGN KEY(sender) REFERENCES users(nickname),
+	FOREIGN KEY(receiver) REFERENCES users(nickname)
+	CHECK (sender != receiver)
 	)`,
 		`CREATE TABLE IF NOT EXISTS sessions (
     session_id TEXT PRIMARY KEY,
