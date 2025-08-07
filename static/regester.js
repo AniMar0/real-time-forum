@@ -5,7 +5,7 @@ export function handleRegister(event) {
 
   const Age = parseInt(document.getElementById("age").value);
 
-  if (Age < 1) {
+  if (Age < 13 || Age > 120) {
     alert("you age is not accepted")
     return
   }
@@ -26,10 +26,10 @@ export function handleRegister(event) {
     alert("email empty")
     return
   }
-  if (document.getElementById("password").value == "" || (document.getElementById("password").value).length<8) {
+  if (document.getElementById("password").value == "" || (document.getElementById("password").value).length < 8) {
     alert("email empty or <8")
     return
-  } 
+  }
   if (document.getElementById("gender").value == "") {
     alert("gender empty")
     return
@@ -58,8 +58,20 @@ export function handleRegister(event) {
       }
       return res.text();
     })
-    .then(data => {
-      showSection('loginSection');
+    .then(() => {
+      const loginData = {
+        identifier: formData.nickname,
+        password: formData.password
+      };
+      fetch("/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(loginData)
+      }).then(() => {
+        window.location.reload();
+      })
     })
     .catch(err => {
       console.error(err);
