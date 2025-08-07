@@ -296,6 +296,12 @@ func (S *Server) CreateCommentHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
+
+	if strings.TrimSpace(comment.Content) == "" {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+
 	_, err = S.db.Exec(
 		"INSERT INTO comments (post_id, user_id, content) VALUES (?, (SELECT id FROM users WHERE nickname = ?), ?)",
 		(comment.PostID), html.EscapeString(nickname), html.EscapeString(comment.Content),
