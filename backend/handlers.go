@@ -133,7 +133,10 @@ func (S *Server) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		renderErrorPage(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
-	
+	if user.Identifier == "" || user.Password == "" {
+		renderErrorPage(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
 	nickname, hashedPassword, err := S.GetHashedPasswordFromDB(user.Identifier)
 	if err != nil {
 		renderErrorPage(w, "User Undif", http.StatusBadRequest)
