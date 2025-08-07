@@ -7,6 +7,7 @@ import (
 	"html"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/twinj/uuid"
@@ -185,6 +186,10 @@ func (S *Server) CreatePostHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if strings.TrimSpace(post.Content) == "" || strings.TrimSpace(post.Title) == "" || strings.TrimSpace(post.Category) == "" {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
 	_, err = S.db.Exec(
 		"INSERT INTO posts (user_id, title, content, category) VALUES ((SELECT id FROM users WHERE nickname = ?), ?, ?, ?)",
 		html.EscapeString(nickname), html.EscapeString(post.Title), html.EscapeString(post.Content), html.EscapeString(post.Category),
