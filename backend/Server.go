@@ -256,3 +256,18 @@ func (S *Server) DataBase() {
 func (S *Server) Shutdown() {
 	S.db.Close()
 }
+
+func (s *Server) ValidateSession(sessionID string) (string, error) {
+	var username string
+	err := s.db.QueryRow(`
+		SELECT nickname FROM sessions
+		WHERE session_id = ? AND expires_at > datetime('now')
+	`, sessionID).Scan(&username)
+
+	if err != nil {
+		return "", fmt.Errorf("session not valid")
+	}
+	return username, nil
+}
+
+
