@@ -156,26 +156,7 @@ func (S *Server) GetHashedPasswordFromDB(identifier string) (string, string, err
 
 // Modified receiveMessages function
 func (s *Server) receiveMessages(client *Client, w http.ResponseWriter, r *http.Request) {
-	defer func() {
-		client.Conn.Close()
-		s.Lock()
-		// Remove this specific client from the user's session list
-		if sessions, exists := s.clients[client.Username]; exists {
-			for i, c := range sessions {
-				if c.ID == client.ID {
-					s.clients[client.Username] = append(sessions[:i], sessions[i+1:]...)
-					break
-				}
-			}
-			// If no more sessions for this user, remove the user entirely
-			if len(s.clients[client.Username]) == 0 {
-				delete(s.clients, client.Username)
-			}
-		}
-		s.Unlock()
-		s.broadcastUserList("")
-		fmt.Println(client.Username, "disconnected")
-	}()
+	defer s.removeClient(client)
 
 	for {
 		var msg Message
@@ -289,4 +270,7 @@ func (s *Server) removeClient(client *Client) {
 	if len(s.clients[client.Username]) == 0 {
 		delete(s.clients, client.Username)
 	}
+
+	s.broadcastUserList("")
+	fmt.Println(client.Username, "disconnected")
 }
