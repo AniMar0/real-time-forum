@@ -259,7 +259,7 @@ func (S *Server) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (S *Server) LoggedHandler(w http.ResponseWriter, r *http.Request) {
-	username, err := S.CheckSession(r)
+	username, _, err := S.CheckSession(r)
 	if err != nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
@@ -354,7 +354,7 @@ func (S *Server) GetCommentsHandler(w http.ResponseWriter, r *http.Request) {
 
 // Modified HandleWebSocket function
 func (S *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
-	username, err := S.CheckSession(r)
+	username, session_id, err := S.CheckSession(r)
 	if err != nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
@@ -367,9 +367,10 @@ func (S *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 
 	client := &Client{
-		ID:       uuid.NewV4().String(), // Generate unique ID
-		Conn:     conn,
-		Username: username,
+		ID:         uuid.NewV4().String(), // Generate unique ID
+		Conn:       conn,
+		Username:   username,
+		Session_id: session_id,
 	}
 
 	S.Lock()
@@ -384,7 +385,7 @@ func (S *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	S.broadcastUserList("")
 
-	go S.receiveMessages(client)
+	go S.receiveMessages(client, w, r)
 }
 
 func (s *Server) GetMessagesHandler(w http.ResponseWriter, r *http.Request) {

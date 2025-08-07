@@ -87,7 +87,7 @@ func (S *Server) AddUser(user User) string {
 
 func (S *Server) SessionMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		username, err := S.CheckSession(r)
+		username, _, err := S.CheckSession(r)
 		if err != nil {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
@@ -98,13 +98,13 @@ func (S *Server) SessionMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func (S *Server) CheckSession(r *http.Request) (string, error) {
+func (S *Server) CheckSession(r *http.Request) (string, string, error) {
+
 	cookie, err := r.Cookie("session_token")
 	if err != nil {
-		return "", fmt.Errorf("no session cookie")
+		return "", "", fmt.Errorf("no session cookie")
 	}
 	sessionID := cookie.Value
-
 	var username string
 	err = S.db.QueryRow(`
         SELECT nickname FROM sessions 
@@ -112,10 +112,10 @@ func (S *Server) CheckSession(r *http.Request) (string, error) {
     `, sessionID).Scan(&username)
 
 	if err != nil {
-		return "", fmt.Errorf("invalid or expired session")
+		return "", "", fmt.Errorf("invalid or expired session")
 	}
 
-	return username, nil
+	return username, sessionID, nil
 }
 
 func (S *Server) MakeToken(Writer http.ResponseWriter, username string) {
@@ -155,7 +155,7 @@ func (S *Server) GetHashedPasswordFromDB(identifier string) (string, string, err
 }
 
 // Modified receiveMessages function
-func (s *Server) receiveMessages(client *Client) {
+func (s *Server) receiveMessages(client *Client, w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		client.Conn.Close()
 		s.Lock()
@@ -196,7 +196,6 @@ func (s *Server) receiveMessages(client *Client) {
 			fmt.Println("DB Insert Error:", err)
 			continue
 		}
-
 		// Send to all sessions of the recipient
 		if recipientSessions, ok := s.clients[msg.To]; ok {
 			for _, recipient := range recipientSessions {
@@ -228,7 +227,7 @@ func (S *Server) broadcastUserList(lastsender string) {
 	if lastsender != "" {
 		usernames = append(usernames, lastsender)
 	}
-	
+
 	for username := range S.clients {
 		if lastsender != username {
 			usernames = append(usernames, username)
