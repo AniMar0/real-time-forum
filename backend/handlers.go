@@ -367,46 +367,25 @@ func (S *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 
 	client := &Client{
-		ID:         uuid.NewV4().String(), // Generate unique ID
-		Conn:       conn,
-		Username:   username,
+		ID:        uuid.NewV4().String(), // Generate unique ID
+		Conn:      conn,
+		Username:  username,
 		SessionID: session_id,
 	}
 
 	S.Lock()
+	defer S.Unlock()
 	// Add client to the user's session list
 	if S.clients[username] == nil {
 		S.clients[username] = []*Client{}
 	}
 	S.clients[username] = append(S.clients[username], client)
-	defer S.Unlock()
-
-
-	go func() {
-		ticker := time.NewTicker(30 * time.Second)
-		defer ticker.Stop()
-
-		for {
-			select {
-			case <-ticker.C:
-				if _, err := S.ValidateSession(client.SessionID); err != nil {
-					client.Conn.WriteJSON(map[string]string{
-						"event": "logout",
-						"msg":   "Session expired or invalid",
-					})
-					client.Conn.Close()
-					S.removeClient(client)
-					return
-				}
-			}
-		}
-	}()
 
 	fmt.Println(username, "connected to WebSocket")
 
 	S.broadcastUserList("")
 
-	go S.receiveMessages(client, w, r)
+	go S.receiveMessages(client)
 }
 
 func (s *Server) GetMessagesHandler(w http.ResponseWriter, r *http.Request) {
