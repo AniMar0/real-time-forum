@@ -4,10 +4,10 @@ import { startChatFeature } from './chat.js';
 
 
 export function handleLogin(event) {
-  const loginError = document.getElementById("loginError");
-  loginError.style.display = "none";
+  event.preventDefault()
+  const loginError = document.getElementById("loginError")
+  loginError.style.display = "none"
 
-  event.preventDefault();
   const formData = {
     identifier: document.getElementById("identifier").value,
     password: document.getElementById("loginPassword").value
@@ -32,8 +32,9 @@ export function handleLogin(event) {
       logged(true, data.username);
     })
     .catch(err => {
-      document.querySelector('error-message').classList.remove('hidden')
+      loginError.textContent = "Incorrect email/nickname or password."
+      loginError.style.display = "block"
       logged(false)
-      console.error(err);
-    });
+      console.error(err)
+    })
 }
