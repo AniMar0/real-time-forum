@@ -37,7 +37,7 @@ async function loadMessagesPage(from, to, page) {
     const res = await fetch(`/messages?from=${from}&to=${to}&offset=${offset}`)
     if (!res.ok) throw new Error("Failed to load chat messages")
     const messages = await res.json()
-    if (messages.length === 0) {
+    if (!Array.isArray(messages) ||  messages.length ) {
       noMoreMessages = true
     } else {
       const container = document.getElementById("chatMessages")
