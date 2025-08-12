@@ -30,7 +30,7 @@ func (S *Server) Run(port string) {
 	S.initRoutes()
 
 	S.clients = make(map[string][]*Client) // Updated initialization
-
+	S.broadcastUserList()
 	fmt.Println("Server running on http://localhost:" + port)
 	err := http.ListenAndServe(":"+port, S.Mux)
 	if err != nil {
@@ -186,7 +186,7 @@ func (s *Server) receiveMessages(client *Client) {
 		// Send to all sessions of the recipient
 		if recipientSessions, ok := s.clients[msg.To]; ok {
 			for _, recipient := range recipientSessions {
-				s.broadcastUserList(msg.To)
+				s.broadcastUserList()
 				err := recipient.Conn.WriteJSON(msg)
 				if err != nil {
 					fmt.Println("Send Error to recipient:", err)
@@ -209,16 +209,31 @@ func (s *Server) receiveMessages(client *Client) {
 }
 
 // Modified broadcastUserList function
-func (S *Server) broadcastUserList(lastsender string) {
+func (S *Server) broadcastUserList() {
 	var usernames []string
-	if lastsender != "" {
-		usernames = append(usernames, lastsender)
+	fmt.Println("dkholttt")
+	query := `
+	SELECT nickname
+	FROM users
+	ORDER BY LOWER(nickname) ASC;
+`
+
+	rows, err := S.db.Query(query)
+	if err != nil {
+		// err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var nickname string
+		if err := rows.Scan(&nickname); err != nil {
+			// err
+		}
+		usernames = append(usernames, nickname)
 	}
 
-	for username := range S.clients {
-		if lastsender != username {
-			usernames = append(usernames, username)
-		}
+	if err := rows.Err(); err != nil {
+		// err
 	}
 
 	// Send to all client sessions
@@ -264,6 +279,6 @@ func (s *Server) removeClient(client *Client) {
 		delete(s.clients, client.Username)
 	}
 
-	s.broadcastUserList("")
+	s.broadcastUserList()
 	fmt.Println(client.Username, "disconnected")
 }
