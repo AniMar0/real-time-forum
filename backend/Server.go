@@ -186,7 +186,7 @@ func (s *Server) receiveMessages(client *Client) {
 		// Send to all sessions of the recipient
 		if recipientSessions, ok := s.clients[msg.To]; ok {
 			for _, recipient := range recipientSessions {
-				s.broadcastUserList(msg.From)
+				s.broadcastUserList(client.Username)
 				err := recipient.Conn.WriteJSON(msg)
 				if err != nil {
 					fmt.Println("Send Error to recipient:", err)
@@ -197,6 +197,7 @@ func (s *Server) receiveMessages(client *Client) {
 		// Send to all other sessions of the sender (excluding current session)
 		if senderSessions, ok := s.clients[msg.From]; ok {
 			for _, senderClient := range senderSessions {
+				s.broadcastUserList(client.Username)
 				if senderClient.ID != client.ID { // Don't send back to the same session
 					err := senderClient.Conn.WriteJSON(msg)
 					if err != nil {
@@ -210,6 +211,9 @@ func (s *Server) receiveMessages(client *Client) {
 
 // Modified broadcastUserList function
 func (S *Server) broadcastUserList(currentUser string) {
+	fmt.Println("this user", currentUser)
+	// S.Lock()
+	// defer S.Unlock()
 	query := `
 	WITH 
 	cte_latest_interaction AS (
@@ -279,20 +283,21 @@ func (S *Server) broadcastUserList(currentUser string) {
 	if err := rows.Err(); err != nil {
 		// nil, err
 	}
+
 	var usernames []string
-	for _, r := range results {
+	for i, r := range results {
+		fmt.Println("user", i, r.Nickname)
 		usernames = append(usernames, r.Nickname)
 	}
 
 	// Send to all client sessions
-	for _, clientSessions := range S.clients {
-		for _, client := range clientSessions {
-			client.Conn.WriteJSON(map[string]interface{}{
-				"type":  "user_list",
-				"users": usernames,
-			})
-		}
+	for _, client := range S.clients[currentUser] {
+		client.Conn.WriteJSON(map[string]interface{}{
+			"type":  "user_list",
+			"users": usernames,
+		})
 	}
+
 }
 
 func (S *Server) DataBase() {
