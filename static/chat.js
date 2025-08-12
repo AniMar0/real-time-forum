@@ -37,7 +37,7 @@ async function loadMessagesPage(from, to, page) {
     const res = await fetch(`/messages?from=${from}&to=${to}&offset=${offset}`)
     if (!res.ok) throw new Error("Failed to load chat messages")
     const messages = await res.json()
-    if (!Array.isArray(messages) ||  messages.length ) {
+    if (!Array.isArray(messages) || messages.length) {
       noMoreMessages = true
     } else {
       const container = document.getElementById("chatMessages")
@@ -104,20 +104,27 @@ export function startChatFeature(currentUsername) {
     if (data.event === "logout") {
       alert("Sesion determ");
       window.location.reload();
+      return
     }
 
     if (data.type === "user_list") {
       setUserList(data.users)
-    } else {
-      if (data.from === selectedUser || data.to === selectedUser) {
-        renderMessage(data)
-        displayedMessagesCount++ // Increment for real-time messages
-        const chatKey = data.from === currentUser ? data.to : data.from
-        const cached = chatCache.get(chatKey) || []
-        chatCache.set(chatKey, [...cached, data])
-      } else if (data.to === currentUser) {
-        notification(data.to, data.from, 1)
-      }
+      return
+    }
+
+    const chatKey = data.from === currentUser ? data.to : data.from
+
+    if (data.from === selectedUser || data.to === selectedUser) {
+      // Chat is open → render and cache
+      renderMessage(data)
+      displayedMessagesCount++
+      const cached = chatCache.get(chatKey) || []
+      chatCache.set(chatKey, [...cached, data])
+    } else if (data.to === currentUser) {
+      // Chat is closed → update cache and notification
+      const cached = chatCache.get(chatKey) || []
+      chatCache.set(chatKey, [...cached, data])
+      notification(data.to, data.from, 1)
     }
   })
 
@@ -239,31 +246,41 @@ function setUserList(users) {
       }
       notification(currentUser, username, 0)
 
-      const cachedMessages = chatCache.get(username)
-      if (cachedMessages) {
-        const sortedCached = [...cachedMessages].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
-        sortedCached.forEach(renderMessage)
-        displayedMessagesCount = sortedCached.length // Set correct count
-      } else {
-        try {
-          chatPage = 0
-          noMoreMessages = false
-          const res = await fetch(`/messages?from=${currentUser}&to=${selectedUser}&offset=0`)
-          if (!res.ok) throw new Error("Failed to load chat history")
-          const messages = await res.json()
-          const sortedMessages = messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
-          chatCache.set(selectedUser, sortedMessages)
-          sortedMessages.forEach(renderMessage)
-          displayedMessagesCount = sortedMessages.length // Set correct count
-        } catch (err) {
-          console.error("Chat history error:", err)
-        }
+      // Always fetch fresh messages from server and merge with cache
+      try {
+        const res = await fetch(`/messages?from=${currentUser}&to=${selectedUser}&offset=0`)
+        if (!res.ok) throw new Error("Failed to load chat history")
+        const messages = await res.json()
+
+        const cached = chatCache.get(username) || []
+        const merged = mergeMessages(cached, messages)
+        chatCache.set(username, merged)
+
+        const sortedMerged = merged.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
+        sortedMerged.forEach(renderMessage)
+        displayedMessagesCount = sortedMerged.length
+      } catch (err) {
+        console.error("Chat history error:", err)
       }
+
     })
 
     list.appendChild(div)
   })
 }
+
+function mergeMessages(oldMessages, newMessages) {
+  const all = [...oldMessages, ...newMessages]
+  const seen = new Set()
+  return all.filter(msg => {
+    const id = msg.id || msg.timestamp + msg.from
+    if (seen.has(id)) return false
+    seen.add(id)
+    return true
+  })
+}
+
+
 
 function updateNotificationBadge(data) {
   const userList = document.getElementById("userList")
