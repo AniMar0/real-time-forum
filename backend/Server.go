@@ -211,9 +211,6 @@ func (s *Server) receiveMessages(client *Client) {
 
 // Modified broadcastUserList function
 func (S *Server) broadcastUserList(currentUser string) {
-	fmt.Println("this user", currentUser)
-	// S.Lock()
-	// defer S.Unlock()
 	query := `
 	WITH 
 	cte_latest_interaction AS (
@@ -285,8 +282,7 @@ func (S *Server) broadcastUserList(currentUser string) {
 	}
 
 	var usernames []string
-	for i, r := range results {
-		fmt.Println("user", i, r.Nickname)
+	for _, r := range results {
 		usernames = append(usernames, r.Nickname)
 	}
 
