@@ -34,9 +34,9 @@ type Message struct {
 }
 
 type Client struct {
-	ID         string          `json:"id"` // Added ID field
-	Conn       *websocket.Conn `json:"-"`  // Added json:"-" to exclude from JSON
-	Username   string          `json:"username"`
+	ID        string          `json:"id"` // Added ID field
+	Conn      *websocket.Conn `json:"-"`  // Added json:"-" to exclude from JSON
+	Username  string          `json:"username"`
 	SessionID string          `json:"session_id"`
 }
 
@@ -59,4 +59,12 @@ type LoginUser struct {
 type WSMessage struct {
 	Type string      `json:"type"`
 	Data interface{} `json:"data"`
+}
+
+type UserConversation struct {
+	ID              int
+	Nickname        string
+	LastMessage     string
+	LastInteraction string
+	Notifications   int
 }
