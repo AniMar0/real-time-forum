@@ -162,6 +162,11 @@ header {
   box-shadow: var(--shadow-cyber);
 }
 
+ .error-message {
+    color: red;
+    display: none; /* hidden initially */
+  }
+
 .header-content {
   max-width: 1400px;
   margin: 0 auto;

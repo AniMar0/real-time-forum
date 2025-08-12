@@ -1,7 +1,12 @@
-import { showSection,logged } from './app.js';
+import { showSection, logged } from './app.js';
 import { startChatFeature } from './chat.js';
 
+
+
 export function handleLogin(event) {
+  const loginError = document.getElementById("loginError");
+  loginError.style.display = "none";
+
   event.preventDefault();
   const formData = {
     identifier: document.getElementById("identifier").value,
@@ -24,10 +29,10 @@ export function handleLogin(event) {
     .then(data => {
       startChatFeature(data.username);
       showSection('postsSection');
-      logged(true,data.username);
+      logged(true, data.username);
     })
     .catch(err => {
-      alert("Invalid login")
+      document.querySelector('error-message').classList.remove('hidden')
       logged(false)
       console.error(err);
     });
