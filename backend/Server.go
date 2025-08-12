@@ -30,7 +30,7 @@ func (S *Server) Run(port string) {
 	S.initRoutes()
 
 	S.clients = make(map[string][]*Client) // Updated initialization
-	S.broadcastUserList()
+
 	fmt.Println("Server running on http://localhost:" + port)
 	err := http.ListenAndServe(":"+port, S.Mux)
 	if err != nil {
@@ -186,7 +186,7 @@ func (s *Server) receiveMessages(client *Client) {
 		// Send to all sessions of the recipient
 		if recipientSessions, ok := s.clients[msg.To]; ok {
 			for _, recipient := range recipientSessions {
-				s.broadcastUserList()
+				s.broadcastUserList(msg.From)
 				err := recipient.Conn.WriteJSON(msg)
 				if err != nil {
 					fmt.Println("Send Error to recipient:", err)
@@ -209,31 +209,79 @@ func (s *Server) receiveMessages(client *Client) {
 }
 
 // Modified broadcastUserList function
-func (S *Server) broadcastUserList() {
-	var usernames []string
-	fmt.Println("dkholttt")
+func (S *Server) broadcastUserList(currentUser string) {
 	query := `
-	SELECT nickname
-	FROM users
-	ORDER BY LOWER(nickname) ASC;
-`
+	WITH 
+	cte_latest_interaction AS (
+	    SELECT
+	        CASE 
+	            WHEN sender = ? THEN receiver 
+	            ELSE sender 
+	        END AS user_nickname,
+	        MAX(timestamp) AS lastInteraction,
+	        content
+	    FROM messages
+	    WHERE sender = ? OR receiver = ?
+	    GROUP BY user_nickname
+	),
+	cte_ordered_users AS (
+	    SELECT 
+	        i.content, 
+	        COALESCE(i.lastInteraction, 0) AS lastInteraction,
+	        u.id, 
+	        u.nickname
+	    FROM users u 
+	    LEFT JOIN cte_latest_interaction i 
+	        ON i.user_nickname = u.nickname
+	    WHERE u.nickname != ?
+	),
+	cte_notifications AS (
+	    SELECT 
+	        sender AS sender_nickname,
+	        COUNT(*) AS notifications 
+	    FROM messages 
+	    WHERE 1=0
+	      AND receiver = ?
+	    GROUP BY sender
+	)
+	SELECT 
+	    u.id, 
+	    u.nickname, 
+	    COALESCE(u.content, ""), 
+	    u.lastInteraction, 
+	    COALESCE(n.notifications, 0)
+	FROM cte_ordered_users u
+	LEFT JOIN cte_notifications n ON u.nickname = n.sender_nickname
+	ORDER BY u.lastInteraction DESC, u.nickname;
+	`
 
-	rows, err := S.db.Query(query)
+	rows, err := S.db.Query(query,
+		currentUser,
+		currentUser,
+		currentUser,
+		currentUser,
+		currentUser,
+	)
 	if err != nil {
-		// err
+		// nil, err
 	}
 	defer rows.Close()
 
+	var results []UserConversation
 	for rows.Next() {
-		var nickname string
-		if err := rows.Scan(&nickname); err != nil {
-			// err
+		var uc UserConversation
+		if err := rows.Scan(&uc.ID, &uc.Nickname, &uc.LastMessage, &uc.LastInteraction, &uc.Notifications); err != nil {
+			// nil, err
 		}
-		usernames = append(usernames, nickname)
+		results = append(results, uc)
 	}
 
 	if err := rows.Err(); err != nil {
-		// err
+		// nil, err
+	}
+	var usernames []string
+	for _, r := range results {
+		usernames = append(usernames, r.Nickname)
 	}
 
 	// Send to all client sessions
@@ -278,7 +326,6 @@ func (s *Server) removeClient(client *Client) {
 	if len(s.clients[client.Username]) == 0 {
 		delete(s.clients, client.Username)
 	}
-
-	s.broadcastUserList()
+	s.broadcastUserList(client.Username)
 	fmt.Println(client.Username, "disconnected")
 }

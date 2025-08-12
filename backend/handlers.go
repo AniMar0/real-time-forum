@@ -383,7 +383,7 @@ func (S *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Println(username, "connected to WebSocket")
 
-	S.broadcastUserList()
+	S.broadcastUserList(username)
 
 	go S.receiveMessages(client)
 }
