@@ -115,13 +115,13 @@ export function startChatFeature(currentUsername) {
     const chatKey = data.from === currentUser ? data.to : data.from
 
     if (data.from === selectedUser || data.to === selectedUser) {
-      // Chat is open → render and cache
+      // if chat open render and cache
       renderMessage(data)
       displayedMessagesCount++
       const cached = chatCache.get(chatKey) || []
       chatCache.set(chatKey, [...cached, data])
     } else if (data.to === currentUser) {
-      // Chat is closed → update cache and notification
+      // if chat is closed update cache and notification
       const cached = chatCache.get(chatKey) || []
       chatCache.set(chatKey, [...cached, data])
       notification(data.to, data.from, 1)
@@ -246,7 +246,7 @@ function setUserList(users) {
       }
       notification(currentUser, username, 0)
 
-      // Always fetch fresh messages from server and merge with cache
+      // always fetch fresh messages from server and merge with cache
       try {
         const res = await fetch(`/messages?from=${currentUser}&to=${selectedUser}&offset=0`)
         if (!res.ok) throw new Error("Failed to load chat history")
