@@ -102,7 +102,6 @@ export function startChatFeature(currentUsername) {
     const data = JSON.parse(event.data)
 
     if (data.event === "logout") {
-      alert("Sesion determ");
       window.location.reload();
       return
     }
