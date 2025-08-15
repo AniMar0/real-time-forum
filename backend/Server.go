@@ -177,7 +177,6 @@ func (S *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 
 	S.Lock()
-	// Add client to the user's session list
 	if S.clients[username] == nil {
 		S.clients[username] = []*Client{}
 	}
@@ -186,7 +185,6 @@ func (S *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Println(username, "connected to WebSocket")
 
-	// Broadcast updated user list to all users when someone connects
 	S.broadcastUserStatusChange()
 
 	go S.receiveMessages(client)
