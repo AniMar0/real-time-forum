@@ -239,7 +239,6 @@ func (S *Server) GetPostsHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(posts)
 }
 
-// Modified LogoutHandler - broadcast status change after logout
 func (S *Server) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("session_token")
 	if err != nil {
@@ -247,7 +246,6 @@ func (S *Server) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get username before deleting session for broadcasting
 	var username string
 	S.db.QueryRow("SELECT nickname FROM sessions WHERE session_id = ?", cookie.Value).Scan(&username)
 
@@ -257,7 +255,6 @@ func (S *Server) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Close any WebSocket connections for this user
 	S.Lock()
 	if clients, exists := S.clients[username]; exists {
 		for _, client := range clients {
