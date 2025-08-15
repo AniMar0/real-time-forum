@@ -155,6 +155,43 @@ func (S *Server) GetHashedPasswordFromDB(identifier string) (string, string, err
 	return hashedPassword, nickname, nil
 }
 
+// Modified HandleWebSocket function - broadcasts status changes when user connects
+func (S *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
+	username, session_id, err := S.CheckSession(r)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	conn, err := S.upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		fmt.Println("WebSocket Upgrade Error:", err)
+		return
+	}
+
+	client := &Client{
+		ID:        uuid.NewV4().String(),
+		Conn:      conn,
+		Username:  username,
+		SessionID: session_id,
+	}
+
+	S.Lock()
+	// Add client to the user's session list
+	if S.clients[username] == nil {
+		S.clients[username] = []*Client{}
+	}
+	S.clients[username] = append(S.clients[username], client)
+	S.Unlock()
+
+	fmt.Println(username, "connected to WebSocket")
+
+	// Broadcast updated user list to all users when someone connects
+	S.broadcastUserStatusChange()
+
+	go S.receiveMessages(client)
+}
+
 // Modified receiveMessages function
 func (s *Server) receiveMessages(client *Client) {
 	defer s.removeClient(client)
@@ -264,7 +301,7 @@ func (S *Server) broadcastUserList(currentUser string) {
 		currentUser,
 	)
 	if err != nil {
-		// nil, err
+		return
 	}
 	defer rows.Close()
 
@@ -272,13 +309,13 @@ func (S *Server) broadcastUserList(currentUser string) {
 	for rows.Next() {
 		var uc UserConversation
 		if err := rows.Scan(&uc.ID, &uc.Nickname, &uc.LastMessage, &uc.LastInteraction, &uc.Notifications); err != nil {
-			// nil, err
+			continue
 		}
 		results = append(results, uc)
 	}
 
 	if err := rows.Err(); err != nil {
-		// nil, err
+		return
 	}
 
 	var usernames []string
@@ -287,23 +324,24 @@ func (S *Server) broadcastUserList(currentUser string) {
 	}
 	var Users []UsersListe
 	for _, user := range usernames {
+		S.RLock()
 		if S.clients[user] != nil {
 			Users = append(Users, UsersListe{Nickname: user, Status: "online"})
-
 		} else {
 			Users = append(Users, UsersListe{Nickname: user, Status: "offline"})
-
 		}
-
+		S.RUnlock()
 	}
+	
 	// Send to all client sessions
+	S.RLock()
 	for _, client := range S.clients[currentUser] {
 		client.Conn.WriteJSON(map[string]interface{}{
 			"type":  "user_list",
 			"users": Users,
 		})
 	}
-
+	S.RUnlock()
 }
 
 func (S *Server) DataBase() {
@@ -318,6 +356,7 @@ func (S *Server) Shutdown() {
 	S.db.Close()
 }
 
+// Modified removeClient function - broadcasts status changes when user disconnects
 func (s *Server) removeClient(client *Client) {
 	s.Lock()
 	defer s.Unlock()
@@ -337,6 +376,22 @@ func (s *Server) removeClient(client *Client) {
 	if len(s.clients[client.Username]) == 0 {
 		delete(s.clients, client.Username)
 	}
-	s.broadcastUserList(client.Username)
+
 	fmt.Println(client.Username, "disconnected")
+	
+	// Broadcast updated user list to all remaining users when someone disconnects
+	go func() {
+		// Small delay to ensure cleanup is complete
+		time.Sleep(100 * time.Millisecond)
+		s.broadcastUserStatusChange()
+	}()
+}
+
+func (S *Server) broadcastUserStatusChange() {
+	S.RLock()
+	defer S.RUnlock()
+	
+	for username := range S.clients {
+		S.broadcastUserList(username)
+	}
 }
