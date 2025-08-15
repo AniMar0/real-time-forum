@@ -154,10 +154,8 @@ func (S *Server) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		"username": nickname,
 	})
 
-	// Broadcast user status change to all connected clients
-	// Use a goroutine to avoid blocking the response
 	go func() {
-		time.Sleep(500 * time.Millisecond) // Small delay to let WebSocket connection establish
+		time.Sleep(500 * time.Millisecond) // small delay to let WebSocket connection establish
 		S.broadcastUserStatusChange()
 	}()
 }
