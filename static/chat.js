@@ -108,7 +108,10 @@ export function startChatFeature(currentUsername) {
     }
 
     if (data.type === "user_list") {
+      console.log(data, "list");
+
       setUserList(data.users)
+      
       return
     }
 
@@ -177,10 +180,13 @@ function renderMessage(msg) {
 }
 
 function setUserList(users) {
+  
   const list = document.getElementById("userList")
   list.innerHTML = ""
   users.forEach((username) => {
-    if (username === currentUser) return
+  console.log(username);
+    
+    if (username.nickname === currentUser) return
 
     const div = document.createElement("div")
     div.className = "user"
@@ -191,12 +197,12 @@ function setUserList(users) {
     div.style.padding = "5px"
     div.style.borderBottom = "1px solid #ddd"
     const nameSpan = document.createElement("span")
-    nameSpan.textContent = username
+    nameSpan.textContent = username.nickname
     const statusSpan = document.createElement("span")
-    statusSpan.classList.add("status", "online")
+    statusSpan.classList.add("status", username.status)
     div.appendChild(nameSpan)
     div.appendChild(statusSpan)
-    notification(currentUser, username)
+    notification(currentUser, username.nickname)
     div.addEventListener("click", async () => {
       // Reset pagination state for new chat
       chatPage = 0
@@ -223,8 +229,8 @@ function setUserList(users) {
       chatContainer.scrollHandler = scrollHandler
       chatContainer.addEventListener("scroll", scrollHandler)
 
-      selectedUser = username
-      document.getElementById("chatWithName").textContent = username
+      selectedUser = username.nickname
+      document.getElementById("chatWithName").textContent = username.nickname
       document.getElementById("chatWindow").classList.remove("hidden")
       document.getElementById("chatMessages").innerHTML = ""
 
@@ -244,7 +250,7 @@ function setUserList(users) {
           displayedMessagesCount = 0 // Reset message counter
         }
       }
-      notification(currentUser, username, 0)
+      notification(currentUser, username.nickname, 0)
 
       // always fetch fresh messages from server and merge with cache
       try {
@@ -252,9 +258,9 @@ function setUserList(users) {
         if (!res.ok) throw new Error("Failed to load chat history")
         const messages = await res.json()
 
-        const cached = chatCache.get(username) || []
+        const cached = chatCache.get(username.nickname) || []
         const merged = mergeMessages(cached, messages)
-        chatCache.set(username, merged)
+        chatCache.set(username.nickname, merged)
 
         const sortedMerged = merged.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
         sortedMerged.forEach(renderMessage)

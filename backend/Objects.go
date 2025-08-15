@@ -61,6 +61,11 @@ type WSMessage struct {
 	Data interface{} `json:"data"`
 }
 
+type UsersListe struct {
+	Nickname string `json:"nickname"`
+	Status   string `json:"status"`
+}
+
 type UserConversation struct {
 	ID              int
 	Nickname        string
