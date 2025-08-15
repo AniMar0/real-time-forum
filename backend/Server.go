@@ -356,7 +356,6 @@ func (S *Server) Shutdown() {
 	S.db.Close()
 }
 
-// Modified removeClient function - broadcasts status changes when user disconnects
 func (s *Server) removeClient(client *Client) {
 	s.Lock()
 	defer s.Unlock()
@@ -379,9 +378,7 @@ func (s *Server) removeClient(client *Client) {
 
 	fmt.Println(client.Username, "disconnected")
 	
-	// Broadcast updated user list to all remaining users when someone disconnects
 	go func() {
-		// Small delay to ensure cleanup is complete
 		time.Sleep(100 * time.Millisecond)
 		s.broadcastUserStatusChange()
 	}()
