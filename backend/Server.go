@@ -285,12 +285,22 @@ func (S *Server) broadcastUserList(currentUser string) {
 	for _, r := range results {
 		usernames = append(usernames, r.Nickname)
 	}
+	var Users []UsersListe
+	for _, user := range usernames {
+		if S.clients[user] != nil {
+			Users = append(Users, UsersListe{Nickname: user, Status: "online"})
 
+		} else {
+			Users = append(Users, UsersListe{Nickname: user, Status: "offline"})
+
+		}
+
+	}
 	// Send to all client sessions
 	for _, client := range S.clients[currentUser] {
 		client.Conn.WriteJSON(map[string]interface{}{
 			"type":  "user_list",
-			"users": usernames,
+			"users": Users,
 		})
 	}
 

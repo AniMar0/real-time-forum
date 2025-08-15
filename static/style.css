@@ -325,6 +325,11 @@ main {
   box-shadow: var(--glow-accent);
 }
 
+.status.offline {
+  background-color: red;
+  box-shadow: var(--glow-accent);
+}
+
 .status.online::after {
   content: "";
   position: absolute;
