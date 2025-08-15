@@ -3,14 +3,11 @@ package backend
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"html"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/twinj/uuid"
 )
 
 func (S *Server) Notification(w http.ResponseWriter, r *http.Request) {
@@ -122,6 +119,7 @@ func (S *Server) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Modified LoginHandler - broadcast status change after successful login
 func (S *Server) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		renderErrorPage(w, "Method Not Allowed", http.StatusMethodNotAllowed)
@@ -152,10 +150,16 @@ func (S *Server) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	S.MakeToken(w, nickname)
 
 	w.Header().Set("Content-Type", "application/json")
-	//fmt.Fprintf(w, `{"username":"%s"}`, nickname)
 	json.NewEncoder(w).Encode(map[string]string{
 		"username": nickname,
 	})
+
+	// Broadcast user status change to all connected clients
+	// Use a goroutine to avoid blocking the response
+	go func() {
+		time.Sleep(500 * time.Millisecond) // Small delay to let WebSocket connection establish
+		S.broadcastUserStatusChange()
+	}()
 }
 
 func (S *Server) CreatePostHandler(w http.ResponseWriter, r *http.Request) {
@@ -235,6 +239,7 @@ func (S *Server) GetPostsHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(posts)
 }
 
+// Modified LogoutHandler - broadcast status change after logout
 func (S *Server) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("session_token")
 	if err != nil {
@@ -242,11 +247,29 @@ func (S *Server) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Get username before deleting session for broadcasting
+	var username string
+	S.db.QueryRow("SELECT nickname FROM sessions WHERE session_id = ?", cookie.Value).Scan(&username)
+
 	_, err = S.db.Exec("DELETE FROM sessions WHERE session_id = ?", cookie.Value)
 	if err != nil {
 		http.Error(w, "Error deleting session", http.StatusInternalServerError)
 		return
 	}
+
+	// Close any WebSocket connections for this user
+	S.Lock()
+	if clients, exists := S.clients[username]; exists {
+		for _, client := range clients {
+			client.Conn.WriteJSON(map[string]string{
+				"event":   "logout",
+				"message": "Session terminated",
+			})
+			client.Conn.Close()
+		}
+		delete(S.clients, username)
+	}
+	S.Unlock()
 
 	http.SetCookie(w, &http.Cookie{
 		Name:    "session_token",
@@ -254,6 +277,12 @@ func (S *Server) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 		Expires: time.Unix(0, 0),
 		Path:    "/",
 	})
+
+	// Broadcast user status change to remaining connected clients
+	go func() {
+		time.Sleep(100 * time.Millisecond)
+		S.broadcastUserStatusChange()
+	}()
 
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
@@ -352,42 +381,6 @@ func (S *Server) GetCommentsHandler(w http.ResponseWriter, r *http.Request) {
 
 // chats
 
-// Modified HandleWebSocket function
-func (S *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
-	username, session_id, err := S.CheckSession(r)
-	if err != nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	conn, err := S.upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		fmt.Println("WebSocket Upgrade Error:", err)
-		return
-	}
-
-	client := &Client{
-		ID:        uuid.NewV4().String(), // Generate unique ID
-		Conn:      conn,
-		Username:  username,
-		SessionID: session_id,
-	}
-
-	S.Lock()
-	defer S.Unlock()
-	// Add client to the user's session list
-	if S.clients[username] == nil {
-		S.clients[username] = []*Client{}
-	}
-	S.clients[username] = append(S.clients[username], client)
-
-	fmt.Println(username, "connected to WebSocket")
-
-	S.broadcastUserList(username)
-
-	go S.receiveMessages(client)
-}
-
 func (s *Server) GetMessagesHandler(w http.ResponseWriter, r *http.Request) {
 	from := r.URL.Query().Get("from")
 	to := r.URL.Query().Get("to")
@@ -410,7 +403,6 @@ func (s *Server) GetMessagesHandler(w http.ResponseWriter, r *http.Request) {
 	ORDER BY timestamp DESC
 	LIMIT 10 OFFSET ?
 `, from, to, to, from, offset)
-
 	if err != nil {
 		http.Error(w, "DB error", http.StatusInternalServerError)
 		return
