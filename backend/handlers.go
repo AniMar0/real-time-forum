@@ -283,13 +283,16 @@ func (S *Server) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (S *Server) LoggedHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		renderErrorPage(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
 	username, _, err := S.CheckSession(r)
 	if err != nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	// fmt.Fprintf(w, `{"username":"%s"}`, username)
 	json.NewEncoder(w).Encode(map[string]string{
 		"username": username,
 	})
