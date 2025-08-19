@@ -73,18 +73,16 @@ const checkLoggedIn = () => {
     credentials: 'include'
   })
     .then(res => {
-      if (!res.ok || !res.Success) throw new Error('Not logged in')
+      if (!res.ok) throw new Error('Not logged in')
       return res.json()
     })
     .then(data => {
-      
       logged(true, data.username)
       startChatFeature(data.username)
       loadPosts()
       showSection('postsSection') // only if logedin
     })
     .catch(() => {
-      
       logged(false)
       showSection('loginSection') // if not loggedin show loggin
     })
