@@ -20,8 +20,12 @@
       <button id="logoutBtn" class="hidden">Logout</button>
     </nav>
   </header>
-
-  <main class="flex-container">
+  <div id="err-page" class="hidden">
+    <h1 id="err-code">200</h1>
+    <h2 id="err-msj">test</h2>
+    <button id="back">back</button>
+  </div>
+  <main id="my-content" class="flex-container">
     <!-- Users Section - Now displayed on the left -->
     <div id="userList">
       <!-- Sample user items (you can dynamically add these via JS) -->
