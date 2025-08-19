@@ -3,6 +3,7 @@ import { startChatFeature } from './chat.js';
 import { handleLogin } from './login.js';
 import { loadPosts } from './posts.js';
 import { logout } from './logout.js';
+import { ErrorPage } from './error.js';
 
 
 window.addEventListener('storage', function (event) {
@@ -73,6 +74,10 @@ const checkLoggedIn = () => {
     credentials: 'include'
   })
     .then(res => {
+      console.log(res);
+      if (res.status != 200 && res.status != 401) {
+        ErrorPage(res)
+      }
       if (!res.ok) throw new Error('Not logged in')
       return res.json()
     })
@@ -90,7 +95,7 @@ const checkLoggedIn = () => {
 
 document.addEventListener('DOMContentLoaded', function () {
   checkLoggedIn();
-  loadPosts();
+  //loadPosts();
 });
 
 
