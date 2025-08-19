@@ -1,4 +1,5 @@
 import { logged, showSection } from './app.js';
+import { ErrorPage } from './error.js';
 
 const unreadCounts = new Map() // Messages unread
 const chatCache = new Map() // Cache messages per user
@@ -107,10 +108,7 @@ export function startChatFeature(currentUsername) {
     }
 
     if (data.type === "user_list") {
-      console.log(data, "list");
-
       setUserList(data.users)
-      
       return
     }
 
@@ -138,6 +136,9 @@ export function startChatFeature(currentUsername) {
         credentials: 'include'
       })
         .then(res => {
+          if (res.status != 200 && res.status != 401) {
+            ErrorPage(res)
+          }
           if (!res.ok) throw new Error('Not logged in')
           return res.json()
         })
@@ -179,12 +180,10 @@ function renderMessage(msg) {
 }
 
 function setUserList(users) {
-  
+
   const list = document.getElementById("userList")
   list.innerHTML = ""
   users.forEach((username) => {
-  console.log(username);
-    
     if (username.nickname === currentUser) return
 
     const div = document.createElement("div")
@@ -322,6 +321,9 @@ function notification(receiver, sender, unread) {
     body: JSON.stringify(notifData)
   })
     .then(res => {
+      if (res.status != 200 && res.status != 401) {
+        ErrorPage(res)
+      }
       if (!res.ok) {
         throw new Error("notif failed");
       }

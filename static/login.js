@@ -1,5 +1,7 @@
 import { showSection, logged } from './app.js';
 import { startChatFeature } from './chat.js';
+import { ErrorPage } from './error.js';
+import { loadPosts } from './posts.js';
 
 
 
@@ -21,6 +23,9 @@ export function handleLogin(event) {
     body: JSON.stringify(formData)
   })
     .then(res => {
+      if (res.status != 200 && res.status != 401) {
+        ErrorPage(res)
+      }
       if (!res.ok) {
         throw new Error("Registration failed");
       }
@@ -28,6 +33,7 @@ export function handleLogin(event) {
     })
     .then(data => {
       startChatFeature(data.username);
+      loadPosts();
       showSection('postsSection');
       logged(true, data.username);
     })

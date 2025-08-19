@@ -1,8 +1,12 @@
 import { showSection } from './app.js';
+import { ErrorPage } from './error.js';
 
 export async function loadComments(postId) {
   try {
     const response = await fetch(`comments?post_id=${postId}`)
+    if (response.status != 200 && response.status != 401) {
+        ErrorPage(response)
+      }
     if (!response.ok) {
       throw new Error("Failed to load comments")
     }
@@ -54,6 +58,10 @@ export function setupCommentSubmission(postId) {
         }),
         credentials: "include",
       })
+
+      if (response.status != 200 && response.status != 401) {
+        ErrorPage(response)
+      }
 
       if (!response.ok) {
         throw new Error("Failed to submit comment")
