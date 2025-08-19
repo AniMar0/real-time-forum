@@ -7,7 +7,6 @@ import { ErrorPage } from './error.js';
 
 
 window.addEventListener('storage', function (event) {
-  console.log('Storage event triggered:', event);
   if (event.key === 'logout') {
     window.location.reload()
   }
@@ -74,7 +73,6 @@ const checkLoggedIn = () => {
     credentials: 'include'
   })
     .then(res => {
-      console.log(res);
       if (res.status != 200 && res.status != 401) {
         ErrorPage(res)
       }
@@ -95,7 +93,6 @@ const checkLoggedIn = () => {
 
 document.addEventListener('DOMContentLoaded', function () {
   checkLoggedIn();
-  //loadPosts();
 });
 
 

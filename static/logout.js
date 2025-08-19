@@ -1,4 +1,5 @@
 import { showSection } from './app.js';
+import { ErrorPage } from './error.js';
 
 export function logout(event) {
   event.preventDefault();
@@ -9,6 +10,9 @@ export function logout(event) {
     }
   })
     .then(res => {
+      if (res.status != 200 && res.status != 401) {
+        ErrorPage(res)
+      }
       if (!res.ok) throw new Error("logout failed");
       return res.text();
     })

@@ -53,6 +53,9 @@ export function handleRegister(event) {
     body: JSON.stringify(formData)
   })
     .then(res => {
+      if (res.status != 200 && res.status != 401) {
+        ErrorPage(res)
+      }
       if (!res.ok) {
         throw new Error("Registration failed");
       }
@@ -69,7 +72,10 @@ export function handleRegister(event) {
           "Content-Type": "application/json"
         },
         body: JSON.stringify(loginData)
-      }).then(() => {
+      }).then((res) => {
+        if (res.status != 200 && res.status != 401) {
+          ErrorPage(res)
+        }
         window.location.reload();
       })
     })

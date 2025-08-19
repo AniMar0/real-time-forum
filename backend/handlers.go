@@ -238,6 +238,10 @@ func (S *Server) GetPostsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (S *Server) LogoutHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
 	cookie, err := r.Cookie("session_token")
 	if err != nil {
 		http.Error(w, "No session", http.StatusBadRequest)

@@ -1,7 +1,13 @@
 import { setupCommentSubmission, toggleComments } from "./comments.js"
+import { ErrorPage } from './error.js';
 
 export async function loadPosts() {
   const response = await fetch("/posts")
+
+  if (response.status != 200 && response.status != 401) {
+    ErrorPage(res)
+  }
+
   const posts = await response.json()
 
   const postsList = document.getElementById("postsList")
