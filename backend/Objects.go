@@ -34,10 +34,11 @@ type Message struct {
 }
 
 type Client struct {
-	ID        string          `json:"id"` // Added ID field
-	Conn      *websocket.Conn `json:"-"`  // Added json:"-" to exclude from JSON
-	Username  string          `json:"username"`
-	SessionID string          `json:"session_id"`
+	ID        string           `json:"id"` // Added ID field
+	Conn      *websocket.Conn  `json:"-"`  // Added json:"-" to exclude from JSON
+	Send      chan interface{} `json:"-"`
+	Username  string           `json:"username"`
+	SessionID string           `json:"session_id"`
 }
 
 type User struct {
