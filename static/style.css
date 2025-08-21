@@ -932,3 +932,101 @@ select:focus-visible {
   outline-offset: 2px;
   box-shadow: var(--glow-accent);
 }
+
+#err-page {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: linear-gradient(135deg, var(--background) 0%, #1a1a1a 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  backdrop-filter: blur(10px);
+  padding: var(--space-lg);
+  box-sizing: border-box;
+}
+
+#err-page::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: linear-gradient(rgba(247, 55, 79, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(247, 55, 79, 0.05) 1px, transparent 1px);
+  background-size: 50px 50px;
+  pointer-events: none;
+}
+
+#err-page #err-code {
+  font-size: clamp(4rem, 12vw, 8rem);
+  font-weight: 800;
+  color: var(--primary);
+  text-shadow: 0 0 20px rgba(247, 55, 79, 0.5);
+  margin-bottom: var(--space-md);
+  text-transform: uppercase;
+  letter-spacing: clamp(2px, 0.5vw, 4px);
+  text-align: center;
+}
+
+#err-page #err-msj {
+  font-size: clamp(1rem, 3vw, 1.5rem);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-xl);
+  text-align: center;
+  max-width: min(600px, 90vw);
+  line-height: 1.4;
+  padding: 0 var(--space-md);
+}
+
+#err-page #back {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  color: white;
+  padding: clamp(var(--space-md), 3vw, var(--space-lg)) clamp(var(--space-lg), 5vw, var(--space-xl));
+  font-size: clamp(0.875rem, 2.5vw, 1rem);
+  font-weight: 700;
+  border: 1px solid var(--primary);
+  box-shadow: var(--shadow-cyber);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  min-height: 44px; /* Minimum touch target size */
+  min-width: 120px;
+}
+
+#err-page #back:hover {
+  box-shadow: var(--glow-primary), var(--shadow-cyber);
+  transform: translateY(-2px);
+}
+
+/* Mobile-specific adjustments */
+@media (max-width: 768px) {
+  #err-page {
+    padding: var(--space-md);
+  }
+  
+  #err-page #err-code {
+    margin-bottom: var(--space-sm);
+  }
+  
+  #err-page #err-msj {
+    margin-bottom: var(--space-lg);
+  }
+}
+
+/* Landscape mobile adjustments */
+@media (max-height: 500px) and (orientation: landscape) {
+  #err-page #err-code {
+    font-size: clamp(2.5rem, 8vh, 4rem);
+    margin-bottom: var(--space-sm);
+  }
+  
+  #err-page #err-msj {
+    font-size: clamp(0.875rem, 2.5vh, 1.25rem);
+    margin-bottom: var(--space-md);
+  }
+}
