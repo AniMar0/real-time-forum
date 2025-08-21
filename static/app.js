@@ -73,7 +73,7 @@ const checkLoggedIn = () => {
     credentials: 'include'
   })
     .then(res => {
-      if (res.status != 200 && res.status != 401) {
+      if (res.status != 200 && res.status != 401 && res.status != 405) {
         ErrorPage(res)
       }
       if (!res.ok) throw new Error('Not logged in')
