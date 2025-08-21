@@ -19,7 +19,7 @@ import (
 type Server struct {
 	db       *sql.DB
 	Mux      *http.ServeMux
-	clients  map[string][]*Client // Changed: map username to slice of clients
+	clients  map[string][]*Client // map username to slice of clients
 	upgrader websocket.Upgrader
 	sync.RWMutex
 }
@@ -29,7 +29,7 @@ func (S *Server) Run(port string) {
 	S.DataBase()
 	S.initRoutes()
 
-	S.clients = make(map[string][]*Client) // Updated initialization
+	S.clients = make(map[string][]*Client)
 
 	fmt.Println("Server running on http://localhost:" + port)
 	err := http.ListenAndServe(":"+port, S.Mux)
@@ -155,7 +155,7 @@ func (S *Server) GetHashedPasswordFromDB(identifier string) (string, string, err
 	return hashedPassword, nickname, nil
 }
 
-// Modified HandleWebSocket function - broadcasts status changes when user connects
+// تعديل HandleWebSocket: إضافة channel و goroutine للكتابة
 func (S *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	username, session_id, err := S.CheckSession(r)
 	if err != nil {
@@ -174,6 +174,7 @@ func (S *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 		Conn:      conn,
 		Username:  username,
 		SessionID: session_id,
+		Send:      make(chan interface{}, 256), // قناة الكتابة
 	}
 
 	S.Lock()
@@ -183,6 +184,7 @@ func (S *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	S.clients[username] = append(S.clients[username], client)
 	S.Unlock()
 
+	go client.WritePump() // goroutine للكتابة فقط
 	fmt.Println(username, "connected to WebSocket")
 
 	S.broadcastUserStatusChange()
@@ -190,7 +192,15 @@ func (S *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	go S.receiveMessages(client)
 }
 
-// Modified receiveMessages function
+// دالة الكتابة الوحيدة على Conn
+func (c *Client) WritePump() {
+	for msg := range c.Send {
+		c.Conn.WriteJSON(msg)
+	}
+	c.Conn.Close()
+}
+
+// receiveMessages: إرسال الرسائل عبر channel Send فقط
 func (s *Server) receiveMessages(client *Client) {
 	defer s.removeClient(client)
 
@@ -218,14 +228,11 @@ func (s *Server) receiveMessages(client *Client) {
 			fmt.Println("DB Insert Error:", err)
 			continue
 		}
-		// Send to all sessions of the recipient
+		// Send to all sessions of the recipient عبر القناة فقط
 		if recipientSessions, ok := s.clients[msg.To]; ok {
 			for _, recipient := range recipientSessions {
 				s.broadcastUserList(client.Username)
-				err := recipient.Conn.WriteJSON(msg)
-				if err != nil {
-					fmt.Println("Send Error to recipient:", err)
-				}
+				recipient.Send <- msg // الكتابة عبر القناة فقط
 			}
 		}
 
@@ -233,18 +240,15 @@ func (s *Server) receiveMessages(client *Client) {
 		if senderSessions, ok := s.clients[msg.From]; ok {
 			for _, senderClient := range senderSessions {
 				s.broadcastUserList(client.Username)
-				if senderClient.ID != client.ID { // Don't send back to the same session
-					err := senderClient.Conn.WriteJSON(msg)
-					if err != nil {
-						fmt.Println("Send Error to sender session:", err)
-					}
+				if senderClient.ID != client.ID {
+					senderClient.Send <- msg // الكتابة عبر القناة فقط
 				}
 			}
 		}
 	}
 }
 
-// Modified broadcastUserList function
+// broadcastUserList: إرسال عبر channel Send فقط
 func (S *Server) broadcastUserList(currentUser string) {
 	query := `
 	WITH 
@@ -330,30 +334,29 @@ func (S *Server) broadcastUserList(currentUser string) {
 		}
 		S.RUnlock()
 	}
-	
-	// Send to all client sessions
+
+	// Send to all client sessions عبر channel Send
 	S.RLock()
 	for _, client := range S.clients[currentUser] {
-		client.Conn.WriteJSON(map[string]interface{}{
+		client.Send <- map[string]interface{}{
 			"type":  "user_list",
 			"users": Users,
-		})
+		}
 	}
 	S.RUnlock()
 }
 
-func (S *Server) DataBase() {
-	var err error
-	S.db, err = sql.Open("sqlite3", "database/forum.db")
-	if err != nil {
-		log.Fatal(err)
+// باقي الدوال كما هي، فقط broadcastUserStatusChange يستعمل broadcastUserList (التي تستعمل channel Send)
+func (S *Server) broadcastUserStatusChange() {
+	S.RLock()
+	defer S.RUnlock()
+
+	for username := range S.clients {
+		S.broadcastUserList(username)
 	}
 }
 
-func (S *Server) Shutdown() {
-	S.db.Close()
-}
-
+// removeClient: إغلاق channel Send
 func (s *Server) removeClient(client *Client) {
 	s.Lock()
 	defer s.Unlock()
@@ -366,6 +369,7 @@ func (s *Server) removeClient(client *Client) {
 	for i, c := range clients {
 		if c.ID == client.ID {
 			s.clients[client.Username] = append(clients[:i], clients[i+1:]...)
+			close(c.Send) // إغلاق القناة عند إزالة العميل
 			break
 		}
 	}
@@ -375,18 +379,21 @@ func (s *Server) removeClient(client *Client) {
 	}
 
 	fmt.Println(client.Username, "disconnected")
-	
+
 	go func() {
 		time.Sleep(100 * time.Millisecond)
 		s.broadcastUserStatusChange()
 	}()
 }
 
-func (S *Server) broadcastUserStatusChange() {
-	S.RLock()
-	defer S.RUnlock()
-	
-	for username := range S.clients {
-		S.broadcastUserList(username)
+func (S *Server) DataBase() {
+	var err error
+	S.db, err = sql.Open("sqlite3", "database/forum.db")
+	if err != nil {
+		log.Fatal(err)
 	}
+}
+
+func (S *Server) Shutdown() {
+	S.db.Close()
 }
