@@ -228,7 +228,7 @@ func (s *Server) receiveMessages(client *Client) {
 		// Send to all sessions of the recipient
 		if recipientSessions, ok := s.clients[msg.To]; ok {
 			for _, recipient := range recipientSessions {
-				s.broadcastUserList(client.Username)
+				s.broadcastUserStatusChange()
 				err := recipient.Conn.WriteJSON(msg)
 				if err != nil {
 					fmt.Println("Send Error to recipient:", err)
@@ -239,7 +239,7 @@ func (s *Server) receiveMessages(client *Client) {
 		// Send to all other sessions of the sender (excluding current session)
 		if senderSessions, ok := s.clients[msg.From]; ok {
 			for _, senderClient := range senderSessions {
-				s.broadcastUserList(client.Username)
+				s.broadcastUserStatusChange()
 				if senderClient.ID != client.ID { // Don't send back to the same session
 					err := senderClient.Conn.WriteJSON(msg)
 					if err != nil {

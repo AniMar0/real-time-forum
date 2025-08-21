@@ -154,10 +154,7 @@ func (S *Server) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		"username": nickname,
 	})
 
-	go func() {
-		time.Sleep(500 * time.Millisecond) // small delay to let WebSocket connection establish
-		S.broadcastUserStatusChange()
-	}()
+	S.broadcastUserStatusChange()
 }
 
 func (S *Server) CreatePostHandler(w http.ResponseWriter, r *http.Request) {
@@ -299,8 +296,6 @@ func (S *Server) LoggedHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// comments
-
 func (S *Server) CreateCommentHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
@@ -377,8 +372,6 @@ func (S *Server) GetCommentsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(comments)
 }
-
-// chats
 
 func (s *Server) GetMessagesHandler(w http.ResponseWriter, r *http.Request) {
 	from := r.URL.Query().Get("from")
