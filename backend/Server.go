@@ -26,13 +26,20 @@ type Server struct {
 
 func (S *Server) Run(port string) {
 	S.Mux = http.NewServeMux()
-	S.DataBase()
+
+	var err error
+	S.db, err = sql.Open("sqlite3", "database/forum.db")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer S.db.Close()
+
 	S.initRoutes()
 
 	S.clients = make(map[string][]*Client) // Updated initialization
 
 	fmt.Println("Server running on http://localhost:" + port)
-	err := http.ListenAndServe(":"+port, S.Mux)
+	err = http.ListenAndServe(":"+port, S.Mux)
 	if err != nil {
 		log.Println("Server error:", err)
 		return
@@ -330,7 +337,7 @@ func (S *Server) broadcastUserList(currentUser string) {
 		}
 		S.RUnlock()
 	}
-	
+
 	// Send to all client sessions
 	S.RLock()
 	for _, client := range S.clients[currentUser] {
@@ -340,18 +347,6 @@ func (S *Server) broadcastUserList(currentUser string) {
 		})
 	}
 	S.RUnlock()
-}
-
-func (S *Server) DataBase() {
-	var err error
-	S.db, err = sql.Open("sqlite3", "database/forum.db")
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
-func (S *Server) Shutdown() {
-	S.db.Close()
 }
 
 func (s *Server) removeClient(client *Client) {
@@ -375,7 +370,7 @@ func (s *Server) removeClient(client *Client) {
 	}
 
 	fmt.Println(client.Username, "disconnected")
-	
+
 	go func() {
 		time.Sleep(100 * time.Millisecond)
 		s.broadcastUserStatusChange()
@@ -385,7 +380,7 @@ func (s *Server) removeClient(client *Client) {
 func (S *Server) broadcastUserStatusChange() {
 	S.RLock()
 	defer S.RUnlock()
-	
+
 	for username := range S.clients {
 		S.broadcastUserList(username)
 	}
