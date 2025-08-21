@@ -284,10 +284,6 @@ func (S *Server) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (S *Server) LoggedHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-		return
-	}
 	username, _, err := S.CheckSession(r)
 	if err != nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
