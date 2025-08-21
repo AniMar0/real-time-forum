@@ -10,13 +10,18 @@ export function logout(event) {
     }
   })
     .then(res => {
+      console.log(res);
       if (res.status != 200 && res.status != 401) {
+        
+        
         ErrorPage(res)
       }
       if (!res.ok) throw new Error("logout failed");
       return res.text();
     })
     .then(() => {
+      console.log("test");
+      
       localStorage.setItem('logout', Date.now());
       window.location.reload()
     })
