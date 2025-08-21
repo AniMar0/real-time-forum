@@ -183,12 +183,12 @@ func (S *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 		SessionID: session_id,
 	}
 
-	S.Lock()
+	S.RLock()
 	if S.clients[username] == nil {
 		S.clients[username] = []*Client{}
 	}
 	S.clients[username] = append(S.clients[username], client)
-	S.Unlock()
+	S.RUnlock()
 
 	fmt.Println(username, "connected to WebSocket")
 
@@ -225,6 +225,8 @@ func (s *Server) receiveMessages(client *Client) {
 			fmt.Println("DB Insert Error:", err)
 			continue
 		}
+
+		s.RLock()
 		// Send to all sessions of the recipient
 		if recipientSessions, ok := s.clients[msg.To]; ok {
 			for _, recipient := range recipientSessions {
@@ -235,7 +237,9 @@ func (s *Server) receiveMessages(client *Client) {
 				}
 			}
 		}
+		s.RUnlock()
 
+		s.RLock()
 		// Send to all other sessions of the sender (excluding current session)
 		if senderSessions, ok := s.clients[msg.From]; ok {
 			for _, senderClient := range senderSessions {
@@ -248,6 +252,7 @@ func (s *Server) receiveMessages(client *Client) {
 				}
 			}
 		}
+		s.RUnlock()
 	}
 }
 
