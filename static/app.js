@@ -70,6 +70,7 @@ document.getElementById('createPostForm').addEventListener('submit', async funct
 
 const checkLoggedIn = () => {
   fetch('/logged', {
+    method: 'POST',
     credentials: 'include'
   })
     .then(res => {
