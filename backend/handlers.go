@@ -153,12 +153,11 @@ func (S *Server) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{
 		"username": nickname,
 	})
-	S.RLock()
+
 	go func() {
 		time.Sleep(500 * time.Millisecond) // small delay to let WebSocket connection establish
 		S.broadcastUserStatusChange()
 	}()
-	S.RUnlock()
 }
 
 func (S *Server) CreatePostHandler(w http.ResponseWriter, r *http.Request) {
@@ -261,15 +260,10 @@ func (S *Server) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 	S.Lock()
 	if clients, exists := S.clients[username]; exists {
 		for _, client := range clients {
-			// الكتابة عبر القناة Send وليس مباشرة على Conn
-			select {
-			case client.Send <- map[string]string{
+			client.Conn.WriteJSON(map[string]string{
 				"event":   "logout",
 				"message": "Session terminated",
-			}:
-			default:
-				// إذا كان channel ممتلئ، يمكن تجاهل أو التعامل مع الحالة
-			}
+			})
 			client.Conn.Close()
 		}
 		delete(S.clients, username)
