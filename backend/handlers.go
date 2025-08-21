@@ -254,7 +254,7 @@ func (S *Server) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	S.Lock()
+	S.RLock()
 	if clients, exists := S.clients[username]; exists {
 		for _, client := range clients {
 			client.Conn.WriteJSON(map[string]string{
@@ -265,7 +265,7 @@ func (S *Server) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		delete(S.clients, username)
 	}
-	S.Unlock()
+	S.RUnlock()
 
 	http.SetCookie(w, &http.Cookie{
 		Name:    "session_token",
