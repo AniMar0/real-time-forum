@@ -5,6 +5,38 @@ import { loadPosts } from './posts.js';
 import { logout } from './logout.js';
 import { ErrorPage } from './error.js';
 
+const checkLoggedIn = () => {
+  fetch('/logged', {
+    method: 'POST',
+    credentials: 'include'
+  })
+    .then(res => {
+      if (res.status != 200 && res.status != 401 && res.status != 405) {
+        ErrorPage(res)
+      }
+      if (!res.ok) throw new Error('Not logged in')
+      return res.json()
+    })
+    .then(data => {
+      logged(true, data.username)
+      startChatFeature(data.username)
+      loadPosts()
+      showSection('postsSection') // only if logedin
+    })
+    .catch(() => {
+      logged(false)
+      showSection('loginSection') // if not loggedin show loggin
+    })
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+  console.log(window.location.pathname)
+  if (window.location.pathname != "/") {
+    ErrorPage({ status: 404, statusText: "Page not found" })
+  }
+  checkLoggedIn();
+});
+
 
 window.addEventListener('storage', function (event) {
   if (event.key === 'logout') {
@@ -67,36 +99,6 @@ document.getElementById('createPostForm').addEventListener('submit', async funct
     alert('Failed to create post');
   }
 });
-
-const checkLoggedIn = () => {
-  fetch('/logged', {
-    method: 'POST',
-    credentials: 'include'
-  })
-    .then(res => {
-      if (res.status != 200 && res.status != 401 && res.status != 405) {
-        ErrorPage(res)
-      }
-      if (!res.ok) throw new Error('Not logged in')
-      return res.json()
-    })
-    .then(data => {
-      logged(true, data.username)
-      startChatFeature(data.username)
-      loadPosts()
-      showSection('postsSection') // only if logedin
-    })
-    .catch(() => {
-      logged(false)
-      showSection('loginSection') // if not loggedin show loggin
-    })
-}
-
-document.addEventListener('DOMContentLoaded', function () {
-  checkLoggedIn();
-});
-
-
 
 export function logged(bool, user) {
   if (bool) {

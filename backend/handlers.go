@@ -91,30 +91,30 @@ func (S *Server) Notification(w http.ResponseWriter, r *http.Request) {
 
 func (S *Server) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		renderErrorPage(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		renderErrorPage(w, r, "Method Not Allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
 	var user User
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
-		renderErrorPage(w, "Bad Request", http.StatusBadRequest)
+		renderErrorPage(w, r, "Bad Request", http.StatusBadRequest)
 		return
 	}
 
 	err, found := S.UserFound(user)
 	if err != nil {
-		renderErrorPage(w, "Internal Server Error", http.StatusInternalServerError)
+		renderErrorPage(w, r, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 	if found {
-		renderErrorPage(w, "Status Conflict", http.StatusConflict)
+		renderErrorPage(w, r, "Status Conflict", http.StatusConflict)
 		return
 	}
 
 	Err := S.AddUser(user)
 	if Err != "" {
-		renderErrorPage(w, Err, http.StatusInternalServerError)
+		renderErrorPage(w, r, Err, http.StatusInternalServerError)
 		return
 	}
 }
@@ -122,28 +122,28 @@ func (S *Server) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 // Modified LoginHandler - broadcast status change after successful login
 func (S *Server) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		renderErrorPage(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		renderErrorPage(w, r, "Method Not Allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
 	var user LoginUser
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
-		renderErrorPage(w, "Bad Request", http.StatusBadRequest)
+		renderErrorPage(w, r, "Bad Request", http.StatusBadRequest)
 		return
 	}
 	if user.Identifier == "" || user.Password == "" {
-		renderErrorPage(w, "Bad Request", http.StatusBadRequest)
+		renderErrorPage(w, r, "Bad Request", http.StatusBadRequest)
 		return
 	}
 	nickname, hashedPassword, err := S.GetHashedPasswordFromDB(user.Identifier)
 	if err != nil {
-		renderErrorPage(w, "User Undif", http.StatusBadRequest)
+		renderErrorPage(w, r, "User Undif", http.StatusBadRequest)
 		return
 	}
 
 	if err := CheckPassword(hashedPassword, user.Password); err != nil {
-		renderErrorPage(w, "Inccorect password", http.StatusInternalServerError)
+		renderErrorPage(w, r, "Inccorect password", http.StatusInternalServerError)
 		return
 	}
 
@@ -285,7 +285,7 @@ func (S *Server) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 
 func (S *Server) LoggedHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		http.Redirect(w, r, "/error", http.StatusMethodNotAllowed)
 		return
 	}
 	username, _, err := S.CheckSession(r)

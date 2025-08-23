@@ -11,11 +11,29 @@ type Error struct {
 	ErrNumber string
 }
 
-func renderErrorPage(w http.ResponseWriter, errMsg string, errCode int) {
-	http.Error(w, errMsg, errCode)
+func renderErrorPage(w http.ResponseWriter, r *http.Request, errMsg string, errCode int) {
+	http.ServeFile(w, r, "./static/index.html")
 }
 
 func CheckPassword(hashedPassword, password string) error {
 	err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
 	return err
+}
+
+func checkHome(next http.Handler) http.Handler {
+
+	Paths := []string{"/app.js.", "/chat.js", "/comments.js", "error.js", "/login.js", "/logout.js", "/posts.js", "/regester.js", "/style.css", "/"}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		for _, p := range Paths {
+			if r.URL.Path == p {
+				next.ServeHTTP(w, r)
+				return
+			}
+		}
+
+		if r.URL.Path != "/" || r.Method != http.MethodGet {
+			renderErrorPage(w, r, "Not Found", http.StatusNotFound)
+			return
+		}
+	})
 }
