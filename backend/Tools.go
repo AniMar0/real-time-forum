@@ -22,7 +22,7 @@ func CheckPassword(hashedPassword, password string) error {
 
 func checkHome(next http.Handler) http.Handler {
 
-	Paths := []string{"/app.js.", "/chat.js", "/comments.js", "error.js", "/login.js", "/logout.js", "/posts.js", "/regester.js", "/style.css", "/"}
+	Paths := []string{"/app.js", "/chat.js", "/comments.js", "/error.js", "/login.js", "/logout.js", "/posts.js", "/regester.js", "/style.css", "/"}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		for _, p := range Paths {
 			if r.URL.Path == p {
