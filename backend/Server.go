@@ -47,7 +47,8 @@ func (S *Server) Run(port string) {
 }
 
 func (S *Server) initRoutes() {
-	S.Mux.Handle("/", http.FileServer(http.Dir("./static")))
+	home := http.FileServer(http.Dir("./static"))
+	S.Mux.Handle("/", checkHome(home))
 	S.Mux.HandleFunc("/logged", S.LoggedHandler)
 
 	S.Mux.HandleFunc("/notification", S.Notification)
