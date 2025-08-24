@@ -12,7 +12,7 @@ import (
 
 func (S *Server) Notification(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		http.Redirect(w, r, "/404", http.StatusSeeOther)
 		return
 	}
 
@@ -91,7 +91,7 @@ func (S *Server) Notification(w http.ResponseWriter, r *http.Request) {
 
 func (S *Server) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		renderErrorPage(w, r, "Method Not Allowed", http.StatusMethodNotAllowed)
+		http.Redirect(w, r, "/404", http.StatusSeeOther)
 		return
 	}
 
@@ -122,7 +122,7 @@ func (S *Server) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 // Modified LoginHandler - broadcast status change after successful login
 func (S *Server) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		renderErrorPage(w, r, "Method Not Allowed", http.StatusMethodNotAllowed)
+		http.Redirect(w, r, "/404", http.StatusSeeOther)
 		return
 	}
 
@@ -159,7 +159,7 @@ func (S *Server) LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 func (S *Server) CreatePostHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		http.Redirect(w, r, "/404", http.StatusSeeOther)
 		return
 	}
 
@@ -203,7 +203,7 @@ func (S *Server) CreatePostHandler(w http.ResponseWriter, r *http.Request) {
 
 func (S *Server) GetPostsHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		http.Redirect(w, r, "/404", http.StatusSeeOther)
 		return
 	}
 
@@ -236,7 +236,7 @@ func (S *Server) GetPostsHandler(w http.ResponseWriter, r *http.Request) {
 
 func (S *Server) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		http.Redirect(w, r, "/404", http.StatusSeeOther)
 		return
 	}
 	cookie, err := r.Cookie("session_token")
@@ -285,7 +285,7 @@ func (S *Server) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 
 func (S *Server) LoggedHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Redirect(w, r, "/error", http.StatusMethodNotAllowed)
+		http.Redirect(w, r, "/404", http.StatusSeeOther)
 		return
 	}
 	username, _, err := S.CheckSession(r)
@@ -301,7 +301,7 @@ func (S *Server) LoggedHandler(w http.ResponseWriter, r *http.Request) {
 
 func (S *Server) CreateCommentHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		http.Redirect(w, r, "/404", http.StatusSeeOther)
 		return
 	}
 	cookie, err := r.Cookie("session_token")
@@ -341,7 +341,7 @@ func (S *Server) CreateCommentHandler(w http.ResponseWriter, r *http.Request) {
 
 func (S *Server) GetCommentsHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		http.Redirect(w, r, "/404", http.StatusSeeOther)
 		return
 	}
 	postID := r.URL.Query().Get("post_id")
@@ -377,6 +377,10 @@ func (S *Server) GetCommentsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) GetMessagesHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Redirect(w, r, "/404", http.StatusSeeOther)
+		return
+	}
 	from := r.URL.Query().Get("from")
 	to := r.URL.Query().Get("to")
 

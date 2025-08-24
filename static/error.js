@@ -14,5 +14,6 @@ export function ErrorPage(data) {
     BackBtn.addEventListener('click', () => {
         MainPage.classList.remove('hidden');
         ErrPage.classList.add('hidden');
+        history.pushState({}, '', '/');
     })
 }
