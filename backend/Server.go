@@ -182,19 +182,21 @@ func (S *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 		Conn:      conn,
 		Username:  username,
 		SessionID: session_id,
+		Send:      make(chan interface{}, 10),
 	}
 
-	S.RLock()
+	S.Lock()
 	if S.clients[username] == nil {
 		S.clients[username] = []*Client{}
 	}
 	S.clients[username] = append(S.clients[username], client)
-	S.RUnlock()
+	S.Unlock()
 
 	fmt.Println(username, "connected to WebSocket")
 
 	S.broadcastUserStatusChange()
 
+	go StartWriter(client)
 	go S.receiveMessages(client)
 }
 
@@ -232,10 +234,8 @@ func (s *Server) receiveMessages(client *Client) {
 		if recipientSessions, ok := s.clients[msg.To]; ok {
 			for _, recipient := range recipientSessions {
 				s.broadcastUserStatusChange()
-				err := recipient.Conn.WriteJSON(msg)
-				if err != nil {
-					fmt.Println("Send Error to recipient:", err)
-				}
+				recipient.Send <- (msg)
+
 			}
 		}
 		s.RUnlock()
@@ -246,10 +246,7 @@ func (s *Server) receiveMessages(client *Client) {
 			for _, senderClient := range senderSessions {
 				s.broadcastUserStatusChange()
 				if senderClient.ID != client.ID { // Don't send back to the same session
-					err := senderClient.Conn.WriteJSON(msg)
-					if err != nil {
-						fmt.Println("Send Error to sender session:", err)
-					}
+					senderClient.Send <- (msg)
 				}
 			}
 		}
@@ -347,7 +344,7 @@ func (S *Server) broadcastUserList(currentUser string) {
 	// Send to all client sessions
 	S.RLock()
 	for _, client := range S.clients[currentUser] {
-		client.Conn.WriteJSON(map[string]interface{}{
+		client.Send <- (map[string]interface{}{
 			"type":  "user_list",
 			"users": Users,
 		})
@@ -389,5 +386,14 @@ func (S *Server) broadcastUserStatusChange() {
 
 	for username := range S.clients {
 		S.broadcastUserList(username)
+	}
+}
+
+func StartWriter(c *Client) {
+	for msg := range c.Send {
+		err := c.Conn.WriteJSON(msg)
+		if err != nil {
+			fmt.Println(err)
+		}
 	}
 }

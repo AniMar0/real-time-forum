@@ -132,18 +132,7 @@ export function startChatFeature(currentUsername) {
   const input = document.getElementById("messageInput")
   if (sendBtn && input) {
     const sendMessage = () => {
-      fetch('/logged', {
-        credentials: 'include'
-      })
-        .then(res => {
-          if (res.status != 200 && res.status != 401) {
-            ErrorPage(res)
-          }
-          if (!res.ok) throw new Error('Not logged in')
-          return res.json()
-        })
-        .then(() => {
-          const content = input.value.trim();
+      const content = input.value.trim();
           if (!content || !selectedUser) return;
 
           const message = {
@@ -158,11 +147,6 @@ export function startChatFeature(currentUsername) {
           const cached = chatCache.get(selectedUser) || []
           chatCache.set(selectedUser, [...cached, message])
           input.value = ""
-        })
-        .catch(() => {
-          alert('session expired')
-          window.location.reload();
-        })
     }
     sendBtn.addEventListener("click", sendMessage);
   }
