@@ -257,10 +257,10 @@ func (S *Server) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 	S.RLock()
 	if clients, exists := S.clients[username]; exists {
 		for _, client := range clients {
-			client.Conn.WriteJSON(map[string]string{
+			client.Send <- map[string]string{
 				"event":   "logout",
 				"message": "Session terminated",
-			})
+			}
 			client.Conn.Close()
 		}
 		delete(S.clients, username)
