@@ -165,10 +165,6 @@ func (S *Server) GetHashedPasswordFromDB(identifier string) (string, string, err
 
 // Modified HandleWebSocket function - broadcasts status changes when user connects
 func (S *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Redirect(w, r, "/404", http.StatusSeeOther)
-		return
-	}
 	username, session_id, err := S.CheckSession(r)
 	if err != nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)

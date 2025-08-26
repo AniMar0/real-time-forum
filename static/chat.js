@@ -35,7 +35,13 @@ async function loadMessagesPage(from, to, page) {
   if (loader) loader.classList.remove("hidden")
 
   try {
-    const res = await fetch(`/messages?from=${from}&to=${to}&offset=${offset}`)
+    const res = await fetch(`/messages?from=${from}&to=${to}&offset=${offset}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(formData)
+    })
     if (!res.ok) throw new Error("Failed to load chat messages")
     const messages = await res.json()
     if (!Array.isArray(messages) || messages.length) {
@@ -133,20 +139,20 @@ export function startChatFeature(currentUsername) {
   if (sendBtn && input) {
     const sendMessage = () => {
       const content = input.value.trim();
-          if (!content || !selectedUser) return;
+      if (!content || !selectedUser) return;
 
-          const message = {
-            to: selectedUser,
-            from: currentUser,
-            content: content,
-            timestamp: new Date().toISOString(),
-          }
-          socket.send(JSON.stringify(message))
-          renderMessage(message)
-          displayedMessagesCount++ // Increment for sent messages
-          const cached = chatCache.get(selectedUser) || []
-          chatCache.set(selectedUser, [...cached, message])
-          input.value = ""
+      const message = {
+        to: selectedUser,
+        from: currentUser,
+        content: content,
+        timestamp: new Date().toISOString(),
+      }
+      socket.send(JSON.stringify(message))
+      renderMessage(message)
+      displayedMessagesCount++ // Increment for sent messages
+      const cached = chatCache.get(selectedUser) || []
+      chatCache.set(selectedUser, [...cached, message])
+      input.value = ""
     }
     sendBtn.addEventListener("click", sendMessage);
   }

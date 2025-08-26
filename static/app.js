@@ -107,11 +107,13 @@ export function logged(bool, user) {
     document.getElementById('showRegister').classList.add('hidden');
     document.getElementById('logoutBtn').classList.remove('hidden');
     document.getElementById('createPostForm').classList.remove('hidden');
+    document.getElementById('userList').classList.remove('hidden');
   } else {
     document.getElementById('usernameDisplay').textContent = ""
     document.getElementById('showLogin').classList.remove('hidden');
     document.getElementById('showRegister').classList.remove('hidden');
     document.getElementById('logoutBtn').classList.add('hidden');
     document.getElementById('createPostForm').classList.add('hidden');
+    document.getElementById('userList').classList.add('hidden');
   }
 }
