@@ -3,13 +3,18 @@ import { showSection } from './app.js';
 export function handleRegister(event) {
   event.preventDefault();
 
-  const Age = parseInt(document.getElementById("age").value);
+  const dob = document.getElementById("dateOfBirth").value;
+  if (!dob) {
+    alert("you age is not accepted")
+    return;
+  }
+  const Age = calculateAge(dob);
 
   if (Age < 13 || Age > 120) {
     alert("you age is not accepted")
     return
   }
-
+  
   if (document.getElementById("nickname").value == "") {
     alert("nickname empty")
     return
@@ -82,4 +87,15 @@ export function handleRegister(event) {
     .catch(err => {
       console.error(err);
     });
+}
+
+function calculateAge(birthDate) {
+  const today = new Date();
+  const dob = new Date(birthDate);
+  let age = today.getFullYear() - dob.getFullYear();
+  const m = today.getMonth() - dob.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
+    age--;
+  }
+  return age;
 }
