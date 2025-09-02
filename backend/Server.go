@@ -280,29 +280,17 @@ func (S *Server) broadcastUserList(currentUser string) {
 	    LEFT JOIN cte_latest_interaction i 
 	        ON i.user_nickname = u.nickname
 	    WHERE u.nickname != ?
-	),
-	cte_notifications AS (
-	    SELECT 
-	        sender AS sender_nickname,
-	        COUNT(*) AS notifications 
-	    FROM messages 
-	    WHERE 1=0
-	      AND receiver = ?
-	    GROUP BY sender
 	)
 	SELECT 
 	    u.id, 
 	    u.nickname, 
 	    COALESCE(u.content, ""), 
-	    u.lastInteraction, 
-	    COALESCE(n.notifications, 0)
+	    u.lastInteraction
 	FROM cte_ordered_users u
-	LEFT JOIN cte_notifications n ON u.nickname = n.sender_nickname
 	ORDER BY u.lastInteraction DESC, u.nickname;
 	`
 
 	rows, err := S.db.Query(query,
-		currentUser,
 		currentUser,
 		currentUser,
 		currentUser,
@@ -316,7 +304,7 @@ func (S *Server) broadcastUserList(currentUser string) {
 	var results []UserConversation
 	for rows.Next() {
 		var uc UserConversation
-		if err := rows.Scan(&uc.ID, &uc.Nickname, &uc.LastMessage, &uc.LastInteraction, &uc.Notifications); err != nil {
+		if err := rows.Scan(&uc.ID, &uc.Nickname, &uc.LastMessage, &uc.LastInteraction); err != nil {
 			continue
 		}
 		results = append(results, uc)

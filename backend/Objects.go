@@ -72,5 +72,4 @@ type UserConversation struct {
 	Nickname        string
 	LastMessage     string
 	LastInteraction string
-	Notifications   int
 }
