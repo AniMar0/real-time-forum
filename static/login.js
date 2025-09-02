@@ -23,7 +23,7 @@ export function handleLogin(event) {
     body: JSON.stringify(formData)
   })
     .then(res => {
-      if (res.status != 200 && res.status != 401) {
+      if (res.status != 200 && res.status != 401 && res.status != 201) {
         ErrorPage(res)
       }
       if (!res.ok) {

@@ -14,7 +14,7 @@ export function handleRegister(event) {
     alert("you age is not accepted")
     return
   }
-  
+
   if (document.getElementById("nickname").value == "") {
     alert("nickname empty")
     return
@@ -58,7 +58,7 @@ export function handleRegister(event) {
     body: JSON.stringify(formData)
   })
     .then(res => {
-      if (res.status != 200 && res.status != 401) {
+      if (res.status != 200 && res.status != 401 && res.status != 201) {
         ErrorPage(res)
       }
       if (!res.ok) {
@@ -78,7 +78,7 @@ export function handleRegister(event) {
         },
         body: JSON.stringify(loginData)
       }).then((res) => {
-        if (res.status != 200 && res.status != 401) {
+        if (res.status != 200 && res.status != 401 && res.status != 201) {
           ErrorPage(res)
         }
         window.location.reload();

@@ -36,11 +36,7 @@ async function loadMessagesPage(from, to, page) {
 
   try {
     const res = await fetch(`/messages?from=${from}&to=${to}&offset=${offset}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(formData)
+      method: "POST"
     })
     if (!res.ok) throw new Error("Failed to load chat messages")
     const messages = await res.json()
@@ -242,7 +238,9 @@ function setUserList(users) {
 
       // always fetch fresh messages from server and merge with cache
       try {
-        const res = await fetch(`/messages?from=${currentUser}&to=${selectedUser}&offset=0`)
+        const res = await fetch(`/messages?from=${currentUser}&to=${selectedUser}&offset=0`, {
+          method: "POST"
+        })
         if (!res.ok) throw new Error("Failed to load chat history")
         const messages = await res.json()
 
@@ -311,7 +309,7 @@ function notification(receiver, sender, unread) {
     body: JSON.stringify(notifData)
   })
     .then(res => {
-      if (res.status != 200 && res.status != 401) {
+      if (res.status != 200 && res.status != 401 && res.status != 201) {
         ErrorPage(res)
       }
       if (!res.ok) {

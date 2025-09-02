@@ -4,7 +4,7 @@ import { ErrorPage } from './error.js';
 export async function loadComments(postId) {
   try {
     const response = await fetch(`comments?post_id=${postId}`)
-    if (response.status != 200 && response.status != 401) {
+    if (response.status != 200 && response.status != 401 && response.status != 201) {
         ErrorPage(response)
       }
     if (!response.ok) {
@@ -59,7 +59,7 @@ export function setupCommentSubmission(postId) {
         credentials: "include",
       })
 
-      if (response.status != 200 && response.status != 401) {
+      if (response.status != 200 && response.status != 401 && response.status != 201) {
         ErrorPage(response)
       }
 
