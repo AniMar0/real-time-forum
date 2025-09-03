@@ -27,10 +27,11 @@ const throttle = (fn, wait) => {
 }
 
 async function loadMessagesPage(from, to, page) {
-  // Use displayed messages count for offset, not page * messagePerPage
   const offset = displayedMessagesCount
+  console.log(`Loading messages - from: ${from}, to: ${to}, offset: ${offset}, displayedCount: ${displayedMessagesCount}`)
+  
   const loader = document.getElementById("chatLoader")
-  const minDisplayTime = 500 // milliseconds
+  const minDisplayTime = 500
   const start = Date.now()
   if (loader) loader.classList.remove("hidden")
 
@@ -38,25 +39,33 @@ async function loadMessagesPage(from, to, page) {
     const res = await fetch(`/messages?from=${from}&to=${to}&offset=${offset}`, {
       method: "POST"
     })
+    
+    console.log('Response status:', res.status)
+    
     if (!res.ok) throw new Error("Failed to load chat messages")
     const messages = await res.json()
-    if (!Array.isArray(messages) || messages.length) {
+    
+    console.log(`Received ${messages.length} messages:`, messages)
+    
+    if (!Array.isArray(messages) || messages.length === 0) {
+      console.log('No more messages available')
       noMoreMessages = true
     } else {
+      console.log(`Adding ${messages.length} messages to top of chat`)
       const container = document.getElementById("chatMessages")
       const oldScrollHeight = container.scrollHeight
       const oldScrollTop = container.scrollTop
+      
       const sortedMessages = messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
       sortedMessages.reverse().forEach(msg => renderMessageAtTop(msg))
 
-      // Update displayed messages count
       displayedMessagesCount += messages.length
+      console.log(`Updated displayedMessagesCount to: ${displayedMessagesCount}`)
 
       const newScrollHeight = container.scrollHeight
       const heightDifference = newScrollHeight - oldScrollHeight
       container.scrollTop = oldScrollTop + heightDifference
 
-      // Update cache with new messages (prepend to maintain chronological order)
       const cached = chatCache.get(to) || []
       const chronologicalMessages = messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
       chatCache.set(to, [...chronologicalMessages, ...cached])
@@ -67,23 +76,14 @@ async function loadMessagesPage(from, to, page) {
     const timeElapsed = Date.now() - start
     const remainingTime = minDisplayTime - timeElapsed
 
-    // wait remaining time if too fast
     setTimeout(() => {
       if (loader) loader.classList.add("hidden")
       isFetching = false
-
-      const container = document.getElementById("chatMessages")
-      if (container && container.scrollTop <= 100 && !noMoreMessages) {
-        setTimeout(() => {
-          if (container.scrollTop <= 100 && !isFetching && !noMoreMessages) {
-            const event = new Event('scroll')
-            container.dispatchEvent(event)
-          }
-        }, 100)
-      }
+      console.log('Finished loading messages, isFetching reset to false')
     }, remainingTime > 0 ? remainingTime : 0)
   }
 }
+
 
 // loading old msg when scroll up 
 const renderMessageAtTop = (msg) => {
