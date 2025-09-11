@@ -3,7 +3,7 @@
 
 /* Reset & Base Styles */
 * {
-  margin: 0;
+  /*margin: 0;*/
   padding: 0;
   box-sizing: border-box;
 }
@@ -763,10 +763,11 @@ button[type="submit"]:hover {
 }
 
 #messageInput {
-  flex: 1;
+  height: 80px;
   padding: var(--space-md);
   border: 1px solid var(--border);
   background: var(--background);
+
 }
 
 #sendBtn {
