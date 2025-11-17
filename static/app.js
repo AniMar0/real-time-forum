@@ -96,7 +96,8 @@ document.getElementById('createPostForm').addEventListener('submit', async funct
     form.reset();
     loadPosts();
   } else {
-    errorToast('Failed to create post');
+    console.log('Failed to create post:', response);
+    errorToast(await response.text() || 'Failed to create post.');
   }
 });
 

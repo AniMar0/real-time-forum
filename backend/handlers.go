@@ -266,6 +266,7 @@ func (S *Server) CreatePostHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+
 	if strings.TrimSpace(post.Content) == "" || strings.TrimSpace(post.Title) == "" || strings.TrimSpace(post.Category) == "" {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
