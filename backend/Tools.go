@@ -23,7 +23,7 @@ func CheckPassword(hashedPassword, password string) error {
 func checkHome(next http.Handler) http.Handler {
 
 	// Issue #5: Update to include register.js instead of regester.js
-	Paths := []string{"/app.js", "/chat.js", "/comments.js", "/error.js", "/login.js", "/logout.js", "/posts.js", "/register.js", "/style.css", "/"}
+	Paths := []string{"/app.js", "/chat.js", "/comments.js", "/error.js", "/login.js", "/logout.js", "/posts.js", "/register.js", "/style.css","/toast.js" , "/"}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		for _, p := range Paths {
 			if r.URL.Path == p {
