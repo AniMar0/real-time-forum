@@ -4,7 +4,7 @@ import { errorToast } from './toast.js';
 
 export async function loadComments(postId) {
   try {
-    const response = await fetch(`comments?post_id=${postId}`)
+    const response = await fetch(`/comments?post_id=${postId}`)
     if (response.status != 200 && response.status != 401 && response.status != 201) {
       ErrorPage(response)
     }
