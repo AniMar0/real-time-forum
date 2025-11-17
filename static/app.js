@@ -107,8 +107,10 @@ export function logged(bool, user) {
     document.getElementById('logoutBtn').classList.remove('hidden');
     document.getElementById('createPostForm').classList.remove('hidden');
     document.getElementById('userList').classList.remove('hidden');
+    document.getElementById('usernameDisplay').classList.remove('hidden');
   } else {
     document.getElementById('usernameDisplay').textContent = ""
+    document.getElementById('usernameDisplay').classList.add('hidden');
     document.getElementById('showLogin').classList.remove('hidden');
     document.getElementById('showRegister').classList.remove('hidden');
     document.getElementById('logoutBtn').classList.add('hidden');
