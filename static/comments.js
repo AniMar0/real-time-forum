@@ -1,5 +1,6 @@
 import { showSection } from './app.js';
 import { ErrorPage } from './error.js';
+import { errorToast } from './toast.js';
 
 export async function loadComments(postId) {
   try {
@@ -13,7 +14,7 @@ export async function loadComments(postId) {
     const comments = await response.json()
     displayComments(postId, comments)
   } catch (error) {
-    alert("Failed to load comments");
+    errorToast("Failed to load comments");
   }
 }
 

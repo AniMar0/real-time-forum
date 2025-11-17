@@ -4,6 +4,7 @@ import { handleLogin } from './login.js';
 import { loadPosts } from './posts.js';
 import { logout } from './logout.js';
 import { ErrorPage } from './error.js';
+import { successToast, errorToast } from './toast.js';
 
 const checkLoggedIn = () => {
   fetch('/logged', {
@@ -91,11 +92,11 @@ document.getElementById('createPostForm').addEventListener('submit', async funct
   });
 
   if (response.ok) {
-    alert('Post created!');
+    successToast('Post created successfully!');
     form.reset();
     loadPosts();
   } else {
-    alert('Failed to create post');
+    errorToast('Failed to create post');
   }
 });
 

@@ -1,4 +1,5 @@
 import { ErrorPage } from './error.js';
+import { errorToast } from './toast.js';
 
 export function logout(event) {
   event.preventDefault();
@@ -20,6 +21,6 @@ export function logout(event) {
       window.location.reload()
     })
     .catch(err => {
-      alert("Logout failed. Please try again.");
+      errorToast("Logout failed. Please try again.");
     });
 }

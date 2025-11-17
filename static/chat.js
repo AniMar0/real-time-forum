@@ -1,14 +1,12 @@
-import { logged, showSection } from './app.js';
 import { ErrorPage } from './error.js';
+import { errorToast } from './toast.js';
 
-const unreadCounts = new Map()
 const chatCache = new Map()
 let socket = null
 let selectedUser = null
 let currentUser = null
 
 let chatPage = 0
-const messagePerPage = 10
 let isFetching = false
 let noMoreMessages = false
 let chatContainer = null
@@ -178,7 +176,7 @@ export function startChatFeature(currentUsername) {
         const mergedCache = mergeMessages(cached, [message])
         chatCache.set(selectedUser, mergedCache)
       }).catch((err) => {
-        alert("Failed to send message. Please try again.");
+        errorToast("Failed to send message. Please try again.");
       })
       input.value = ""
     }
@@ -315,7 +313,7 @@ function setUserList(users) {
         sortedMerged.forEach(renderMessage)
         displayedMessagesCount = sortedMerged.length
       } catch (err) {
-        alert("Failed to load chat history");
+        errorToast("Failed to load chat history");
       }
     })
 
@@ -381,7 +379,7 @@ function notification(receiver, sender, unread) {
       updateNotificationBadge(data)
     })
     .catch(err => {
-      alert("Session terminated. Please login again.");
+      errorToast("Session terminated. Please login again.");
       window.location.reload()
     })
 }
