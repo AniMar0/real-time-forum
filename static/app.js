@@ -19,7 +19,6 @@ const checkLoggedIn = () => {
       return res.json()
     })
     .then(data => {
-      console.log("User is logged in as:", data.username)
       logged(true, data.username)
       startChatFeature(data.username)
       loadPosts()

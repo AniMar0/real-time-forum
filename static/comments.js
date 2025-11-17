@@ -22,7 +22,7 @@ function displayComments(postId, comments) {
   const commentsContainer = document.getElementById(`comments-${postId}`)
   if (!commentsContainer) return
   commentsContainer.innerHTML = ""
-  if (comments.length === 0) {
+  if (!comments || comments.length === 0) {
     commentsContainer.innerHTML = '<p class="no-comments">No comments yet. Be the first to comment!</p>'
     return
   }
