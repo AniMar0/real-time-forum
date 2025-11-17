@@ -33,7 +33,7 @@ function getMessageId(msg) {
 
 async function loadMessagesPage(from, to, page) {
   if (isFetching || noMoreMessages) return // Prevent concurrent requests
-  
+
   isFetching = true
   const offset = displayedMessagesCount
   const loader = document.getElementById("chatLoader")
@@ -47,17 +47,17 @@ async function loadMessagesPage(from, to, page) {
     })
     if (!res.ok) throw new Error("Failed to load chat messages")
     const messages = await res.json()
-    
+
     if (!Array.isArray(messages) || messages.length === 0) {
       noMoreMessages = true
     } else {
       const container = document.getElementById("chatMessages")
       const oldScrollHeight = container.scrollHeight
       const oldScrollTop = container.scrollTop
-      
+
       // Filter out messages that are already rendered
       const newMessages = messages.filter(msg => !renderedMessageIds.has(getMessageId(msg)))
-      
+
       if (newMessages.length > 0) {
         const sortedMessages = newMessages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
         sortedMessages.reverse().forEach(msg => renderMessageAtTop(msg))
@@ -79,7 +79,7 @@ async function loadMessagesPage(from, to, page) {
       }
     }
   } catch (err) {
-    console.error("Pagination error:", err)
+    // Silent fail - user can retry by scrolling
   } finally {
     const timeElapsed = Date.now() - start
     const remainingTime = minDisplayTime - timeElapsed
@@ -94,7 +94,7 @@ async function loadMessagesPage(from, to, page) {
 const renderMessageAtTop = (msg) => {
   const messageId = getMessageId(msg)
   if (renderedMessageIds.has(messageId)) return // Skip if already rendered
-  
+
   const container = document.getElementById("chatMessages")
   const div = document.createElement("div")
   div.setAttribute('data-message-id', messageId) // Add ID to DOM element
@@ -156,11 +156,11 @@ export function startChatFeature(currentUsername) {
         content: (content),
         timestamp: new Date().toISOString(),
       }
-      
+
       const messageId = getMessageId(message)
       if (renderedMessageIds.has(messageId)) return // Prevent duplicate sends
-      
-      
+
+
       fetch("/sendMessage", {
         method: "POST",
         headers: {
@@ -171,7 +171,6 @@ export function startChatFeature(currentUsername) {
         if (!res.ok) throw new Error("Failed to send message")
         return res.json()
       }).then((message) => {
-        console.log(message.content)
         socket.send(JSON.stringify(message))
         renderMessage(message)
         displayedMessagesCount++
@@ -179,7 +178,7 @@ export function startChatFeature(currentUsername) {
         const mergedCache = mergeMessages(cached, [message])
         chatCache.set(selectedUser, mergedCache)
       }).catch((err) => {
-        console.error("Failed to send message:", err)
+        alert("Failed to send message. Please try again.");
       })
       input.value = ""
     }
@@ -195,7 +194,7 @@ export function startChatFeature(currentUsername) {
 function renderMessage(msg) {
   const messageId = getMessageId(msg)
   if (renderedMessageIds.has(messageId)) return
-  
+
   const container = document.getElementById("chatMessages")
 
   const div = document.createElement("div")
@@ -249,7 +248,7 @@ function setUserList(users) {
     div.appendChild(nameSpan)
     div.appendChild(statusSpan)
     notification(currentUser, username.nickname)
-    
+
     div.addEventListener("click", async () => {
       // Reset all pagination and rendering state for new chat
       chatPage = 0
@@ -316,7 +315,7 @@ function setUserList(users) {
         sortedMerged.forEach(renderMessage)
         displayedMessagesCount = sortedMerged.length
       } catch (err) {
-        console.error("Chat history error:", err)
+        alert("Failed to load chat history");
       }
     })
 
@@ -382,8 +381,7 @@ function notification(receiver, sender, unread) {
       updateNotificationBadge(data)
     })
     .catch(err => {
-      alert("Sesion determ")
+      alert("Session terminated. Please login again.");
       window.location.reload()
-      console.error(err)
     })
 }

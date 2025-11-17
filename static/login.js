@@ -41,6 +41,5 @@ export function handleLogin(event) {
       loginError.textContent = "Incorrect email/nickname or password."
       loginError.style.display = "block"
       logged(false)
-      console.error(err)
     })
 }

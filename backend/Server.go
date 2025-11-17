@@ -24,6 +24,29 @@ type Server struct {
 	sync.RWMutex
 }
 
+func (S *Server) initUpgrader() {
+	S.upgrader = websocket.Upgrader{
+		CheckOrigin: func(r *http.Request) bool {
+			// Allow localhost and production domains
+			origin := r.Header.Get("Origin")
+			if origin == "" {
+				return true // Allow connections without Origin header (like from same origin)
+			}
+			// Add your production domain here if needed
+			allowedOrigins := []string{
+				"http://localhost:8080",
+				"http://127.0.0.1:8080",
+			}
+			for _, allowed := range allowedOrigins {
+				if origin == allowed {
+					return true
+				}
+			}
+			return false
+		},
+	}
+}
+
 func (S *Server) Run(port string) {
 	S.Mux = http.NewServeMux()
 
@@ -33,6 +56,9 @@ func (S *Server) Run(port string) {
 		log.Fatal(err)
 	}
 	defer S.db.Close()
+
+	// Initialize WebSocket upgrader with CORS protection
+	S.initUpgrader()
 
 	S.initRoutes()
 
@@ -150,10 +176,11 @@ func (S *Server) MakeToken(Writer http.ResponseWriter, username string) {
 func (S *Server) GetHashedPasswordFromDB(identifier string) (string, string, error) {
 	var hashedPassword, nickname string
 
+	// Issue #3: Fix SQL Scan order - must match SELECT order
 	err := S.db.QueryRow(`
 		SELECT password, nickname FROM users 
 		WHERE nickname = ? OR email = ?
-	`, identifier, identifier).Scan(&nickname, &hashedPassword)
+	`, identifier, identifier).Scan(&hashedPassword, &nickname)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -237,7 +264,7 @@ func (s *Server) receiveMessages(client *Client) {
 		if senderSessions, ok := s.clients[msg.From]; ok {
 			for _, senderClient := range senderSessions {
 				s.broadcastUserStatusChange()
-			 if senderClient.ID != client.ID {// Don't send back to the same session
+				if senderClient.ID != client.ID { // Don't send back to the same session
 					senderClient.Send <- (msg)
 				}
 			}
@@ -344,6 +371,9 @@ func (s *Server) removeClient(client *Client) {
 	for i, c := range clients {
 		if c.ID == client.ID {
 			s.clients[client.Username] = append(clients[:i], clients[i+1:]...)
+			// Issue #2: Close channel and connection to prevent goroutine leak
+			close(c.Send)
+			c.Conn.Close()
 			break
 		}
 	}
@@ -370,10 +400,17 @@ func (S *Server) broadcastUserStatusChange() {
 }
 
 func StartWriter(c *Client) {
+	// Issue #8: Add panic recovery and proper error handling
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("Writer panic recovered:", r)
+		}
+	}()
+
 	for msg := range c.Send {
-		err := c.Conn.WriteJSON(msg)
-		if err != nil {
-			fmt.Println(err)
+		if err := c.Conn.WriteJSON(msg); err != nil {
+			fmt.Println("Write error:", err)
+			return // Exit on write error
 		}
 	}
 }

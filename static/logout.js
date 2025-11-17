@@ -9,7 +9,7 @@ export function logout(event) {
     }
   })
     .then(res => {
-      if (res.status != 200 && res.status != 401  && res.status != 201) {
+      if (res.status != 200 && res.status != 401 && res.status != 201) {
         ErrorPage(res)
       }
       if (!res.ok) throw new Error("logout failed");
@@ -19,5 +19,7 @@ export function logout(event) {
       localStorage.setItem('logout', Date.now());
       window.location.reload()
     })
-    .catch(err => console.error(err));
+    .catch(err => {
+      alert("Logout failed. Please try again.");
+    });
 }

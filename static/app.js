@@ -1,4 +1,4 @@
-import { handleRegister } from './regester.js';
+import { handleRegister } from './register.js';
 import { startChatFeature } from './chat.js';
 import { handleLogin } from './login.js';
 import { loadPosts } from './posts.js';
@@ -30,7 +30,6 @@ const checkLoggedIn = () => {
 }
 
 document.addEventListener('DOMContentLoaded', function () {
-  console.log(window.location.pathname)
   if (window.location.pathname != "/") {
     ErrorPage({ status: 404, statusText: "Page not found" })
   }

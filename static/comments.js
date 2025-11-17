@@ -5,15 +5,15 @@ export async function loadComments(postId) {
   try {
     const response = await fetch(`comments?post_id=${postId}`)
     if (response.status != 200 && response.status != 401 && response.status != 201) {
-        ErrorPage(response)
-      }
+      ErrorPage(response)
+    }
     if (!response.ok) {
       throw new Error("Failed to load comments")
     }
     const comments = await response.json()
     displayComments(postId, comments)
   } catch (error) {
-    console.error("Error loading comments:", error)
+    alert("Failed to load comments");
   }
 }
 

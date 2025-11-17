@@ -3,34 +3,41 @@ package backend
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"html"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
-	"fmt"
 )
 
-func (S *Server ) SendMessageHandler(w http.ResponseWriter, r *http.Request) {
+func (S *Server) SendMessageHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Redirect(w, r, "/404", http.StatusSeeOther)
 		return
 	}
 
-	_, _,err := S.CheckSession(r)
+	_, _, err := S.CheckSession(r)
 	if err != nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
-	
+
 	var message Message
 	err = json.NewDecoder(r.Body).Decode(&message)
 	if err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
+
+	// Validate message content
+	if !isValidTextLength(message.Content, 1, 5000) {
+		http.Error(w, "Message must be 1-5000 characters", http.StatusBadRequest)
+		return
+	}
+
 	message.Timestamp = time.Now().Format(time.RFC3339)
-	
+
 	fmt.Println((message.Content))
 	_, err = S.db.Exec(`
 		INSERT INTO messages (sender, receiver, content, timestamp)
@@ -140,13 +147,49 @@ func (S *Server) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Issue #4: Add backend validation
+	if !isValidNickname(user.Nickname) {
+		renderErrorPage(w, r, "Invalid nickname: must be 3-20 characters, alphanumeric and underscore only", http.StatusBadRequest)
+		return
+	}
+
+	if !isValidEmail(user.Email) {
+		renderErrorPage(w, r, "Invalid email format", http.StatusBadRequest)
+		return
+	}
+
+	if !isValidPassword(user.Password) {
+		renderErrorPage(w, r, "Password must be at least 8 characters with uppercase, lowercase, and number", http.StatusBadRequest)
+		return
+	}
+
+	if !isValidAge(user.Age) {
+		renderErrorPage(w, r, "Invalid age: must be between 13 and 120", http.StatusBadRequest)
+		return
+	}
+
+	if !isValidTextLength(user.FirstName, 1, 50) {
+		renderErrorPage(w, r, "First name must be 1-50 characters", http.StatusBadRequest)
+		return
+	}
+
+	if !isValidTextLength(user.LastName, 1, 50) {
+		renderErrorPage(w, r, "Last name must be 1-50 characters", http.StatusBadRequest)
+		return
+	}
+
+	if user.Gender != "male" && user.Gender != "female" {
+		renderErrorPage(w, r, "Invalid gender", http.StatusBadRequest)
+		return
+	}
+
 	err, found := S.UserFound(user)
 	if err != nil {
 		renderErrorPage(w, r, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 	if found {
-		renderErrorPage(w, r, "Status Conflict", http.StatusConflict)
+		renderErrorPage(w, r, "Email or nickname already exists", http.StatusConflict)
 		return
 	}
 
@@ -174,14 +217,14 @@ func (S *Server) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		renderErrorPage(w, r, "Bad Request", http.StatusBadRequest)
 		return
 	}
-	nickname, hashedPassword, err := S.GetHashedPasswordFromDB(user.Identifier)
+	hashedPassword, nickname, err := S.GetHashedPasswordFromDB(user.Identifier)
 	if err != nil {
-		renderErrorPage(w, r, "User Undif", http.StatusBadRequest)
+		renderErrorPage(w, r, "User not found", http.StatusNotFound)
 		return
 	}
 
 	if err := CheckPassword(hashedPassword, user.Password); err != nil {
-		renderErrorPage(w, r, "Inccorect password", http.StatusInternalServerError)
+		renderErrorPage(w, r, "Incorrect password", http.StatusUnauthorized)
 		return
 	}
 
@@ -227,6 +270,23 @@ func (S *Server) CreatePostHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
+
+	// Validate text lengths
+	if !isValidTextLength(post.Title, 3, 200) {
+		http.Error(w, "Title must be 3-200 characters", http.StatusBadRequest)
+		return
+	}
+
+	if !isValidTextLength(post.Content, 10, 10000) {
+		http.Error(w, "Content must be 10-10000 characters", http.StatusBadRequest)
+		return
+	}
+
+	if !isValidTextLength(post.Category, 3, 50) {
+		http.Error(w, "Category must be 3-50 characters", http.StatusBadRequest)
+		return
+	}
+
 	_, err = S.db.Exec(
 		"INSERT INTO posts (user_id, title, content, category) VALUES ((SELECT id FROM users WHERE nickname = ?), ?, ?, ?)",
 		html.EscapeString(nickname), html.EscapeString(post.Title), html.EscapeString(post.Content), html.EscapeString(post.Category),
@@ -363,6 +423,12 @@ func (S *Server) CreateCommentHandler(w http.ResponseWriter, r *http.Request) {
 
 	if strings.TrimSpace(comment.Content) == "" {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+
+	// Validate comment length
+	if !isValidTextLength(comment.Content, 1, 1000) {
+		http.Error(w, "Comment must be 1-1000 characters", http.StatusBadRequest)
 		return
 	}
 
