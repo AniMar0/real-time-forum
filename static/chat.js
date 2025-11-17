@@ -153,40 +153,80 @@ export function startChatFeature(currentUsername) {
       const message = {
         to: selectedUser,
         from: currentUser,
-        content: content,
+        content: (content),
         timestamp: new Date().toISOString(),
       }
       
       const messageId = getMessageId(message)
       if (renderedMessageIds.has(messageId)) return // Prevent duplicate sends
       
-      socket.send(JSON.stringify(message))
-      renderMessage(message)
-      displayedMessagesCount++
-      const cached = chatCache.get(selectedUser) || []
-      const mergedCache = mergeMessages(cached, [message])
-      chatCache.set(selectedUser, mergedCache)
+      
+      fetch("/sendMessage", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(message),
+      }).then((res) => {
+        if (!res.ok) throw new Error("Failed to send message")
+        return res.json()
+      }).then((message) => {
+        console.log(message.content)
+        socket.send(JSON.stringify(message))
+        renderMessage(message)
+        displayedMessagesCount++
+        const cached = chatCache.get(selectedUser) || []
+        const mergedCache = mergeMessages(cached, [message])
+        chatCache.set(selectedUser, mergedCache)
+      }).catch((err) => {
+        console.error("Failed to send message:", err)
+      })
       input.value = ""
     }
     sendBtn.addEventListener("click", sendMessage)
+    input.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") {
+        sendMessage()
+      }
+    })
   }
 }
 
 function renderMessage(msg) {
   const messageId = getMessageId(msg)
-  if (renderedMessageIds.has(messageId)) return // Skip if already rendered
+  if (renderedMessageIds.has(messageId)) return
   
   const container = document.getElementById("chatMessages")
+
   const div = document.createElement("div")
-  div.setAttribute('data-message-id', messageId)
-  div.innerHTML = `
-    <p><strong>${msg.from}</strong>: ${msg.content}<br/>
-    <small>${new Date(msg.timestamp).toLocaleTimeString()}</small></p>
-  `
+  div.setAttribute("data-message-id", messageId)
+
+  // <p>
+  const p = document.createElement("p")
+
+  // <strong>msg.from</strong>
+  const strong = document.createElement("strong")
+  strong.textContent = msg.from
+
+  // Add strong + ": " + content
+  p.appendChild(strong)
+  p.append(": " + msg.content)
+
+  // Line break
+  p.appendChild(document.createElement("br"))
+
+  // <small>time</small>
+  const small = document.createElement("small")
+  small.textContent = new Date(msg.timestamp).toLocaleTimeString()
+  p.appendChild(small)
+
+  div.appendChild(p)
   container.appendChild(div)
+
   container.scrollTop = container.scrollHeight
   renderedMessageIds.add(messageId)
 }
+
 
 function setUserList(users) {
   const list = document.getElementById("userList")
@@ -272,7 +312,7 @@ function setUserList(users) {
         chatCache.set(username.nickname, merged)
 
         // Render unique messages only
-        const sortedMerged = merged.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
+        const sortedMerged = merged
         sortedMerged.forEach(renderMessage)
         displayedMessagesCount = sortedMerged.length
       } catch (err) {

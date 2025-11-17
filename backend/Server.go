@@ -65,6 +65,7 @@ func (S *Server) initRoutes() {
 	S.Mux.HandleFunc("/ws", S.HandleWebSocket)
 	S.Mux.HandleFunc("/messages", S.GetMessagesHandler)
 
+	S.Mux.HandleFunc("/sendMessage", S.SendMessageHandler)
 	S.Mux.HandleFunc("/logout", S.LogoutHandler)
 }
 
@@ -220,15 +221,6 @@ func (s *Server) receiveMessages(client *Client) {
 		msg.From = client.Username
 		msg.Timestamp = time.Now().Format(time.RFC3339)
 
-		_, err = s.db.Exec(`
-			INSERT INTO messages (sender, receiver, content, timestamp)
-			VALUES (?, ?, ?, ?)`,
-			msg.From, msg.To, html.EscapeString(msg.Content), msg.Timestamp)
-		if err != nil {
-			fmt.Println("DB Insert Error:", err)
-			continue
-		}
-
 		s.RLock()
 		// Send to all sessions of the recipient
 		if recipientSessions, ok := s.clients[msg.To]; ok {
@@ -245,7 +237,7 @@ func (s *Server) receiveMessages(client *Client) {
 		if senderSessions, ok := s.clients[msg.From]; ok {
 			for _, senderClient := range senderSessions {
 				s.broadcastUserStatusChange()
-				if senderClient.ID != client.ID { // Don't send back to the same session
+			 if senderClient.ID != client.ID {// Don't send back to the same session
 					senderClient.Send <- (msg)
 				}
 			}

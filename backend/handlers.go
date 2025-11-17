@@ -8,7 +8,45 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"fmt"
 )
+
+func (S *Server ) SendMessageHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Redirect(w, r, "/404", http.StatusSeeOther)
+		return
+	}
+
+	_, _,err := S.CheckSession(r)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	
+	var message Message
+	err = json.NewDecoder(r.Body).Decode(&message)
+	if err != nil {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+	message.Timestamp = time.Now().Format(time.RFC3339)
+	
+	fmt.Println((message.Content))
+	_, err = S.db.Exec(`
+		INSERT INTO messages (sender, receiver, content, timestamp)
+		VALUES (?, ?, ?, ?)`,
+		message.From, message.To, html.EscapeString(message.Content), message.Timestamp)
+	if err != nil {
+		http.Error(w, "Failed to insert message", http.StatusInternalServerError)
+		return
+	}
+
+	S.broadcastUserStatusChange()
+
+	w.WriteHeader(http.StatusCreated)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(message)
+}
 
 func (S *Server) Notification(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -399,7 +437,7 @@ func (s *Server) GetMessagesHandler(w http.ResponseWriter, r *http.Request) {
 	SELECT sender, receiver, content, timestamp
 	FROM messages
 	WHERE (sender = ? AND receiver = ?) OR (sender = ? AND receiver = ?)
-	ORDER BY timestamp DESC
+	ORDER BY id DESC
 	LIMIT 10 OFFSET ?
 `, from, to, to, from, offset)
 	if err != nil {
@@ -416,6 +454,7 @@ func (s *Server) GetMessagesHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Scan error", http.StatusInternalServerError)
 			return
 		}
+		msg.Content = html.UnescapeString(msg.Content)
 		messages = append([]Message{msg}, messages...)
 	}
 	w.Header().Set("Content-Type", "application/json")
