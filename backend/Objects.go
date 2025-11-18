@@ -31,6 +31,7 @@ type Message struct {
 	To        string `json:"to"`
 	Content   string `json:"content"`
 	Timestamp string `json:"timestamp"`
+	Type      string `json:"type"`
 }
 
 type Client struct {

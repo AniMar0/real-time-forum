@@ -29,7 +29,7 @@ function getMessageId(msg) {
   return msg.id || `${msg.timestamp}_${msg.from}_${msg.to}_${msg.content}`
 }
 
-async function loadMessagesPage(from, to, page) {
+async function loadMessagesPage(from, to) {
   if (isFetching || noMoreMessages) return // Prevent concurrent requests
 
   isFetching = true
@@ -121,6 +121,16 @@ export function startChatFeature(currentUsername) {
       return
     }
 
+    if (data.type === "typing_indicator") {
+      console.log("Typing indicator received for", currentUser)
+      console.log("Selected user is", selectedUser)
+      if (data.from === selectedUser && data.to === currentUser) {
+        console.log("Received typing indicator from", data.from)
+        renderTypingIndicator(data.from)
+      }
+      return
+    }
+
     const chatKey = data.from === currentUser ? data.to : data.from
     const messageId = getMessageId(data)
 
@@ -133,6 +143,7 @@ export function startChatFeature(currentUsername) {
       const cached = chatCache.get(chatKey) || []
       const mergedCache = mergeMessages(cached, [data])
       chatCache.set(chatKey, mergedCache)
+
     } else if (data.to === currentUser) {
       const cached = chatCache.get(chatKey) || []
       const mergedCache = mergeMessages(cached, [data])
@@ -153,6 +164,7 @@ export function startChatFeature(currentUsername) {
         from: currentUser,
         content: (content),
         timestamp: new Date().toISOString(),
+        type: "chat_message"
       }
 
       const messageId = getMessageId(message)
@@ -184,9 +196,31 @@ export function startChatFeature(currentUsername) {
     input.addEventListener("keypress", (e) => {
       if (e.key === "Enter") {
         sendMessage()
+      } else {
+        const message = {
+          to: selectedUser,
+          from: currentUser,
+          content: "",
+          timestamp: "",
+          type: "typing_indicator"
+        }
+        socket.send(JSON.stringify(message)) // Keep connection alive on keypress
       }
     })
   }
+}
+
+function renderTypingIndicator(from) {
+  const container = document.getElementById("typingIndicator")
+  container.classList.remove("hidden")
+  container.textContent = `${from} is typing...`
+  container.className = "typing-indicator"
+  setTimeout(() => {
+    container.textContent = ""
+    container.classList.add("hidden")
+
+  }, 3000)
+  container.scrollTop = container.scrollHeight
 }
 
 function renderMessage(msg) {

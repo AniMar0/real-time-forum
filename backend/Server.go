@@ -240,39 +240,60 @@ func (s *Server) receiveMessages(client *Client) {
 			break
 		}
 
-		if strings.TrimSpace(msg.Content) == "" {
-			fmt.Println("you cant't send an empty message")
-			continue
-		}
-
-		msg.From = client.Username
-		msg.Timestamp = time.Now().Format(time.RFC3339)
-
-		s.RLock()
-		// Send to all sessions of the recipient
-		if recipientSessions, ok := s.clients[msg.To]; ok {
-			for _, recipient := range recipientSessions {
-				s.broadcastUserStatusChange()
-				recipient.Send <- (msg)
-
+		if msg.Type == "typing_indicator" {
+			msg.From = client.Username
+			s.sendTypingIndicator(msg)
+			
+		} else if msg.Type != "chat_message" {
+			if strings.TrimSpace(msg.Content) == "" {
+				fmt.Println("you cant't send an empty message")
+				continue
 			}
-		}
-		s.RUnlock()
 
-		s.RLock()
-		// Send to all other sessions of the sender (excluding current session)
-		if senderSessions, ok := s.clients[msg.From]; ok {
-			for _, senderClient := range senderSessions {
-				s.broadcastUserStatusChange()
-				if senderClient.ID != client.ID { // Don't send back to the same session
-					senderClient.Send <- (msg)
-				}
-			}
+			msg.From = client.Username
+			msg.Timestamp = time.Now().Format(time.RFC3339)
+
+			s.sendMessageToRecipient(msg, client.ID)
 		}
-		s.RUnlock()
+
 	}
 }
 
+func (s *Server) sendMessageToRecipient(msg Message, clientID string) {
+	s.RLock()
+	// Send to all sessions of the recipient
+	if recipientSessions, ok := s.clients[msg.To]; ok {
+		for _, recipient := range recipientSessions {
+			s.broadcastUserStatusChange()
+			recipient.Send <- (msg)
+
+		}
+	}
+	s.RUnlock()
+
+	s.RLock()
+	// Send to all other sessions of the sender (excluding current session)
+	if senderSessions, ok := s.clients[msg.From]; ok {
+		for _, senderClient := range senderSessions {
+			s.broadcastUserStatusChange()
+			if senderClient.ID != clientID { // Don't send back to the same session
+				senderClient.Send <- (msg)
+			}
+		}
+	}
+	s.RUnlock()
+}
+
+func (s *Server) sendTypingIndicator(msg Message) {
+	s.RLock()
+	// Send to all sessions of the recipient
+	if recipientSessions, ok := s.clients[msg.To]; ok {
+		for _, recipient := range recipientSessions {
+			recipient.Send <- (msg)
+		}
+	}
+	s.RUnlock()
+}
 // Modified broadcastUserList function
 func (S *Server) broadcastUserList(currentUser string) {
 	query := `
