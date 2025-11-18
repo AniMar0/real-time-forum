@@ -392,26 +392,6 @@ function mergeMessages(oldMessages, newMessages) {
   })
 }
 
-function updateNotificationBadge(data) {
-  const userList = document.getElementById("userList")
-  const users = userList.getElementsByClassName("user")
-  if (!userList || data.unread_messages == 0) return
-
-  for (let div of users) {
-    const nameSpan = div.querySelector("span:first-child")
-    if (nameSpan && nameSpan.textContent === data.sender_nickname) {
-      let badge = div.querySelector(".notification-badge")
-
-      if (!badge) {
-        badge = document.createElement("span")
-        badge.classList.add("notification-badge")
-        div.appendChild(badge)
-      }
-      badge.textContent = data.unread_messages
-    }
-  }
-}
-
 // Nouvelle fonction pour charger les notifications depuis la DB
 async function loadNotificationsFromDB() {
   try {
