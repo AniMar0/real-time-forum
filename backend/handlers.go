@@ -1,6 +1,7 @@
 package backend
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"html"
@@ -520,6 +521,10 @@ func (s *Server) GetMessagesHandler(w http.ResponseWriter, r *http.Request) {
 	LIMIT 10 OFFSET ?
 `, from, to, to, from, offset)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			http.Error(w, "No messages found", http.StatusNotFound)
+			return
+		}
 		http.Error(w, "DB error", http.StatusInternalServerError)
 		return
 	}
@@ -530,6 +535,10 @@ func (s *Server) GetMessagesHandler(w http.ResponseWriter, r *http.Request) {
 		var msg Message
 		err := rows.Scan(&msg.From, &msg.To, &msg.Content, &msg.Timestamp)
 		if err != nil {
+			if err == sql.ErrNoRows {
+				http.Error(w, "No messages found", http.StatusNotFound)
+				return
+			}
 			http.Error(w, "Scan error", http.StatusInternalServerError)
 			return
 		}

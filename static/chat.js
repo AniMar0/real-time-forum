@@ -431,15 +431,18 @@ function setUserList(users) {
         if (!res.ok) throw new Error("Failed to load chat history")
         const messages = await res.json()
 
-        const cached = chatCache.get(username.nickname) || []
-        const merged = mergeMessages(cached, messages)
-        chatCache.set(username.nickname, merged)
+        if (messages) {
+          const cached = chatCache.get(username.nickname) || []
+          const merged = mergeMessages(cached, messages)
+          chatCache.set(username.nickname, merged)
 
-        // Render unique messages only
-        const sortedMerged = merged
-        sortedMerged.forEach(renderMessage)
-        displayedMessagesCount = sortedMerged.length
+          // Render unique messages only
+          const sortedMerged = merged
+          sortedMerged.forEach(renderMessage)
+          displayedMessagesCount = sortedMerged.length
+        }
       } catch (err) {
+        console.error("Error loading chat history:", err)
         errorToast("Failed to load chat history");
       }
     })
