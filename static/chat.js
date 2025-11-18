@@ -237,7 +237,7 @@ function renderTypingIndicator(from) {
     container.textContent = ""
     container.classList.add("hidden")
     typingTimeoutId = null
-  }, 3000)
+  }, 300)
 
   container.scrollTop = container.scrollHeight
 }
