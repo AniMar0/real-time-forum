@@ -210,16 +210,23 @@ export function startChatFeature(currentUsername) {
   }
 }
 
+let typingTimeoutId = null
+
 function renderTypingIndicator(from) {
   const container = document.getElementById("typingIndicator")
+  if (!container) return
+
   container.classList.remove("hidden")
   container.textContent = `${from} is typing...`
-  container.className = "typing-indicator"
-  setTimeout(() => {
+
+  // Reset previous timer so repeated typing events extend the visible time
+  if (typingTimeoutId) clearTimeout(typingTimeoutId)
+  typingTimeoutId = setTimeout(() => {
     container.textContent = ""
     container.classList.add("hidden")
-
+    typingTimeoutId = null
   }, 3000)
+
   container.scrollTop = container.scrollHeight
 }
 
