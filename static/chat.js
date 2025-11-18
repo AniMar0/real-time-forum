@@ -105,11 +105,12 @@ const renderMessageAtTop = (msg) => {
   renderedMessageIds.add(messageId)
 }
 
-export function startChatFeature(currentUsername) {
+export async function startChatFeature(currentUsername) {
   currentUser = currentUsername
 
   // Charger les notifications depuis la DB au démarrage
-  
+  await loadNotificationsFromDB()
+
 
   socket = new WebSocket("ws://" + window.location.host + "/ws")
 
@@ -122,6 +123,7 @@ export function startChatFeature(currentUsername) {
     }
 
     if (data.type === "user_list") {
+      console.log("Received user list update")
       setUserList(data.users)
     }
 
@@ -129,7 +131,7 @@ export function startChatFeature(currentUsername) {
       if (data.from === selectedUser && data.to === currentUser) {
         console.log("Received typing indicator from", data.from)
         renderTypingIndicator(data.from)
-      }else if (data.from !== currentUser && data.to === selectedUser) {
+      } else if (data.from !== currentUser && data.to === selectedUser) {
         // Optionally handle own typing indicators if needed
 
       }
@@ -277,7 +279,6 @@ function renderMessage(msg) {
 
 
 function setUserList(users) {
-  loadNotificationsFromDB()
   const list = document.getElementById("userList")
   list.innerHTML = ""
   users.forEach((username) => {
@@ -316,8 +317,8 @@ function setUserList(users) {
 
       // Marquer les notifications comme lues
       notificationsCache.set(username.nickname, 0)
-      markNotificationsAsRead(username.nickname)
-
+      await markNotificationsAsRead(username.nickname)
+      updateNotificationBadgeFromCache(username.nickname)
       // Remove existing scroll handler
       const existingHandler = chatContainer.scrollHandler
       if (existingHandler) {
