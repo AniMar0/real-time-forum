@@ -150,6 +150,12 @@ export async function startChatFeature(currentUsername) {
         const cached = chatCache.get(chatKey) || []
         const mergedCache = mergeMessages(cached, [data])
         chatCache.set(chatKey, mergedCache)
+        if (data.from === selectedUser) {
+          // Marquer les notifications comme lues si le message vient de l'utilisateur sélectionné
+          notificationsCache.set(data.from, 0)
+          markNotificationsAsRead(data.from)
+          updateNotificationBadgeFromCache(data.from)
+        }
       } else if (data.to === currentUser) {
         const cached = chatCache.get(chatKey) || []
         const mergedCache = mergeMessages(cached, [data])
