@@ -30,6 +30,13 @@ const checkLoggedIn = () => {
     })
 }
 
+// Global timer to check every 10 seconds if user is still logged in
+setInterval(() => {
+  checkLoggedIn();
+}, 60000); // 60000ms = 1 minutes
+
+
+
 document.addEventListener('DOMContentLoaded', function () {
   if (window.location.pathname != "/") {
     ErrorPage({ status: 404, statusText: "Page not found" })
