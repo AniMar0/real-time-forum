@@ -109,7 +109,7 @@ export function startChatFeature(currentUsername) {
   currentUser = currentUsername
 
   // Charger les notifications depuis la DB au démarrage
-  loadNotificationsFromDB()
+  
 
   socket = new WebSocket("ws://" + window.location.host + "/ws")
 
@@ -123,7 +123,6 @@ export function startChatFeature(currentUsername) {
 
     if (data.type === "user_list") {
       setUserList(data.users)
-      return
     }
 
     if (data.type === "typing_indicator") {
@@ -132,9 +131,8 @@ export function startChatFeature(currentUsername) {
         renderTypingIndicator(data.from)
       }else if (data.from !== currentUser && data.to === selectedUser) {
         // Optionally handle own typing indicators if needed
-        
+
       }
-      return
     }
 
     const chatKey = data.from === currentUser ? data.to : data.from
@@ -279,6 +277,7 @@ function renderMessage(msg) {
 
 
 function setUserList(users) {
+  loadNotificationsFromDB()
   const list = document.getElementById("userList")
   list.innerHTML = ""
   users.forEach((username) => {
@@ -479,36 +478,4 @@ async function markNotificationsAsRead(sender) {
   } catch (err) {
     console.error("Error marking notifications as read:", err)
   }
-}
-
-function notification(receiver, sender, unread) {
-  const notifData = {
-    receiver_nickname: receiver,
-    sender_nickname: sender,
-    ...(unread != null && { unread_messages: unread })
-  }
-  console.log("Sending notification data:", notifData)
-  fetch("/notification", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(notifData)
-  })
-    .then(res => {
-      if (res.status != 200 && res.status != 401 && res.status != 201) {
-        ErrorPage(res)
-      }
-      if (!res.ok) {
-        throw new Error("notif failed")
-      }
-      return res.json()
-    })
-    .then(data => {
-      updateNotificationBadge(data)
-    })
-    .catch(err => {
-      errorToast("Session terminated. Please login again.");
-      window.location.reload()
-    })
 }
