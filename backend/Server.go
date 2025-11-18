@@ -77,7 +77,8 @@ func (S *Server) initRoutes() {
 	S.Mux.Handle("/", checkHome(home))
 	S.Mux.HandleFunc("/logged", S.LoggedHandler)
 
-	S.Mux.HandleFunc("/notification", S.Notification)
+	S.Mux.HandleFunc("/notifications", S.GetNotifications)
+	S.Mux.HandleFunc("/notifications/mark-read", S.MarkNotificationsRead)
 
 	S.Mux.Handle("/createPost", S.SessionMiddleware(http.HandlerFunc(S.CreatePostHandler)))
 	S.Mux.HandleFunc("/posts", S.GetPostsHandler)
@@ -243,7 +244,7 @@ func (s *Server) receiveMessages(client *Client) {
 		if msg.Type == "typing_indicator" {
 			msg.From = client.Username
 			s.sendTypingIndicator(msg)
-			
+
 		} else if msg.Type == "chat_message" {
 			if strings.TrimSpace(msg.Content) == "" {
 				fmt.Println("you cant't send an empty message")
@@ -294,6 +295,7 @@ func (s *Server) sendTypingIndicator(msg Message) {
 	}
 	s.RUnlock()
 }
+
 // Modified broadcastUserList function
 func (S *Server) broadcastUserList(currentUser string) {
 	query := `

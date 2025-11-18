@@ -2,6 +2,7 @@ import { ErrorPage } from './error.js';
 import { errorToast } from './toast.js';
 
 const chatCache = new Map()
+const notificationsCache = new Map() // Cache pour les notifications [username]: count
 let socket = null
 let selectedUser = null
 let currentUser = null
@@ -106,6 +107,10 @@ const renderMessageAtTop = (msg) => {
 
 export function startChatFeature(currentUsername) {
   currentUser = currentUsername
+
+  // Charger les notifications depuis la DB au démarrage
+  loadNotificationsFromDB()
+
   socket = new WebSocket("ws://" + window.location.host + "/ws")
 
   socket.addEventListener("message", (event) => {
@@ -122,11 +127,12 @@ export function startChatFeature(currentUsername) {
     }
 
     if (data.type === "typing_indicator") {
-      console.log("Typing indicator received for", currentUser)
-      console.log("Selected user is", selectedUser)
       if (data.from === selectedUser && data.to === currentUser) {
         console.log("Received typing indicator from", data.from)
         renderTypingIndicator(data.from)
+      }else if (data.from !== currentUser && data.to === selectedUser) {
+        // Optionally handle own typing indicators if needed
+        
       }
       return
     }
@@ -148,7 +154,11 @@ export function startChatFeature(currentUsername) {
         const cached = chatCache.get(chatKey) || []
         const mergedCache = mergeMessages(cached, [data])
         chatCache.set(chatKey, mergedCache)
-        notification(data.to, data.from, 1)
+
+        // Incrémenter le cache de notifications
+        const currentCount = notificationsCache.get(data.from) || 0
+        notificationsCache.set(data.from, currentCount + 1)
+        updateNotificationBadgeFromCache(data.from)
       }
     }
 
@@ -287,7 +297,15 @@ function setUserList(users) {
     statusSpan.classList.add("status", username.status)
     div.appendChild(nameSpan)
     div.appendChild(statusSpan)
-    notification(currentUser, username.nickname)
+
+    // Afficher le badge depuis le cache
+    const notifCount = notificationsCache.get(username.nickname) || 0
+    if (notifCount > 0) {
+      const badge = document.createElement("span")
+      badge.classList.add("notification-badge")
+      badge.textContent = notifCount
+      div.appendChild(badge)
+    }
 
     div.addEventListener("click", async () => {
       // Reset all pagination and rendering state for new chat
@@ -296,6 +314,10 @@ function setUserList(users) {
       displayedMessagesCount = 0
       renderedMessageIds.clear() // Clear rendered message tracking
       chatContainer = document.getElementById("chatMessages")
+
+      // Marquer les notifications comme lues
+      notificationsCache.set(username.nickname, 0)
+      markNotificationsAsRead(username.nickname)
 
       // Remove existing scroll handler
       const existingHandler = chatContainer.scrollHandler
@@ -320,9 +342,6 @@ function setUserList(users) {
       document.getElementById("chatWindow").classList.remove("hidden")
       document.getElementById("chatMessages").innerHTML = ""
 
-      const badge = div.querySelector(".notification-badge")
-      if (badge) badge.remove()
-
       const closeChatBtn = document.getElementById("closeChatBtn")
       if (closeChatBtn) {
         closeChatBtn.onclick = () => {
@@ -336,7 +355,6 @@ function setUserList(users) {
           renderedMessageIds.clear()
         }
       }
-      notification(currentUser, username.nickname, 0)
 
       // Load initial messages
       try {
@@ -391,6 +409,75 @@ function updateNotificationBadge(data) {
       }
       badge.textContent = data.unread_messages
     }
+  }
+}
+
+// Nouvelle fonction pour charger les notifications depuis la DB
+async function loadNotificationsFromDB() {
+  try {
+    const res = await fetch("/notifications", {
+      method: "GET"
+    })
+    if (!res.ok) {
+      console.error("Failed to load notifications")
+      return
+    }
+    const notifications = await res.json()
+
+    // Remplir le cache avec les données de la DB
+    notificationsCache.clear()
+    for (const [sender, count] of Object.entries(notifications)) {
+      notificationsCache.set(sender, count)
+    }
+
+    console.log("Notifications loaded from DB:", notificationsCache)
+  } catch (err) {
+    console.error("Error loading notifications:", err)
+  }
+}
+
+// Nouvelle fonction pour mettre à jour le badge depuis le cache
+function updateNotificationBadgeFromCache(username) {
+  const userList = document.getElementById("userList")
+  if (!userList) return
+
+  const users = userList.getElementsByClassName("user")
+  for (let div of users) {
+    const nameSpan = div.querySelector("span:first-child")
+    if (nameSpan && nameSpan.textContent === username) {
+      const count = notificationsCache.get(username) || 0
+      let badge = div.querySelector(".notification-badge")
+
+      if (count > 0) {
+        if (!badge) {
+          badge = document.createElement("span")
+          badge.classList.add("notification-badge")
+          div.appendChild(badge)
+        }
+        badge.textContent = count
+      } else if (badge) {
+        badge.remove()
+      }
+      break
+    }
+  }
+}
+
+// Nouvelle fonction pour marquer les notifications comme lues
+async function markNotificationsAsRead(sender) {
+  try {
+    const res = await fetch("/notifications/mark-read", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ sender: sender })
+    })
+    if (!res.ok) {
+      console.error("Failed to mark notifications as read")
+    }
+  } catch (err) {
+    console.error("Error marking notifications as read:", err)
   }
 }
 

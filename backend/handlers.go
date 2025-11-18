@@ -1,7 +1,6 @@
 package backend
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"html"
@@ -55,7 +54,54 @@ func (S *Server) SendMessageHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(message)
 }
 
-func (S *Server) Notification(w http.ResponseWriter, r *http.Request) {
+func (S *Server) GetNotifications(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Redirect(w, r, "/404", http.StatusSeeOther)
+		return
+	}
+
+	cookie, err := r.Cookie("session_token")
+	if err != nil {
+		http.Error(w, "Unauthorized - No session", http.StatusUnauthorized)
+		return
+	}
+
+	sessionID := cookie.Value
+	var nickname string
+	err = S.db.QueryRow(`
+		SELECT nickname FROM sessions 
+		WHERE session_id = ? AND expires_at > datetime('now')`, sessionID).Scan(&nickname)
+	if err != nil {
+		http.Error(w, "Unauthorized - Invalid session", http.StatusUnauthorized)
+		return
+	}
+
+	rows, err := S.db.Query(`
+		SELECT sender_nickname, unread_messages 
+		FROM notifications 
+		WHERE receiver_nickname = ? AND unread_messages > 0`, nickname)
+	if err != nil {
+		http.Error(w, "Failed to fetch notifications", http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	notifications := make(map[string]int)
+	for rows.Next() {
+		var sender string
+		var unread int
+		if err := rows.Scan(&sender, &unread); err != nil {
+			http.Error(w, "Failed to scan notifications", http.StatusInternalServerError)
+			return
+		}
+		notifications[sender] = unread
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(notifications)
+}
+
+func (S *Server) MarkNotificationsRead(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Redirect(w, r, "/404", http.StatusSeeOther)
 		return
@@ -77,61 +123,27 @@ func (S *Server) Notification(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var notif Notification
-	err = json.NewDecoder(r.Body).Decode(&notif)
+	var request struct {
+		Sender string `json:"sender"`
+	}
+	err = json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
 
-	var oldUnread int
-	err = S.db.QueryRow(`
-		SELECT unread_messages FROM notifications 
-		WHERE receiver_nickname = ? AND sender_nickname = ?`, nickname, notif.Sender).Scan(&oldUnread)
-
-	var newUnread int
-
-	if err == sql.ErrNoRows {
-		newUnread = 1
-		if notif.Unread != nil {
-			newUnread = 1
-		} else {
-			newUnread = 0
-		}
-		_, err = S.db.Exec(`
-			INSERT INTO notifications (receiver_nickname, sender_nickname, unread_messages) 
-			VALUES (?, ?, ?)`, nickname, notif.Sender, newUnread)
-		if err != nil {
-			http.Error(w, "Failed to insert notification", http.StatusInternalServerError)
-			return
-		}
-	} else if err != nil {
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	_, err = S.db.Exec(`
+		UPDATE notifications 
+		SET unread_messages = 0 
+		WHERE receiver_nickname = ? AND sender_nickname = ?`, nickname, request.Sender)
+	if err != nil {
+		http.Error(w, "Failed to mark notifications as read", http.StatusInternalServerError)
 		return
-	} else {
-		if notif.Unread == nil {
-			newUnread = oldUnread
-		} else if *notif.Unread == 1 {
-			newUnread = oldUnread + 1
-		} else {
-			newUnread = *notif.Unread
-		}
-
-		_, err = S.db.Exec(`
-			UPDATE notifications 
-			SET unread_messages = ? 
-			WHERE receiver_nickname = ? AND sender_nickname = ?`, newUnread, nickname, notif.Sender)
-		if err != nil {
-			http.Error(w, "Failed to update notification", http.StatusInternalServerError)
-			return
-		}
 	}
 
-	notif.Receiver = nickname
-	notif.Unread = &newUnread
-
+	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(notif)
+	json.NewEncoder(w).Encode(map[string]string{"status": "success"})
 }
 
 func (S *Server) RegisterHandler(w http.ResponseWriter, r *http.Request) {
@@ -265,7 +277,6 @@ func (S *Server) CreatePostHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
-
 
 	if strings.TrimSpace(post.Content) == "" || strings.TrimSpace(post.Title) == "" || strings.TrimSpace(post.Category) == "" {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
@@ -524,6 +535,9 @@ func (s *Server) GetMessagesHandler(w http.ResponseWriter, r *http.Request) {
 		msg.Content = html.UnescapeString(msg.Content)
 		messages = append([]Message{msg}, messages...)
 	}
+	
+	s.addNewNotification(to, from)
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(messages)
 }
