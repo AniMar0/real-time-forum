@@ -237,7 +237,7 @@ function renderTypingIndicator(from) {
     container.textContent = ""
     container.classList.add("hidden")
     typingTimeoutId = null
-  }, 300)
+  }, 3000)
 
   container.scrollTop = container.scrollHeight
 }
@@ -308,6 +308,11 @@ function setUserList(users) {
     }
 
     div.addEventListener("click", async () => {
+      const typingIndicator = document.getElementById("typingIndicator")
+      typingIndicator.textContent = ""
+      typingIndicator.classList.add("hidden")
+      if (typingTimeoutId) clearTimeout(typingTimeoutId)
+
       // Reset all pagination and rendering state for new chat
       chatPage = 0
       noMoreMessages = false
