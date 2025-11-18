@@ -137,19 +137,21 @@ export function startChatFeature(currentUsername) {
     // Check if message is already rendered to prevent real-time duplicates
     if (renderedMessageIds.has(messageId)) return
 
-    if (data.from === selectedUser || data.to === selectedUser) {
-      renderMessage(data)
-      displayedMessagesCount++
-      const cached = chatCache.get(chatKey) || []
-      const mergedCache = mergeMessages(cached, [data])
-      chatCache.set(chatKey, mergedCache)
-
-    } else if (data.to === currentUser) {
-      const cached = chatCache.get(chatKey) || []
-      const mergedCache = mergeMessages(cached, [data])
-      chatCache.set(chatKey, mergedCache)
-      notification(data.to, data.from, 1)
+    if (data.type === "chat_message") {
+      if (data.from === selectedUser || data.to === selectedUser) {
+        renderMessage(data)
+        displayedMessagesCount++
+        const cached = chatCache.get(chatKey) || []
+        const mergedCache = mergeMessages(cached, [data])
+        chatCache.set(chatKey, mergedCache)
+      } else if (data.to === currentUser) {
+        const cached = chatCache.get(chatKey) || []
+        const mergedCache = mergeMessages(cached, [data])
+        chatCache.set(chatKey, mergedCache)
+        notification(data.to, data.from, 1)
+      }
     }
+
   })
 
   const sendBtn = document.getElementById("sendBtn")
@@ -271,7 +273,6 @@ function setUserList(users) {
   list.innerHTML = ""
   users.forEach((username) => {
     if (username.nickname === currentUser) return
-
     const div = document.createElement("div")
     div.className = "user"
     div.style.display = "flex"
@@ -399,7 +400,7 @@ function notification(receiver, sender, unread) {
     sender_nickname: sender,
     ...(unread != null && { unread_messages: unread })
   }
-
+  console.log("Sending notification data:", notifData)
   fetch("/notification", {
     method: "POST",
     headers: {

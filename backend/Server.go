@@ -244,7 +244,7 @@ func (s *Server) receiveMessages(client *Client) {
 			msg.From = client.Username
 			s.sendTypingIndicator(msg)
 			
-		} else if msg.Type != "chat_message" {
+		} else if msg.Type == "chat_message" {
 			if strings.TrimSpace(msg.Content) == "" {
 				fmt.Println("you cant't send an empty message")
 				continue
