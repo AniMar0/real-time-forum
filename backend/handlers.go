@@ -48,6 +48,7 @@ func (S *Server) SendMessageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	S.broadcastUserStatusChange()
+	S.addNewNotification(message.To, message.From)
 
 	w.WriteHeader(http.StatusCreated)
 	w.Header().Set("Content-Type", "application/json")
@@ -535,8 +536,6 @@ func (s *Server) GetMessagesHandler(w http.ResponseWriter, r *http.Request) {
 		msg.Content = html.UnescapeString(msg.Content)
 		messages = append([]Message{msg}, messages...)
 	}
-	
-	s.addNewNotification(to, from)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(messages)
