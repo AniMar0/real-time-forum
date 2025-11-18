@@ -225,21 +225,21 @@ export async function startChatFeature(currentUsername) {
 let typingTimeoutId = null
 
 function renderTypingIndicator(from) {
-  const container = document.getElementById("typingIndicator")
-  if (!container) return
+  // Afficher dans la liste d'utilisateurs
+  const userList = document.getElementById("userList")
+  if (!userList) return
 
-  container.classList.remove("hidden")
-  container.textContent = `${from} is typing...`
+  const typingDiv = userList.querySelector(`.typing-indicator-user[data-user="${from}"]`)
+  if (!typingDiv) return
+
+  typingDiv.style.display = "block"
 
   // Reset previous timer so repeated typing events extend the visible time
   if (typingTimeoutId) clearTimeout(typingTimeoutId)
   typingTimeoutId = setTimeout(() => {
-    container.textContent = ""
-    container.classList.add("hidden")
+    typingDiv.style.display = "none"
     typingTimeoutId = null
-  }, 300)
-
-  container.scrollTop = container.scrollHeight
+  }, 3000)
 }
 
 function renderMessage(msg) {
@@ -283,29 +283,85 @@ function setUserList(users) {
   list.innerHTML = ""
   users.forEach((username) => {
     if (username.nickname === currentUser) return
+
+    // Container principal pour chaque utilisateur
     const div = document.createElement("div")
     div.className = "user"
     div.style.display = "flex"
-    div.style.justifyContent = "space-between"
-    div.style.alignItems = "center"
+    div.style.flexDirection = "column"
+    div.style.gap = "8px"
+    div.style.position = "relative"
     div.style.cursor = "pointer"
-    div.style.padding = "5px"
-    div.style.borderBottom = "1px solid #ddd"
+    div.style.padding = "12px"
+    div.style.borderBottom = "1px solid #475569"
+    div.style.transition = "all 0.2s"
+
+    // Ligne principale : Nom + Status + Badge
+    const mainRow = document.createElement("div")
+    mainRow.style.display = "flex"
+    mainRow.style.justifyContent = "space-between"
+    mainRow.style.alignItems = "center"
+    mainRow.style.width = "100%"
+
+    // Container gauche : Nom + Status
+    const leftContainer = document.createElement("div")
+    leftContainer.style.display = "flex"
+    leftContainer.style.alignItems = "center"
+    leftContainer.style.gap = "8px"
+
+    // Nom de l'utilisateur
     const nameSpan = document.createElement("span")
     nameSpan.textContent = username.nickname
-    const statusSpan = document.createElement("span")
-    statusSpan.classList.add("status", username.status)
-    div.appendChild(nameSpan)
-    div.appendChild(statusSpan)
+    nameSpan.style.fontWeight = "500"
+    nameSpan.style.fontSize = "14px"
 
-    // Afficher le badge depuis le cache
+    // Status avec couleur (remplace l'ancien span status)
+    const statusSpan = document.createElement("span")
+    statusSpan.textContent = username.status
+    statusSpan.style.fontSize = "12px"
+    statusSpan.style.fontWeight = "500"
+    statusSpan.style.padding = "2px 8px"
+    statusSpan.style.borderRadius = "12px"
+
+    if (username.status === "online") {
+      statusSpan.style.color = "#4CAF50"
+      statusSpan.style.backgroundColor = "rgba(76, 175, 80, 0.1)"
+    } else {
+      statusSpan.style.color = "#f44336"
+      statusSpan.style.backgroundColor = "rgba(244, 67, 54, 0.1)"
+    }
+
+    leftContainer.appendChild(nameSpan)
+    leftContainer.appendChild(statusSpan)
+
+    // Notification badge
     const notifCount = notificationsCache.get(username.nickname) || 0
     if (notifCount > 0) {
       const badge = document.createElement("span")
       badge.classList.add("notification-badge")
       badge.textContent = notifCount
-      div.appendChild(badge)
+      badge.style.position = "static"
+      badge.style.marginLeft = "auto"
+      mainRow.appendChild(leftContainer)
+      mainRow.appendChild(badge)
+    } else {
+      mainRow.appendChild(leftContainer)
     }
+
+    div.appendChild(mainRow)
+
+    // Div pour typing indicator (caché par défaut)
+    const typingDiv = document.createElement("div")
+    typingDiv.className = "typing-indicator-user"
+    typingDiv.setAttribute("data-user", username.nickname)
+    typingDiv.style.display = "none"
+    typingDiv.style.fontSize = "12px"
+    typingDiv.style.color = "#94a3b8"
+    typingDiv.style.fontStyle = "italic"
+    typingDiv.style.paddingLeft = "4px"
+    typingDiv.innerHTML = '<span class="typing-dots">typing...</span>'
+
+    div.appendChild(typingDiv)
 
     div.addEventListener("click", async () => {
       const typingIndicator = document.getElementById("typingIndicator")
@@ -426,18 +482,27 @@ function updateNotificationBadgeFromCache(username) {
   const userList = document.getElementById("userList")
   if (!userList) return
 
-  const users = userList.getElementsByClassName("user")
-  for (let div of users) {
-    const nameSpan = div.querySelector("span:first-child")
+  const users = userList.querySelectorAll(".user")
+  for (let userDiv of users) {
+    // Chercher le span avec le nom d'utilisateur
+    const mainRow = userDiv.querySelector("div:first-child")
+    if (!mainRow) continue
+
+    const leftContainer = mainRow.querySelector("div:first-child")
+    if (!leftContainer) continue
+
+    const nameSpan = leftContainer.querySelector("span:first-child")
     if (nameSpan && nameSpan.textContent === username) {
       const count = notificationsCache.get(username) || 0
-      let badge = div.querySelector(".notification-badge")
+      let badge = mainRow.querySelector(".notification-badge")
 
       if (count > 0) {
         if (!badge) {
           badge = document.createElement("span")
           badge.classList.add("notification-badge")
-          div.appendChild(badge)
+          badge.style.position = "static"
+          badge.style.marginLeft = "auto"
+          mainRow.appendChild(badge)
         }
         badge.textContent = count
       } else if (badge) {

@@ -1039,3 +1039,24 @@ select:focus-visible {
   font-size: 0.875rem;
   margin-top: var(--space-sm);
 }
+
+/* Typing indicator dans la liste d'utilisateurs */
+.typing-indicator-user {
+  animation: fadeInOut 1.5s ease-in-out infinite;
+}
+
+.typing-dots::after {
+  content: '...';
+  animation: dots 1.5s steps(4, end) infinite;
+}
+
+@keyframes fadeInOut {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+@keyframes dots {
+  0%, 20% { content: '.'; }
+  40% { content: '..'; }
+  60%, 100% { content: '...'; }
+}
