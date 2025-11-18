@@ -157,53 +157,53 @@ func (S *Server) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	var user User
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
-		renderErrorPage(w, r, "Bad Request", http.StatusBadRequest)
+		renderErrorPage(w, r, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
 	// Issue #4: Add backend validation
 	if !isValidNickname(user.Nickname) {
-		renderErrorPage(w, r, "Invalid nickname: must be 3-20 characters, alphanumeric and underscore only", http.StatusBadRequest)
+		http.Error(w, "Invalid nickname: must be 3-20 characters, alphanumeric and underscore only", http.StatusBadRequest)
 		return
 	}
 
 	if !isValidEmail(user.Email) {
-		renderErrorPage(w, r, "Invalid email format", http.StatusBadRequest)
+		http.Error(w, "Invalid email format", http.StatusBadRequest)
 		return
 	}
 
 	if !isValidPassword(user.Password) {
-		renderErrorPage(w, r, "Password must be at least 8 characters with uppercase, lowercase, and number", http.StatusBadRequest)
+		http.Error(w, "Password must be at least 8 characters with uppercase, lowercase, and number", http.StatusBadRequest)
 		return
 	}
 
 	if !isValidAge(user.Age) {
-		renderErrorPage(w, r, "Invalid age: must be between 13 and 120", http.StatusBadRequest)
+		http.Error(w, "Invalid age: must be between 13 and 120", http.StatusBadRequest)
 		return
 	}
 
 	if !isValidTextLength(user.FirstName, 1, 50) {
-		renderErrorPage(w, r, "First name must be 1-50 characters", http.StatusBadRequest)
+		http.Error(w, "First name must be 1-50 characters", http.StatusBadRequest)
 		return
 	}
 
 	if !isValidTextLength(user.LastName, 1, 50) {
-		renderErrorPage(w, r, "Last name must be 1-50 characters", http.StatusBadRequest)
+		http.Error(w, "Last name must be 1-50 characters", http.StatusBadRequest)
 		return
 	}
 
 	if user.Gender != "male" && user.Gender != "female" {
-		renderErrorPage(w, r, "Invalid gender", http.StatusBadRequest)
+		http.Error(w, "Invalid gender", http.StatusBadRequest)
 		return
 	}
 
 	err, found := S.UserFound(user)
 	if err != nil {
-		renderErrorPage(w, r, "Internal Server Error", http.StatusInternalServerError)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 	if found {
-		renderErrorPage(w, r, "Email or nickname already exists", http.StatusConflict)
+		http.Error(w, "Email or nickname already exists", http.StatusConflict)
 		return
 	}
 

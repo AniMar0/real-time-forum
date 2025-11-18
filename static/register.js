@@ -60,7 +60,7 @@ export function handleRegister(event) {
     body: JSON.stringify(formData)
   })
     .then(res => {
-      if (res.status != 200 && res.status != 401 && res.status != 201) {
+      if (res.status == 500 || res.status == 404) {
         ErrorPage(res)
       }
       if (!res.ok) {
@@ -86,8 +86,8 @@ export function handleRegister(event) {
         window.location.reload();
       })
     })
-    .catch(err => {
-      errorToast("Registration failed. Please try again.");
+    .catch(async err => {
+      errorToast(await err.message);
     });
 }
 
