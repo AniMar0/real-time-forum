@@ -59,12 +59,12 @@ export function handleRegister(event) {
     },
     body: JSON.stringify(formData)
   })
-    .then(res => {
+    .then(async res => {
       if (res.status == 500 || res.status == 404) {
         ErrorPage(res)
       }
       if (!res.ok) {
-        throw new Error("Registration failed");
+        throw await res.text();
       }
       return res.text();
     })
@@ -86,8 +86,8 @@ export function handleRegister(event) {
         window.location.reload();
       })
     })
-    .catch(async err => {
-      errorToast(await err.message);
+    .catch(err => {
+      errorToast(err);
     });
 }
 

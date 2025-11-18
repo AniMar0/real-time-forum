@@ -1,7 +1,6 @@
 import { ErrorPage } from './error.js';
 import { errorToast } from './toast.js';
 
-const chatCache = new Map()
 const notificationsCache = new Map() // Cache pour les notifications [username]: count
 let socket = null
 let selectedUser = null
@@ -58,7 +57,7 @@ async function loadMessagesPage(from, to) {
       const newMessages = messages.filter(msg => !renderedMessageIds.has(getMessageId(msg)))
 
       if (newMessages.length > 0) {
-        const sortedMessages = newMessages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
+        const sortedMessages = newMessages
         sortedMessages.reverse().forEach(msg => renderMessageAtTop(msg))
 
         displayedMessagesCount += newMessages.length
@@ -66,12 +65,6 @@ async function loadMessagesPage(from, to) {
         const newScrollHeight = container.scrollHeight
         const heightDifference = newScrollHeight - oldScrollHeight
         container.scrollTop = oldScrollTop + heightDifference
-
-        // Update cache with new messages
-        const cached = chatCache.get(to) || []
-        const chronologicalMessages = newMessages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
-        const mergedCache = mergeMessages([...chronologicalMessages, ...cached], [])
-        chatCache.set(to, mergedCache)
       } else {
         // All messages were duplicates, consider this as no more messages
         noMoreMessages = true
@@ -147,9 +140,6 @@ export async function startChatFeature(currentUsername) {
       if (data.from === selectedUser || data.to === selectedUser) {
         renderMessage(data)
         displayedMessagesCount++
-        const cached = chatCache.get(chatKey) || []
-        const mergedCache = mergeMessages(cached, [data])
-        chatCache.set(chatKey, mergedCache)
         if (data.from === selectedUser) {
           // Marquer les notifications comme lues si le message vient de l'utilisateur sélectionné
           notificationsCache.set(data.from, 0)
@@ -157,10 +147,6 @@ export async function startChatFeature(currentUsername) {
           updateNotificationBadgeFromCache(data.from)
         }
       } else if (data.to === currentUser) {
-        const cached = chatCache.get(chatKey) || []
-        const mergedCache = mergeMessages(cached, [data])
-        chatCache.set(chatKey, mergedCache)
-
         // Incrémenter le cache de notifications
         const currentCount = notificationsCache.get(data.from) || 0
         notificationsCache.set(data.from, currentCount + 1)
@@ -202,9 +188,6 @@ export async function startChatFeature(currentUsername) {
         socket.send(JSON.stringify(message))
         renderMessage(message)
         displayedMessagesCount++
-        const cached = chatCache.get(selectedUser) || []
-        const mergedCache = mergeMessages(cached, [message])
-        chatCache.set(selectedUser, mergedCache)
       }).catch((err) => {
         errorToast("Failed to send message. Please try again.");
       })
@@ -431,15 +414,10 @@ function setUserList(users) {
         if (!res.ok) throw new Error("Failed to load chat history")
         const messages = await res.json()
 
-        if (messages) {
-          const cached = chatCache.get(username.nickname) || []
-          const merged = mergeMessages(cached, messages)
-          chatCache.set(username.nickname, merged)
-
+        if (messages && Array.isArray(messages)) {
           // Render unique messages only
-          const sortedMerged = merged
-          sortedMerged.forEach(renderMessage)
-          displayedMessagesCount = sortedMerged.length
+          messages.forEach(renderMessage)
+          displayedMessagesCount = messages.length
         }
       } catch (err) {
         console.error("Error loading chat history:", err)
@@ -448,17 +426,6 @@ function setUserList(users) {
     })
 
     list.appendChild(div)
-  })
-}
-
-function mergeMessages(oldMessages, newMessages) {
-  const all = [...oldMessages, ...newMessages]
-  const seen = new Set()
-  return all.filter(msg => {
-    const id = getMessageId(msg)
-    if (seen.has(id)) return false
-    seen.add(id)
-    return true
   })
 }
 
