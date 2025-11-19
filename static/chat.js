@@ -1,4 +1,3 @@
-import { ErrorPage } from './error.js';
 import { errorToast } from './toast.js';
 
 const notificationsCache = new Map() // Cache pour les notifications [username]: count
@@ -23,249 +22,6 @@ const throttle = (fn, wait) => {
     }
   }
 }
-
-// Generate unique ID for messages
-function getMessageId(msg) {
-  return msg.id || `${msg.timestamp}_${msg.from}_${msg.to}_${msg.content}`
-}
-
-async function loadMessagesPage(from, to) {
-  if (isFetching || noMoreMessages) return // Prevent concurrent requests
-
-  isFetching = true
-  const offset = displayedMessagesCount
-  const loader = document.getElementById("chatLoader")
-  const minDisplayTime = 500
-  const start = Date.now()
-  if (loader) loader.classList.remove("hidden")
-
-  try {
-    const res = await fetch(`/messages?from=${from}&to=${to}&offset=${offset}`, {
-      method: "POST"
-    })
-    if (!res.ok) throw new Error("Failed to load chat messages")
-    const messages = await res.json()
-
-    if (!Array.isArray(messages) || messages.length === 0) {
-      noMoreMessages = true
-    } else {
-      const container = document.getElementById("chatMessages")
-      const oldScrollHeight = container.scrollHeight
-      const oldScrollTop = container.scrollTop
-
-      // Filter out messages that are already rendered
-      const newMessages = messages.filter(msg => !renderedMessageIds.has(getMessageId(msg)))
-
-      if (newMessages.length > 0) {
-        const sortedMessages = newMessages
-        sortedMessages.reverse().forEach(msg => renderMessageAtTop(msg))
-
-        displayedMessagesCount += newMessages.length
-
-        const newScrollHeight = container.scrollHeight
-        const heightDifference = newScrollHeight - oldScrollHeight
-        container.scrollTop = oldScrollTop + heightDifference
-      } else {
-        // All messages were duplicates, consider this as no more messages
-        noMoreMessages = true
-      }
-    }
-  } catch (err) {
-    // Silent fail - user can retry by scrolling
-  } finally {
-    const timeElapsed = Date.now() - start
-    const remainingTime = minDisplayTime - timeElapsed
-
-    setTimeout(() => {
-      if (loader) loader.classList.add("hidden")
-      isFetching = false
-    }, remainingTime > 0 ? remainingTime : 0)
-  }
-}
-
-const renderMessageAtTop = (msg) => {
-  const messageId = getMessageId(msg)
-  if (renderedMessageIds.has(messageId)) return // Skip if already rendered
-
-  const container = document.getElementById("chatMessages")
-  const div = document.createElement("div")
-  div.setAttribute('data-message-id', messageId) // Add ID to DOM element
-  div.innerHTML = `
-    <p><strong>${msg.from}</strong>: ${msg.content}<br/>
-    <small>${new Date(msg.timestamp).toLocaleTimeString()}</small></p>
-  `
-  container.insertBefore(div, container.firstChild)
-  renderedMessageIds.add(messageId)
-}
-
-export async function startChatFeature(currentUsername) {
-  currentUser = currentUsername
-
-  // Charger les notifications depuis la DB au démarrage
-  await loadNotificationsFromDB()
-
-
-  socket = new WebSocket("ws://" + window.location.host + "/ws")
-
-  socket.addEventListener("message", (event) => {
-    const data = JSON.parse(event.data)
-
-    if (data.event === "logout") {
-      window.location.reload()
-      return
-    }
-
-    if (data.type === "user_list") {
-      console.log("Received user list update")
-      setUserList(data.users)
-    }
-
-    if (data.type === "typing_indicator") {
-      if (data.from === selectedUser && data.to === currentUser) {
-        console.log("Received typing indicator from", data.from)
-        renderTypingIndicator(data.from)
-      } else if (data.from !== currentUser && data.to === selectedUser) {
-        // Optionally handle own typing indicators if needed
-
-      }
-    }
-
-    const chatKey = data.from === currentUser ? data.to : data.from
-    const messageId = getMessageId(data)
-
-    // Check if message is already rendered to prevent real-time duplicates
-    if (renderedMessageIds.has(messageId)) return
-
-    if (data.type === "chat_message") {
-      if (data.from === selectedUser || data.to === selectedUser) {
-        renderMessage(data)
-        displayedMessagesCount++
-        if (data.from === selectedUser) {
-          // Marquer les notifications comme lues si le message vient de l'utilisateur sélectionné
-          notificationsCache.set(data.from, 0)
-          markNotificationsAsRead(data.from)
-          updateNotificationBadgeFromCache(data.from)
-        }
-      } else if (data.to === currentUser) {
-        // Incrémenter le cache de notifications
-        const currentCount = notificationsCache.get(data.from) || 0
-        notificationsCache.set(data.from, currentCount + 1)
-        updateNotificationBadgeFromCache(data.from)
-      }
-    }
-
-  })
-
-  const sendBtn = document.getElementById("sendBtn")
-  const input = document.getElementById("messageInput")
-  if (sendBtn && input) {
-    const sendMessage = () => {
-      const content = input.value.trim()
-      if (!content || !selectedUser) return
-
-      const message = {
-        to: selectedUser,
-        from: currentUser,
-        content: (content),
-        timestamp: new Date().toISOString(),
-        type: "chat_message"
-      }
-
-      const messageId = getMessageId(message)
-      if (renderedMessageIds.has(messageId)) return // Prevent duplicate sends
-
-
-      fetch("/sendMessage", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(message),
-      }).then((res) => {
-        if (!res.ok) throw new Error("Failed to send message")
-        return res.json()
-      }).then((message) => {
-        socket.send(JSON.stringify(message))
-        renderMessage(message)
-        displayedMessagesCount++
-      }).catch((err) => {
-        errorToast("Failed to send message. Please try again.");
-      })
-      input.value = ""
-    }
-    sendBtn.addEventListener("click", sendMessage)
-    input.addEventListener("keypress", (e) => {
-      if (e.key === "Enter") {
-        sendMessage()
-      } else {
-        const message = {
-          to: selectedUser,
-          from: currentUser,
-          content: "",
-          timestamp: "",
-          type: "typing_indicator"
-        }
-        socket.send(JSON.stringify(message)) // Keep connection alive on keypress
-      }
-    })
-  }
-}
-
-let typingTimeoutId = null
-
-function renderTypingIndicator(from) {
-  // Afficher dans la liste d'utilisateurs
-  const userList = document.getElementById("userList")
-  if (!userList) return
-
-  const typingDiv = userList.querySelector(`.typing-indicator-user[data-user="${from}"]`)
-  if (!typingDiv) return
-
-  typingDiv.style.display = "block"
-
-  // Reset previous timer so repeated typing events extend the visible time
-  if (typingTimeoutId) clearTimeout(typingTimeoutId)
-  typingTimeoutId = setTimeout(() => {
-    typingDiv.style.display = "none"
-    typingTimeoutId = null
-  }, 3000)
-}
-
-function renderMessage(msg) {
-  const messageId = getMessageId(msg)
-  if (renderedMessageIds.has(messageId)) return
-
-  const container = document.getElementById("chatMessages")
-
-  const div = document.createElement("div")
-  div.setAttribute("data-message-id", messageId)
-
-  // <p>
-  const p = document.createElement("p")
-
-  // <strong>msg.from</strong>
-  const strong = document.createElement("strong")
-  strong.textContent = msg.from
-
-  // Add strong + ": " + content
-  p.appendChild(strong)
-  p.append(": " + msg.content)
-
-  // Line break
-  p.appendChild(document.createElement("br"))
-
-  // <small>time</small>
-  const small = document.createElement("small")
-  small.textContent = new Date(msg.timestamp).toLocaleTimeString()
-  p.appendChild(small)
-
-  div.appendChild(p)
-  container.appendChild(div)
-
-  container.scrollTop = container.scrollHeight
-  renderedMessageIds.add(messageId)
-}
-
 
 function setUserList(users) {
   const list = document.getElementById("userList")
@@ -429,6 +185,228 @@ function setUserList(users) {
   })
 }
 
+export async function startChatFeature(currentUsername) {
+  currentUser = currentUsername
+
+  // Charger les notifications depuis la DB au démarrage
+  await loadNotificationsFromDB()
+
+
+  socket = new WebSocket("ws://" + window.location.host + "/ws")
+
+  socket.addEventListener("message", (event) => {
+    const data = JSON.parse(event.data)
+
+    if (data.event === "logout") {
+      window.location.reload()
+      return
+    }
+
+    if (data.type === "user_list") {
+      console.log("Received user list update")
+      setUserList(data.users)
+    }
+
+    if (data.type === "typing_indicator") {
+      if (data.from === selectedUser && data.to === currentUser) {
+        console.log("Received typing indicator from", data.from)
+        renderTypingIndicator(data.from)
+      } else if (data.from !== currentUser && data.to === selectedUser) {
+        // Optionally handle own typing indicators if needed
+
+      }
+    }
+
+    const chatKey = data.from === currentUser ? data.to : data.from
+    const messageId = getMessageId(data)
+
+    // Check if message is already rendered to prevent real-time duplicates
+    if (renderedMessageIds.has(messageId)) return
+
+    if (data.type === "chat_message") {
+      if (data.from === selectedUser || data.to === selectedUser) {
+        renderMessage(data)
+        displayedMessagesCount++
+        if (data.from === selectedUser) {
+          // Marquer les notifications comme lues si le message vient de l'utilisateur sélectionné
+          notificationsCache.set(data.from, 0)
+          markNotificationsAsRead(data.from)
+          updateNotificationBadgeFromCache(data.from)
+        }
+      } else if (data.to === currentUser) {
+        // Incrémenter le cache de notifications
+        const currentCount = notificationsCache.get(data.from) || 0
+        notificationsCache.set(data.from, currentCount + 1)
+        updateNotificationBadgeFromCache(data.from)
+      }
+    }
+
+  })
+
+  const sendBtn = document.getElementById("sendBtn")
+  const input = document.getElementById("messageInput")
+  if (sendBtn && input) {
+    const sendMessage = () => {
+      const content = input.value.trim()
+      if (!content || !selectedUser) return
+
+      const message = {
+        to: selectedUser,
+        from: currentUser,
+        content: (content),
+        timestamp: new Date().toISOString(),
+        type: "chat_message"
+      }
+
+      const messageId = getMessageId(message)
+      if (renderedMessageIds.has(messageId)) return // Prevent duplicate sends
+
+
+      fetch("/sendMessage", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(message),
+      }).then((res) => {
+        if (!res.ok) throw new Error("Failed to send message")
+        return res.json()
+      }).then((message) => {
+        socket.send(JSON.stringify(message))
+        renderMessage(message)
+        displayedMessagesCount++
+      }).catch((err) => {
+        errorToast("Failed to send message. Please try again.");
+      })
+      input.value = ""
+    }
+    sendBtn.addEventListener("click", sendMessage)
+    input.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") {
+        sendMessage()
+      } else {
+        const message = {
+          to: selectedUser,
+          from: currentUser,
+          content: "",
+          timestamp: "",
+          type: "typing_indicator"
+        }
+        socket.send(JSON.stringify(message)) // Keep connection alive on keypress
+      }
+    })
+  }
+}
+
+async function loadMessagesPage(from, to) {
+  if (isFetching || noMoreMessages) return // Prevent concurrent requests
+
+  isFetching = true
+  const offset = displayedMessagesCount
+  const loader = document.getElementById("chatLoader")
+  const minDisplayTime = 500
+  const start = Date.now()
+  if (loader) loader.classList.remove("hidden")
+
+  try {
+    const res = await fetch(`/messages?from=${from}&to=${to}&offset=${offset}`, {
+      method: "POST"
+    })
+    if (!res.ok) throw new Error("Failed to load chat messages")
+    const messages = await res.json()
+
+    if (!Array.isArray(messages) || messages.length === 0) {
+      noMoreMessages = true
+    } else {
+      const container = document.getElementById("chatMessages")
+      const oldScrollHeight = container.scrollHeight
+      const oldScrollTop = container.scrollTop
+
+      // Filter out messages that are already rendered
+      const newMessages = messages.filter(msg => !renderedMessageIds.has(getMessageId(msg)))
+
+      if (newMessages.length > 0) {
+        const sortedMessages = newMessages
+        sortedMessages.reverse().forEach(msg => renderMessageAtTop(msg))
+
+        displayedMessagesCount += newMessages.length
+
+        const newScrollHeight = container.scrollHeight
+        const heightDifference = newScrollHeight - oldScrollHeight
+        container.scrollTop = oldScrollTop + heightDifference
+      } else {
+        // All messages were duplicates, consider this as no more messages
+        noMoreMessages = true
+      }
+    }
+  } catch (err) {
+    // Silent fail - user can retry by scrolling
+  } finally {
+    const timeElapsed = Date.now() - start
+    const remainingTime = minDisplayTime - timeElapsed
+
+    setTimeout(() => {
+      if (loader) loader.classList.add("hidden")
+      isFetching = false
+    }, remainingTime > 0 ? remainingTime : 0)
+  }
+}
+
+const renderMessageAtTop = (msg) => {
+  const messageId = getMessageId(msg)
+  if (renderedMessageIds.has(messageId)) return // Skip if already rendered
+
+  const container = document.getElementById("chatMessages")
+  const div = document.createElement("div")
+  div.setAttribute('data-message-id', messageId) // Add ID to DOM element
+  div.innerHTML = `
+    <p><strong>${msg.from}</strong>: ${msg.content}<br/>
+    <small>${new Date(msg.timestamp).toLocaleTimeString()}</small></p>
+  `
+  container.insertBefore(div, container.firstChild)
+  renderedMessageIds.add(messageId)
+}
+
+function renderMessage(msg) {
+  const messageId = getMessageId(msg)
+  if (renderedMessageIds.has(messageId)) return
+
+  const container = document.getElementById("chatMessages")
+
+  const div = document.createElement("div")
+  div.setAttribute("data-message-id", messageId)
+
+  // <p>
+  const p = document.createElement("p")
+
+  // <strong>msg.from</strong>
+  const strong = document.createElement("strong")
+  strong.textContent = msg.from
+
+  // Add strong + ": " + content
+  p.appendChild(strong)
+  p.append(": " + msg.content)
+
+  // Line break
+  p.appendChild(document.createElement("br"))
+
+  // <small>time</small>
+  const small = document.createElement("small")
+  small.textContent = new Date(msg.timestamp).toLocaleTimeString()
+  p.appendChild(small)
+
+  div.appendChild(p)
+  container.appendChild(div)
+
+  container.scrollTop = container.scrollHeight
+  renderedMessageIds.add(messageId)
+}
+
+// Generate unique ID for messages
+function getMessageId(msg) {
+  return msg.id || `${msg.timestamp}_${msg.from}_${msg.to}_${msg.content}`
+}
+
 // Nouvelle fonction pour charger les notifications depuis la DB
 async function loadNotificationsFromDB() {
   try {
@@ -505,4 +483,24 @@ async function markNotificationsAsRead(sender) {
   } catch (err) {
     console.error("Error marking notifications as read:", err)
   }
+}
+
+let typingTimeoutId = null
+
+function renderTypingIndicator(from) {
+  // Afficher dans la liste d'utilisateurs
+  const userList = document.getElementById("userList")
+  if (!userList) return
+
+  const typingDiv = userList.querySelector(`.typing-indicator-user[data-user="${from}"]`)
+  if (!typingDiv) return
+
+  typingDiv.style.display = "block"
+
+  // Reset previous timer so repeated typing events extend the visible time
+  if (typingTimeoutId) clearTimeout(typingTimeoutId)
+  typingTimeoutId = setTimeout(() => {
+    typingDiv.style.display = "none"
+    typingTimeoutId = null
+  }, 3000)
 }
