@@ -81,19 +81,19 @@ func (S *Server) initRoutes() {
 	S.Mux.HandleFunc("/notifications/mark-read", S.MarkNotificationsRead)
 
 	S.Mux.Handle("/createPost", S.SessionMiddleware(http.HandlerFunc(S.CreatePostHandler)))
-	S.Mux.HandleFunc("/posts", S.GetPostsHandler)
+	S.Mux.Handle("/posts", S.SessionMiddleware(http.HandlerFunc(S.GetPostsHandler)))
 
 	S.Mux.Handle("/createComment", S.SessionMiddleware(http.HandlerFunc(S.CreateCommentHandler)))
-	S.Mux.HandleFunc("/comments", S.GetCommentsHandler)
+	S.Mux.Handle("/comments", S.SessionMiddleware(http.HandlerFunc(S.GetCommentsHandler)))
 
 	S.Mux.HandleFunc("/register", S.RegisterHandler)
 	S.Mux.HandleFunc("/login", S.LoginHandler)
 
-	S.Mux.HandleFunc("/ws", S.HandleWebSocket)
-	S.Mux.HandleFunc("/messages", S.GetMessagesHandler)
+	S.Mux.Handle("/ws", S.SessionMiddleware(http.HandlerFunc(S.HandleWebSocket)))
+	S.Mux.Handle("/messages", S.SessionMiddleware(http.HandlerFunc(S.GetMessagesHandler)))
 
-	S.Mux.HandleFunc("/sendMessage", S.SendMessageHandler)
-	S.Mux.HandleFunc("/logout", S.LogoutHandler)
+	S.Mux.Handle("/sendMessage", S.SessionMiddleware(http.HandlerFunc(S.SendMessageHandler)))
+	S.Mux.Handle("/logout", S.SessionMiddleware(http.HandlerFunc(S.LogoutHandler)))
 }
 
 func (S *Server) UserFound(user User) (error, bool) {
@@ -136,7 +136,6 @@ func (S *Server) SessionMiddleware(next http.Handler) http.Handler {
 }
 
 func (S *Server) CheckSession(r *http.Request) (string, string, error) {
-
 	cookie, err := r.Cookie("session_token")
 	if err != nil {
 		return "", "", fmt.Errorf("no session cookie")
@@ -147,7 +146,6 @@ func (S *Server) CheckSession(r *http.Request) (string, string, error) {
         SELECT nickname FROM sessions 
         WHERE session_id = ? AND expires_at > CURRENT_TIMESTAMP
     `, sessionID).Scan(&username)
-
 	if err != nil {
 		return "", "", fmt.Errorf("invalid or expired session")
 	}
@@ -182,7 +180,6 @@ func (S *Server) GetHashedPasswordFromDB(identifier string) (string, string, err
 		SELECT password, nickname FROM users 
 		WHERE nickname = ? OR email = ?
 	`, identifier, identifier).Scan(&hashedPassword, &nickname)
-
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return "", "", fmt.Errorf("this user does not exist")
