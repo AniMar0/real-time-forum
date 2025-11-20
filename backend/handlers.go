@@ -502,7 +502,13 @@ func (s *Server) GetMessagesHandler(w http.ResponseWriter, r *http.Request) {
 	from := r.URL.Query().Get("from")
 	to := r.URL.Query().Get("to")
 
-	if from == "" || to == "" {
+	username, _, err := s.CheckSession(r)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	if from == "" || to == "" || (from != username && to != username) {
 		http.Error(w, "Missing parameters", http.StatusBadRequest)
 		return
 	}
@@ -519,7 +525,7 @@ func (s *Server) GetMessagesHandler(w http.ResponseWriter, r *http.Request) {
 	WHERE (sender = ? AND receiver = ?) OR (sender = ? AND receiver = ?)
 	ORDER BY id DESC
 	LIMIT 10 OFFSET ?
-`, from, to, to, from, offset)
+`, from, username, username, from, offset)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			http.Error(w, "No messages found", http.StatusNotFound)
