@@ -112,7 +112,7 @@ function setUserList(users) {
       const typingIndicator = document.getElementById("typingIndicator")
       typingIndicator.textContent = ""
       typingIndicator.classList.add("hidden")
-      if (typingTimeoutId) clearTimeout(typingTimeoutId)
+      if (typingTimeoutSideBarId) clearTimeout(typingTimeoutSideBarId)
 
       // Reset all pagination and rendering state for new chat
       chatPage = 0
@@ -209,9 +209,8 @@ export async function startChatFeature(currentUsername) {
 
     if (data.type === "typing_indicator") {
       if (data.from === selectedUser && data.to === currentUser) {
-        console.log("Received typing indicator from", data.from)
+        renderTypingIndicatorChatBox(data.from)
       } else if (data.to === currentUser) {
-        // Optionally handle own typing indicators if needed
         renderTypingIndicatorSideBar(data.from)
       }
     }
@@ -484,7 +483,7 @@ async function markNotificationsAsRead(sender) {
   }
 }
 
-let typingTimeoutId = null
+let typingTimeoutSideBarId = null
 
 function renderTypingIndicatorSideBar(from) {
   // Afficher dans la liste d'utilisateurs
@@ -497,9 +496,27 @@ function renderTypingIndicatorSideBar(from) {
   typingDiv.style.display = "block"
 
   // Reset previous timer so repeated typing events extend the visible time
-  if (typingTimeoutId) clearTimeout(typingTimeoutId)
-  typingTimeoutId = setTimeout(() => {
+  if (typingTimeoutSideBarId) clearTimeout(typingTimeoutSideBarId)
+  typingTimeoutSideBarId = setTimeout(() => {
     typingDiv.style.display = "none"
-    typingTimeoutId = null
+    typingTimeoutSideBarId = null
+  }, 1000)
+}
+
+let typingTimeoutChatBoxId = null
+function renderTypingIndicatorChatBox(from) {
+  // Afficher dans la liste d'utilisateurs
+  const typingDiv = document.getElementById("typingIndicator")
+  if (!typingDiv) return
+
+  typingDiv.classList.remove("hidden")
+  typingDiv.textContent = `${from} is typing...`
+
+  // Reset previous timer so repeated typing events extend the visible time
+  if (typingTimeoutChatBoxId) clearTimeout(typingTimeoutChatBoxId)
+  typingTimeoutChatBoxId = setTimeout(() => {
+    typingDiv.textContent = ""
+    typingDiv.classList.add("hidden")
+    typingTimeoutChatBoxId = null
   }, 1000)
 }
