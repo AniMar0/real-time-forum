@@ -110,6 +110,7 @@ function setUserList(users) {
 
     div.addEventListener("click", async () => {
       const typingIndicator = document.getElementById("typingIndicator")
+
       typingIndicator.textContent = ""
       typingIndicator.classList.add("hidden")
       if (typingTimeoutSideBarId) clearTimeout(typingTimeoutSideBarId)
@@ -494,7 +495,11 @@ function renderTypingIndicatorSideBar(from) {
   if (!typingDiv) return
 
   typingDiv.style.display = "block"
-
+  const parentUserDiv = typingDiv.parentElement
+  parentUserDiv.addEventListener("click", () => {
+    typingDiv.style.display = "none"
+    typingTimeoutSideBarId = null
+  })
   // Reset previous timer so repeated typing events extend the visible time
   if (typingTimeoutSideBarId) clearTimeout(typingTimeoutSideBarId)
   typingTimeoutSideBarId = setTimeout(() => {
