@@ -210,10 +210,9 @@ export async function startChatFeature(currentUsername) {
     if (data.type === "typing_indicator") {
       if (data.from === selectedUser && data.to === currentUser) {
         console.log("Received typing indicator from", data.from)
-        renderTypingIndicator(data.from)
-      } else if (data.from !== currentUser && data.to === selectedUser) {
+      } else if (data.to === currentUser) {
         // Optionally handle own typing indicators if needed
-
+        renderTypingIndicatorSideBar(data.from)
       }
     }
 
@@ -487,7 +486,7 @@ async function markNotificationsAsRead(sender) {
 
 let typingTimeoutId = null
 
-function renderTypingIndicator(from) {
+function renderTypingIndicatorSideBar(from) {
   // Afficher dans la liste d'utilisateurs
   const userList = document.getElementById("userList")
   if (!userList) return
@@ -502,5 +501,5 @@ function renderTypingIndicator(from) {
   typingTimeoutId = setTimeout(() => {
     typingDiv.style.display = "none"
     typingTimeoutId = null
-  }, 3000)
+  }, 1000)
 }
