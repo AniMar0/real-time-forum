@@ -1,173 +1,129 @@
-import { createRegisterSection } from "./register.js"
-import { startChatFeature } from "./chat.js"
-import { createLoginSection } from "./login.js"
-import { loadPosts, createPostsSection } from "./posts.js"
-import { logout } from "./logout.js"
-import { createErrorPage } from "./error.js"
-
-let currentSection = null
-
-function createHeader() {
-  const header = document.createElement("header")
-
-  const h1 = document.createElement("h1")
-  h1.textContent = "My Forum"
-
-  const nav = document.createElement("nav")
-
-  const usernameDisplay = document.createElement("span")
-  usernameDisplay.id = "usernameDisplay"
-  usernameDisplay.classList.add("hidden")
-
-  const showLoginBtn = document.createElement("button")
-  showLoginBtn.id = "showLogin"
-  showLoginBtn.textContent = "Login"
-  showLoginBtn.addEventListener("click", () => showSection("login"))
-
-  const showRegisterBtn = document.createElement("button")
-  showRegisterBtn.id = "showRegister"
-  showRegisterBtn.textContent = "Register"
-  showRegisterBtn.addEventListener("click", () => showSection("register"))
-
-  const logoutBtn = document.createElement("button")
-  logoutBtn.id = "logoutBtn"
-  logoutBtn.textContent = "Logout"
-  logoutBtn.classList.add("hidden")
-  logoutBtn.addEventListener("click", (e) => {
-    logout(e)
-    logged(false)
-  })
-
-  nav.appendChild(usernameDisplay)
-  nav.appendChild(showLoginBtn)
-  nav.appendChild(showRegisterBtn)
-  nav.appendChild(logoutBtn)
-
-  header.appendChild(h1)
-  header.appendChild(nav)
-
-  return header
-}
-
-function createMainContainer() {
-  const main = document.createElement("main")
-  main.id = "my-content"
-  main.classList.add("flex-container")
-
-  const userList = document.createElement("div")
-  userList.id = "userList"
-  userList.classList.add("hidden")
-
-  const mainContent = document.createElement("div")
-  mainContent.classList.add("main-content")
-  mainContent.id = "mainContent"
-
-  main.appendChild(userList)
-  main.appendChild(mainContent)
-
-  return main
-}
-
-function initApp() {
-  const app = document.getElementById("app")
-
-  const header = createHeader()
-  const main = createMainContainer()
-
-  app.appendChild(header)
-  app.appendChild(main)
-}
+import { handleRegister } from './register.js';
+import { startChatFeature } from './chat.js';
+import { handleLogin } from './login.js';
+import { loadPosts } from './posts.js';
+import { logout } from './logout.js';
+import { ErrorPage } from './error.js';
+import { successToast, errorToast } from './toast.js';
 
 const checkLoggedIn = () => {
-  fetch("/logged", {
-    method: "POST",
-    credentials: "include",
+  fetch('/logged', {
+    method: 'POST',
+    credentials: 'include'
   })
-    .then((res) => {
+    .then(res => {
       if (res.status != 200 && res.status != 401 && res.status != 405 && res.status != 201) {
-        createErrorPage(res)
+        ErrorPage(res)
       }
-      if (!res.ok) throw new Error("Not logged in")
+      if (!res.ok) throw new Error('Not logged in')
       return res.json()
     })
-    .then((data) => {
+    .then(data => {
       logged(true, data.username)
       startChatFeature(data.username)
-      showSection("posts")
+      loadPosts()
+      showSection('postsSection') // only if logedin
     })
     .catch(() => {
       logged(false)
-      showSection("login")
+      showSection('loginSection') // if not loggedin show loggin
     })
 }
 
+// Global timer to check every 10 seconds if user is still logged in
 setInterval(() => {
-  checkLoggedIn()
-}, 60000)
+  checkLoggedIn();
+}, 60000); // 60000ms = 1 minutes
 
-document.addEventListener("DOMContentLoaded", () => {
-  initApp()
 
+
+document.addEventListener('DOMContentLoaded', function () {
   if (window.location.pathname != "/") {
-    createErrorPage({ status: 404, statusText: "Page not found" })
+    ErrorPage({ status: 404, statusText: "Page not found" })
   }
-  checkLoggedIn()
-})
+  checkLoggedIn();
+});
 
-window.addEventListener("storage", (event) => {
-  if (event.key === "logout") {
+
+window.addEventListener('storage', function (event) {
+  if (event.key === 'logout') {
     window.location.reload()
   }
-})
+});
 
 export function showSection(sectionId) {
-  const mainContent = document.getElementById("mainContent")
-  mainContent.innerHTML = "" // Clear previous section
-
-  let sectionElement
-
-  switch (sectionId) {
-    case "login":
-      sectionElement = createLoginSection()
-      break
-    case "register":
-      sectionElement = createRegisterSection()
-      break
-    case "posts":
-      sectionElement = createPostsSection()
-      loadPosts()
-      break
-    default:
-      console.error("Unknown section:", sectionId)
-      return
-  }
-
-  if (sectionElement) {
-    mainContent.appendChild(sectionElement)
-    currentSection = sectionId
-  }
+  document.querySelectorAll('section').forEach(section => {
+    section.classList.add('hidden');
+  });
+  document.getElementById(sectionId).classList.remove('hidden');
 }
 
-export function logged(bool, user) {
-  const usernameDisplay = document.getElementById("usernameDisplay")
-  const showLoginBtn = document.getElementById("showLogin")
-  const showRegisterBtn = document.getElementById("showRegister")
-  const logoutBtn = document.getElementById("logoutBtn")
-  const userList = document.getElementById("userList")
+document.getElementById('showLogin').addEventListener('click', () => {
+  showSection('loginSection');
+});
 
-  if (bool) {
-    usernameDisplay.textContent = user
-    showLoginBtn.classList.add("hidden")
-    showRegisterBtn.classList.add("hidden")
-    logoutBtn.classList.remove("hidden")
-    userList.classList.remove("hidden")
-    usernameDisplay.classList.remove("hidden")
+document.getElementById('showRegister').addEventListener('click', () => {
+  showSection('registerSection');
+});
+
+document.getElementById('logoutBtn').addEventListener('click', (e) => {
+  logout(e);
+  document.getElementById('usernameDisplay').textContent = logged(false);
+});
+
+document.getElementById('registerForm').addEventListener('submit', async function (e) {
+  handleRegister(e);
+});
+
+document.getElementById('loginForm').addEventListener('submit', async function (e) {
+  handleLogin(e);
+});
+
+document.getElementById('createPostForm').addEventListener('submit', async function (e) {
+  e.preventDefault();
+
+  const form = e.target;
+  const postData = {
+    title: form.title.value,
+    content: form.content.value,
+    category: form.category.value
+  };
+
+  const response = await fetch('/createPost', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(postData),
+    credentials: 'include'
+  });
+
+  if (response.ok) {
+    successToast('Post created successfully!');
+    form.reset();
+    loadPosts();
   } else {
-    usernameDisplay.textContent = ""
-    usernameDisplay.classList.add("hidden")
-    showLoginBtn.classList.remove("hidden")
-    showRegisterBtn.classList.remove("hidden")
-    logoutBtn.classList.add("hidden")
-    userList.classList.add("hidden")
+    console.log('Failed to create post:', response);
+    errorToast(await response.text() || 'Failed to create post.');
+  }
+});
+
+export function logged(bool, user) {
+  if (bool) {
+    document.getElementById('usernameDisplay').textContent = user
+    document.getElementById('showLogin').classList.add('hidden');
+    document.getElementById('showRegister').classList.add('hidden');
+    document.getElementById('logoutBtn').classList.remove('hidden');
+    document.getElementById('createPostForm').classList.remove('hidden');
+    document.getElementById('userList').classList.remove('hidden');
+    document.getElementById('usernameDisplay').classList.remove('hidden');
+  } else {
+    document.getElementById('usernameDisplay').textContent = ""
+    document.getElementById('usernameDisplay').classList.add('hidden');
+    document.getElementById('showLogin').classList.remove('hidden');
+    document.getElementById('showRegister').classList.remove('hidden');
+    document.getElementById('logoutBtn').classList.add('hidden');
+    document.getElementById('createPostForm').classList.add('hidden');
+    document.getElementById('userList').classList.add('hidden');
   }
 }

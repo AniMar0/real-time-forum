@@ -1,26 +1,26 @@
-import { createErrorPage } from "./error.js"
-import { errorToast } from "./toast.js"
+import { ErrorPage } from './error.js';
+import { errorToast } from './toast.js';
 
 export function logout(event) {
-  event.preventDefault()
+  event.preventDefault();
   fetch("/logout", {
     method: "POST",
     headers: {
-      "Content-Type": "application/json",
-    },
+      "Content-Type": "application/json"
+    }
   })
-    .then((res) => {
+    .then(res => {
       if (res.status != 200 && res.status != 401 && res.status != 201) {
-        createErrorPage(res)
+        ErrorPage(res)
       }
-      if (!res.ok) throw new Error("logout failed")
-      return res.text()
+      if (!res.ok) throw new Error("logout failed");
+      return res.text();
     })
     .then(() => {
-      localStorage.setItem("logout", Date.now())
+      localStorage.setItem('logout', Date.now());
       window.location.reload()
     })
-    .catch((err) => {
-      errorToast("Logout failed. Please try again.")
-    })
+    .catch(err => {
+      errorToast("Logout failed. Please try again.");
+    });
 }

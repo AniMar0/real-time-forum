@@ -1,6 +1,6 @@
-import { errorToast } from "./toast.js"
+import { errorToast } from './toast.js';
 
-const notificationsCache = new Map()
+const notificationsCache = new Map() // Cache pour les notifications [username]: count
 let socket = null
 let selectedUser = null
 let currentUser = null
@@ -10,7 +10,7 @@ let isFetching = false
 let noMoreMessages = false
 let chatContainer = null
 let displayedMessagesCount = 0
-const renderedMessageIds = new Set()
+let renderedMessageIds = new Set() // Track rendered messages to prevent duplicates
 
 const throttle = (fn, wait) => {
   let lastTime = 0
@@ -23,85 +23,13 @@ const throttle = (fn, wait) => {
   }
 }
 
-function createChatWindow() {
-  const existingChat = document.getElementById("chatWindow")
-  if (existingChat) return existingChat
-
-  const chatWindow = document.createElement("div")
-  chatWindow.id = "chatWindow"
-  chatWindow.classList.add("hidden", "chat-box")
-
-  // Chat header
-  const chatHeader = document.createElement("div")
-  chatHeader.classList.add("chat-header")
-
-  const headerStrong = document.createElement("strong")
-  headerStrong.textContent = "Chat with: "
-
-  const chatWithName = document.createElement("span")
-  chatWithName.id = "chatWithName"
-
-  headerStrong.appendChild(chatWithName)
-
-  const closeBtn = document.createElement("i")
-  closeBtn.id = "closeChatBtn"
-  closeBtn.classList.add("fa-solid", "fa-xmark")
-  closeBtn.style.cursor = "pointer"
-
-  chatHeader.appendChild(headerStrong)
-  chatHeader.appendChild(closeBtn)
-
-  // Chat loader
-  const chatLoader = document.createElement("div")
-  chatLoader.id = "chatLoader"
-  chatLoader.classList.add("hidden")
-  chatLoader.style.textAlign = "center"
-  chatLoader.style.padding = "5px"
-
-  const loaderIcon = document.createElement("i")
-  loaderIcon.classList.add("fa", "fa-spinner", "fa-spin")
-  chatLoader.appendChild(loaderIcon)
-  chatLoader.append(" Loading more...")
-
-  // Chat messages
-  const chatMessages = document.createElement("div")
-  chatMessages.id = "chatMessages"
-
-  // Typing indicator
-  const typingIndicator = document.createElement("div")
-  typingIndicator.id = "typingIndicator"
-  typingIndicator.classList.add("hidden")
-
-  // Message input
-  const messageInput = document.createElement("input")
-  messageInput.id = "messageInput"
-  messageInput.type = "text"
-  messageInput.placeholder = "Type a message..."
-
-  // Send button
-  const sendBtn = document.createElement("button")
-  sendBtn.id = "sendBtn"
-  sendBtn.textContent = "Send"
-
-  chatWindow.appendChild(chatHeader)
-  chatWindow.appendChild(chatLoader)
-  chatWindow.appendChild(chatMessages)
-  chatWindow.appendChild(typingIndicator)
-  chatWindow.appendChild(messageInput)
-  chatWindow.appendChild(sendBtn)
-
-  const mainContent = document.getElementById("mainContent")
-  mainContent.appendChild(chatWindow)
-
-  return chatWindow
-}
-
 function setUserList(users) {
   const list = document.getElementById("userList")
   list.innerHTML = ""
   users.forEach((username) => {
     if (username.nickname === currentUser) return
 
+    // Container principal pour chaque utilisateur
     const div = document.createElement("div")
     div.className = "user"
     div.style.display = "flex"
@@ -113,22 +41,26 @@ function setUserList(users) {
     div.style.borderBottom = "1px solid #475569"
     div.style.transition = "all 0.2s"
 
+    // Ligne principale : Nom + Status + Badge
     const mainRow = document.createElement("div")
     mainRow.style.display = "flex"
     mainRow.style.justifyContent = "space-between"
     mainRow.style.alignItems = "center"
     mainRow.style.width = "100%"
 
+    // Container gauche : Nom + Status
     const leftContainer = document.createElement("div")
     leftContainer.style.display = "flex"
     leftContainer.style.alignItems = "center"
     leftContainer.style.gap = "8px"
 
+    // Nom de l'utilisateur
     const nameSpan = document.createElement("span")
     nameSpan.textContent = username.nickname
     nameSpan.style.fontWeight = "500"
     nameSpan.style.fontSize = "14px"
 
+    // Status avec couleur (remplace l'ancien span status)
     const statusSpan = document.createElement("span")
     statusSpan.textContent = username.status
     statusSpan.style.fontSize = "12px"
@@ -147,6 +79,7 @@ function setUserList(users) {
     leftContainer.appendChild(nameSpan)
     leftContainer.appendChild(statusSpan)
 
+    // Notification badge
     const notifCount = notificationsCache.get(username.nickname) || 0
     if (notifCount > 0) {
       const badge = document.createElement("span")
@@ -162,6 +95,7 @@ function setUserList(users) {
 
     div.appendChild(mainRow)
 
+    // Div pour typing indicator (caché par défaut)
     const typingDiv = document.createElement("div")
     typingDiv.className = "typing-indicator-user"
     typingDiv.setAttribute("data-user", username.nickname)
@@ -175,20 +109,24 @@ function setUserList(users) {
     div.appendChild(typingDiv)
 
     div.addEventListener("click", async () => {
-      createChatWindow()
-
       const typingIndicator = document.getElementById("typingIndicator")
 
       typingIndicator.textContent = ""
       typingIndicator.classList.add("hidden")
       if (typingTimeoutSideBarId) clearTimeout(typingTimeoutSideBarId)
 
+      // Reset all pagination and rendering state for new chat
       chatPage = 0
       noMoreMessages = false
       displayedMessagesCount = 0
-      renderedMessageIds.clear()
+      renderedMessageIds.clear() // Clear rendered message tracking
       chatContainer = document.getElementById("chatMessages")
 
+      // Marquer les notifications comme lues
+      notificationsCache.set(username.nickname, 0)
+      await markNotificationsAsRead(username.nickname)
+      updateNotificationBadgeFromCache(username.nickname)
+      // Remove existing scroll handler
       const existingHandler = chatContainer.scrollHandler
       if (existingHandler) {
         chatContainer.removeEventListener("scroll", existingHandler)
@@ -217,6 +155,7 @@ function setUserList(users) {
           document.getElementById("chatWindow").classList.add("hidden")
           selectedUser = null
           document.getElementById("chatWithName").textContent = ""
+          // Reset all state when closing chat
           chatPage = 0
           noMoreMessages = false
           displayedMessagesCount = 0
@@ -224,24 +163,22 @@ function setUserList(users) {
         }
       }
 
-      notificationsCache.set(username.nickname, 0)
-      await markNotificationsAsRead(username.nickname)
-      updateNotificationBadgeFromCache(username.nickname)
-
+      // Load initial messages
       try {
         const res = await fetch(`/messages?from=${currentUser}&to=${selectedUser}&offset=0`, {
-          method: "POST",
+          method: "POST"
         })
         if (!res.ok) throw new Error("Failed to load chat history")
         const messages = await res.json()
 
         if (messages && Array.isArray(messages)) {
+          // Render unique messages only
           messages.forEach(renderMessage)
           displayedMessagesCount = messages.length
         }
       } catch (err) {
         console.error("Error loading chat history:", err)
-        errorToast("Failed to load chat history")
+        errorToast("Failed to load chat history");
       }
     })
 
@@ -252,7 +189,9 @@ function setUserList(users) {
 export async function startChatFeature(currentUsername) {
   currentUser = currentUsername
 
+  // Charger les notifications depuis la DB au démarrage
   await loadNotificationsFromDB()
+
 
   socket = new WebSocket("ws://" + window.location.host + "/ws")
 
@@ -277,8 +216,10 @@ export async function startChatFeature(currentUsername) {
       }
     }
 
+    const chatKey = data.from === currentUser ? data.to : data.from
     const messageId = getMessageId(data)
 
+    // Check if message is already rendered to prevent real-time duplicates
     if (renderedMessageIds.has(messageId)) return
 
     if (data.type === "chat_message") {
@@ -286,16 +227,19 @@ export async function startChatFeature(currentUsername) {
         renderMessage(data)
         displayedMessagesCount++
         if (data.from === selectedUser) {
+          // Marquer les notifications comme lues si le message vient de l'utilisateur sélectionné
           notificationsCache.set(data.from, 0)
           markNotificationsAsRead(data.from)
           updateNotificationBadgeFromCache(data.from)
         }
       } else if (data.to === currentUser) {
+        // Incrémenter le cache de notifications
         const currentCount = notificationsCache.get(data.from) || 0
         notificationsCache.set(data.from, currentCount + 1)
         updateNotificationBadgeFromCache(data.from)
       }
     }
+
   })
 
   const sendBtn = document.getElementById("sendBtn")
@@ -308,13 +252,14 @@ export async function startChatFeature(currentUsername) {
       const message = {
         to: selectedUser,
         from: currentUser,
-        content: content,
+        content: (content),
         timestamp: new Date().toISOString(),
-        type: "chat_message",
+        type: "chat_message"
       }
 
       const messageId = getMessageId(message)
-      if (renderedMessageIds.has(messageId)) return
+      if (renderedMessageIds.has(messageId)) return // Prevent duplicate sends
+
 
       fetch("/sendMessage", {
         method: "POST",
@@ -322,19 +267,16 @@ export async function startChatFeature(currentUsername) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(message),
+      }).then((res) => {
+        if (!res.ok) throw new Error("Failed to send message")
+        return res.json()
+      }).then((message) => {
+        socket.send(JSON.stringify(message))
+        renderMessage(message)
+        displayedMessagesCount++
+      }).catch((err) => {
+        errorToast("Failed to send message. Please try again.");
       })
-        .then((res) => {
-          if (!res.ok) throw new Error("Failed to send message")
-          return res.json()
-        })
-        .then((message) => {
-          socket.send(JSON.stringify(message))
-          renderMessage(message)
-          displayedMessagesCount++
-        })
-        .catch((err) => {
-          errorToast("Failed to send message. Please try again.")
-        })
       input.value = ""
     }
     sendBtn.addEventListener("click", sendMessage)
@@ -347,16 +289,16 @@ export async function startChatFeature(currentUsername) {
           from: currentUser,
           content: "",
           timestamp: "",
-          type: "typing_indicator",
+          type: "typing_indicator"
         }
-        socket.send(JSON.stringify(message))
+        socket.send(JSON.stringify(message)) // Keep connection alive on keypress
       }
     })
   }
 }
 
 async function loadMessagesPage(from, to) {
-  if (isFetching || noMoreMessages) return
+  if (isFetching || noMoreMessages) return // Prevent concurrent requests
 
   isFetching = true
   const offset = displayedMessagesCount
@@ -367,7 +309,7 @@ async function loadMessagesPage(from, to) {
 
   try {
     const res = await fetch(`/messages?from=${from}&to=${to}&offset=${offset}`, {
-      method: "POST",
+      method: "POST"
     })
     if (!res.ok) throw new Error("Failed to load chat messages")
     const messages = await res.json()
@@ -379,11 +321,12 @@ async function loadMessagesPage(from, to) {
       const oldScrollHeight = container.scrollHeight
       const oldScrollTop = container.scrollTop
 
-      const newMessages = messages.filter((msg) => !renderedMessageIds.has(getMessageId(msg)))
+      // Filter out messages that are already rendered
+      const newMessages = messages.filter(msg => !renderedMessageIds.has(getMessageId(msg)))
 
       if (newMessages.length > 0) {
         const sortedMessages = newMessages
-        sortedMessages.reverse().forEach((msg) => renderMessageAtTop(msg))
+        sortedMessages.reverse().forEach(msg => renderMessageAtTop(msg))
 
         displayedMessagesCount += newMessages.length
 
@@ -391,31 +334,30 @@ async function loadMessagesPage(from, to) {
         const heightDifference = newScrollHeight - oldScrollHeight
         container.scrollTop = oldScrollTop + heightDifference
       } else {
+        // All messages were duplicates, consider this as no more messages
         noMoreMessages = true
       }
     }
   } catch (err) {
+    // Silent fail - user can retry by scrolling
   } finally {
     const timeElapsed = Date.now() - start
     const remainingTime = minDisplayTime - timeElapsed
 
-    setTimeout(
-      () => {
-        if (loader) loader.classList.add("hidden")
-        isFetching = false
-      },
-      remainingTime > 0 ? remainingTime : 0,
-    )
+    setTimeout(() => {
+      if (loader) loader.classList.add("hidden")
+      isFetching = false
+    }, remainingTime > 0 ? remainingTime : 0)
   }
 }
 
 const renderMessageAtTop = (msg) => {
   const messageId = getMessageId(msg)
-  if (renderedMessageIds.has(messageId)) return
+  if (renderedMessageIds.has(messageId)) return // Skip if already rendered
 
   const container = document.getElementById("chatMessages")
   const div = document.createElement("div")
-  div.setAttribute("data-message-id", messageId)
+  div.setAttribute('data-message-id', messageId) // Add ID to DOM element
   div.innerHTML = `
     <p><strong>${msg.from}</strong>: ${msg.content}<br/>
     <small>${new Date(msg.timestamp).toLocaleTimeString()}</small></p>
@@ -433,16 +375,21 @@ function renderMessage(msg) {
   const div = document.createElement("div")
   div.setAttribute("data-message-id", messageId)
 
+  // <p>
   const p = document.createElement("p")
 
+  // <strong>msg.from</strong>
   const strong = document.createElement("strong")
   strong.textContent = msg.from
 
+  // Add strong + ": " + content
   p.appendChild(strong)
   p.append(": " + msg.content)
 
+  // Line break
   p.appendChild(document.createElement("br"))
 
+  // <small>time</small>
   const small = document.createElement("small")
   small.textContent = new Date(msg.timestamp).toLocaleTimeString()
   p.appendChild(small)
@@ -454,14 +401,16 @@ function renderMessage(msg) {
   renderedMessageIds.add(messageId)
 }
 
+// Generate unique ID for messages
 function getMessageId(msg) {
   return msg.id || `${msg.timestamp}_${msg.from}_${msg.to}_${msg.content}`
 }
 
+// Nouvelle fonction pour charger les notifications depuis la DB
 async function loadNotificationsFromDB() {
   try {
     const res = await fetch("/notifications", {
-      method: "GET",
+      method: "GET"
     })
     if (!res.ok) {
       console.error("Failed to load notifications")
@@ -469,6 +418,7 @@ async function loadNotificationsFromDB() {
     }
     const notifications = await res.json()
 
+    // Remplir le cache avec les données de la DB
     notificationsCache.clear()
     for (const [sender, count] of Object.entries(notifications)) {
       notificationsCache.set(sender, count)
@@ -480,12 +430,14 @@ async function loadNotificationsFromDB() {
   }
 }
 
+// Nouvelle fonction pour mettre à jour le badge depuis le cache
 function updateNotificationBadgeFromCache(username) {
   const userList = document.getElementById("userList")
   if (!userList) return
 
   const users = userList.querySelectorAll(".user")
-  for (const userDiv of users) {
+  for (let userDiv of users) {
+    // Chercher le span avec le nom d'utilisateur
     const mainRow = userDiv.querySelector("div:first-child")
     if (!mainRow) continue
 
@@ -514,14 +466,15 @@ function updateNotificationBadgeFromCache(username) {
   }
 }
 
+// Nouvelle fonction pour marquer les notifications comme lues
 async function markNotificationsAsRead(sender) {
   try {
     const res = await fetch("/notifications/mark-read", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
+        "Content-Type": "application/json"
       },
-      body: JSON.stringify({ sender: sender }),
+      body: JSON.stringify({ sender: sender })
     })
     if (!res.ok) {
       console.error("Failed to mark notifications as read")
@@ -534,6 +487,7 @@ async function markNotificationsAsRead(sender) {
 let typingTimeoutSideBarId = null
 
 function renderTypingIndicatorSideBar(from) {
+  // Afficher dans la liste d'utilisateurs
   const userList = document.getElementById("userList")
   if (!userList) return
 
@@ -546,6 +500,7 @@ function renderTypingIndicatorSideBar(from) {
     typingDiv.style.display = "none"
     typingTimeoutSideBarId = null
   })
+  // Reset previous timer so repeated typing events extend the visible time
   if (typingTimeoutSideBarId) clearTimeout(typingTimeoutSideBarId)
   typingTimeoutSideBarId = setTimeout(() => {
     typingDiv.style.display = "none"
@@ -555,12 +510,14 @@ function renderTypingIndicatorSideBar(from) {
 
 let typingTimeoutChatBoxId = null
 function renderTypingIndicatorChatBox(from) {
+  // Afficher dans la liste d'utilisateurs
   const typingDiv = document.getElementById("typingIndicator")
   if (!typingDiv) return
 
   typingDiv.classList.remove("hidden")
   typingDiv.textContent = `${from} is typing...`
 
+  // Reset previous timer so repeated typing events extend the visible time
   if (typingTimeoutChatBoxId) clearTimeout(typingTimeoutChatBoxId)
   typingTimeoutChatBoxId = setTimeout(() => {
     typingDiv.textContent = ""
