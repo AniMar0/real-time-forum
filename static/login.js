@@ -3,6 +3,50 @@ import { startChatFeature } from './chat.js';
 import { ErrorPage } from './error.js';
 import { loadPosts } from './posts.js';
 
+export function createLoginSection() {
+  const section = document.createElement("section")
+  section.id = "loginSection"
+
+  const h2 = document.createElement("h2")
+  h2.textContent = "Login"
+
+  const form = document.createElement("form")
+  form.id = "loginForm"
+
+  const identifierInput = document.createElement("input")
+  identifierInput.id = "identifier"
+  identifierInput.placeholder = "Email or Nickname"
+  identifierInput.required = true
+
+  const passwordInput = document.createElement("input")
+  passwordInput.id = "loginPassword"
+  passwordInput.placeholder = "Password"
+  passwordInput.type = "password"
+  passwordInput.required = true
+
+  const errorDiv = document.createElement("div")
+  errorDiv.id = "loginError"
+  errorDiv.style.color = "red"
+  errorDiv.style.display = "none"
+  errorDiv.style.marginBottom = "10px"
+
+  const submitBtn = document.createElement("button")
+  submitBtn.type = "submit"
+  submitBtn.textContent = "Login"
+
+  form.appendChild(identifierInput)
+  form.appendChild(passwordInput)
+  form.appendChild(errorDiv)
+  form.appendChild(submitBtn)
+
+  form.addEventListener("submit", handleLogin)
+
+  section.appendChild(h2)
+  section.appendChild(form)
+
+  return section
+}
+
 
 
 export function handleLogin(event) {
