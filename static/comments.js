@@ -1,12 +1,12 @@
-import { showSection } from './app.js';
-import { ErrorPage } from './error.js';
-import { errorToast } from './toast.js';
+import { showSection } from "./app.js"
+import { createErrorPage } from "./error.js"
+import { errorToast } from "./toast.js"
 
 export async function loadComments(postId) {
   try {
     const response = await fetch(`/comments?post_id=${postId}`)
     if (response.status != 200 && response.status != 401 && response.status != 201) {
-      ErrorPage(response)
+      createErrorPage(response)
     }
     if (!response.ok) {
       throw new Error("Failed to load comments")
@@ -14,7 +14,7 @@ export async function loadComments(postId) {
     const comments = await response.json()
     displayComments(postId, comments)
   } catch (error) {
-    errorToast("Failed to load comments");
+    errorToast("Failed to load comments")
   }
 }
 
@@ -23,19 +23,37 @@ function displayComments(postId, comments) {
   if (!commentsContainer) return
   commentsContainer.innerHTML = ""
   if (!comments || comments.length === 0) {
-    commentsContainer.innerHTML = '<p class="no-comments">No comments yet. Be the first to comment!</p>'
+    const noCommentsP = document.createElement("p")
+    noCommentsP.classList.add("no-comments")
+    noCommentsP.textContent = "No comments yet. Be the first to comment!"
+    commentsContainer.appendChild(noCommentsP)
     return
   }
   comments.forEach((comment) => {
     const commentElement = document.createElement("div")
     commentElement.classList.add("comment")
-    commentElement.innerHTML = `
-        <div class="comment-header">
-          <span class="comment-author">${comment.author}</span>
-          <span class="comment-date">${new Date(comment.created_at).toLocaleString()}</span>
-        </div>
-        <div class="comment-content">${comment.content}</div>
-      `
+
+    const commentHeader = document.createElement("div")
+    commentHeader.classList.add("comment-header")
+
+    const authorSpan = document.createElement("span")
+    authorSpan.classList.add("comment-author")
+    authorSpan.textContent = comment.author
+
+    const dateSpan = document.createElement("span")
+    dateSpan.classList.add("comment-date")
+    dateSpan.textContent = new Date(comment.created_at).toLocaleString()
+
+    commentHeader.appendChild(authorSpan)
+    commentHeader.appendChild(dateSpan)
+
+    const contentDiv = document.createElement("div")
+    contentDiv.classList.add("comment-content")
+    contentDiv.textContent = comment.content
+
+    commentElement.appendChild(commentHeader)
+    commentElement.appendChild(contentDiv)
+
     commentsContainer.appendChild(commentElement)
   })
 }
@@ -61,7 +79,7 @@ export function setupCommentSubmission(postId) {
       })
 
       if (response.status != 200 && response.status != 401 && response.status != 201) {
-        ErrorPage(response)
+        createErrorPage(response)
       }
 
       if (!response.ok) {
@@ -71,7 +89,7 @@ export function setupCommentSubmission(postId) {
       form.querySelector(".comment-input").value = ""
       loadComments(postId)
     } catch (error) {
-      showSection("loginSection")
+      showSection("login")
     }
   })
 }

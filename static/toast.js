@@ -1,31 +1,24 @@
-// Toast notification system
+let toastContainer
 
-let toastContainer;
-
-// Initialize toast container
 function initToastContainer() {
-    if (!toastContainer) {
-        toastContainer = document.createElement('div');
-        toastContainer.id = 'toast-container';
-        document.body.appendChild(toastContainer);
-    }
-    return toastContainer;
+  if (!toastContainer) {
+    toastContainer = document.createElement("div")
+    toastContainer.id = "toast-container"
+    document.body.appendChild(toastContainer)
+  }
+  return toastContainer
 }
 
-// Show toast notification
-export function showToast(message, type = 'success', duration = 4000) {
-    const container = initToastContainer();
+export function showToast(message, type = "success", duration = 4000) {
+  const container = initToastContainer()
 
-    // Create toast element
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
+  const toast = document.createElement("div")
+  toast.className = `toast ${type}`
 
-    // Determine icon and title based on type
-    const icon = type === 'success' ? '✓' : '✕';
-    const title = type === 'success' ? 'Success' : 'Error';
+  const icon = type === "success" ? "✓" : "✕"
+  const title = type === "success" ? "Success" : "Error"
 
-    // Build toast HTML
-    toast.innerHTML = `
+  toast.innerHTML = `
     <div class="toast-icon">${icon}</div>
     <div class="toast-content">
       <p class="toast-title">${title}</p>
@@ -33,59 +26,52 @@ export function showToast(message, type = 'success', duration = 4000) {
     </div>
     <button class="toast-close" aria-label="Close">&times;</button>
     <div class="toast-progress" style="animation-duration: ${duration}ms;"></div>
-  `;
+  `
 
-    // Add to container
-    container.appendChild(toast);
+  container.appendChild(toast)
 
-    // Close button handler
-    const closeBtn = toast.querySelector('.toast-close');
-    closeBtn.addEventListener('click', () => removeToast(toast));
+  const closeBtn = toast.querySelector(".toast-close")
+  closeBtn.addEventListener("click", () => removeToast(toast))
 
-    // Auto-remove after duration
-    const timeout = setTimeout(() => {
-        removeToast(toast);
-    }, duration);
+  const timeout = setTimeout(() => {
+    removeToast(toast)
+  }, duration)
 
-    // Pause on hover
-    toast.addEventListener('mouseenter', () => {
-        clearTimeout(timeout);
-        const progress = toast.querySelector('.toast-progress');
-        if (progress) {
-            progress.style.animationPlayState = 'paused';
-        }
-    });
+  toast.addEventListener("mouseenter", () => {
+    clearTimeout(timeout)
+    const progress = toast.querySelector(".toast-progress")
+    if (progress) {
+      progress.style.animationPlayState = "paused"
+    }
+  })
 
-    // Resume on mouse leave
-    toast.addEventListener('mouseleave', () => {
-        const progress = toast.querySelector('.toast-progress');
-        if (progress) {
-            const remainingTime = (parseFloat(getComputedStyle(progress).width) / toast.offsetWidth) * duration;
-            progress.style.animationPlayState = 'running';
-            setTimeout(() => removeToast(toast), remainingTime);
-        }
-    });
+  toast.addEventListener("mouseleave", () => {
+    const progress = toast.querySelector(".toast-progress")
+    if (progress) {
+      const remainingTime = (Number.parseFloat(getComputedStyle(progress).width) / toast.offsetWidth) * duration
+      progress.style.animationPlayState = "running"
+      setTimeout(() => removeToast(toast), remainingTime)
+    }
+  })
 
-    return toast;
+  return toast
 }
 
-// Remove toast with animation
 function removeToast(toast) {
-    if (!toast || !toast.parentElement) return;
+  if (!toast || !toast.parentElement) return
 
-    toast.classList.add('removing');
-    setTimeout(() => {
-        if (toast.parentElement) {
-            toast.parentElement.removeChild(toast);
-        }
-    }, 300);
+  toast.classList.add("removing")
+  setTimeout(() => {
+    if (toast.parentElement) {
+      toast.parentElement.removeChild(toast)
+    }
+  }, 300)
 }
 
-// Convenience methods
 export function successToast(message, duration) {
-    return showToast(message, 'success', duration);
+  return showToast(message, "success", duration)
 }
 
 export function errorToast(message, duration) {
-    return showToast(message, 'error', duration);
+  return showToast(message, "error", duration)
 }
