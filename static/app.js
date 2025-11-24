@@ -1,10 +1,7 @@
-import { handleRegister } from './register.js';
 import { startChatFeature } from './chat.js';
-import { handleLogin } from './login.js';
 import { loadPosts } from './posts.js';
-import { logout } from './logout.js';
 import { ErrorPage } from './error.js';
-import { successToast, errorToast } from './toast.js';
+import { renderLoggedPage, renderLoginPage } from './dom.js';
 
 const checkLoggedIn = () => {
   fetch('/logged', {
@@ -20,22 +17,20 @@ const checkLoggedIn = () => {
     })
     .then(data => {
       logged(true, data.username)
+      renderLoggedPage(data.username)
       startChatFeature(data.username)
       loadPosts()
-      showSection('postsSection') // only if logedin
     })
     .catch(() => {
       logged(false)
-      showSection('loginSection') // if not loggedin show loggin
+      renderLoginPage()
     })
 }
 
-// Global timer to check every 10 seconds if user is still logged in
+// Global timer to check every minute if user is still logged in
 setInterval(() => {
   checkLoggedIn();
-}, 60000); // 60000ms = 1 minutes
-
-
+}, 60000); // 60000ms = 1 minute
 
 document.addEventListener('DOMContentLoaded', function () {
   if (window.location.pathname != "/") {
@@ -43,7 +38,6 @@ document.addEventListener('DOMContentLoaded', function () {
   }
   checkLoggedIn();
 });
-
 
 window.addEventListener('storage', function (event) {
   if (event.key === 'logout') {
@@ -55,75 +49,39 @@ export function showSection(sectionId) {
   document.querySelectorAll('section').forEach(section => {
     section.classList.add('hidden');
   });
-  document.getElementById(sectionId).classList.remove('hidden');
+  const targetSection = document.getElementById(sectionId);
+  if (targetSection) {
+    targetSection.classList.remove('hidden');
+  }
 }
 
-document.getElementById('showLogin').addEventListener('click', () => {
-  showSection('loginSection');
-});
-
-document.getElementById('showRegister').addEventListener('click', () => {
-  showSection('registerSection');
-});
-
-document.getElementById('logoutBtn').addEventListener('click', (e) => {
-  logout(e);
-  document.getElementById('usernameDisplay').textContent = logged(false);
-});
-
-document.getElementById('registerForm').addEventListener('submit', async function (e) {
-  handleRegister(e);
-});
-
-document.getElementById('loginForm').addEventListener('submit', async function (e) {
-  handleLogin(e);
-});
-
-document.getElementById('createPostForm').addEventListener('submit', async function (e) {
-  e.preventDefault();
-
-  const form = e.target;
-  const postData = {
-    title: form.title.value,
-    content: form.content.value,
-    category: form.category.value
-  };
-
-  const response = await fetch('/createPost', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(postData),
-    credentials: 'include'
-  });
-
-  if (response.ok) {
-    successToast('Post created successfully!');
-    form.reset();
-    loadPosts();
-  } else {
-    console.log('Failed to create post:', response);
-    errorToast(await response.text() || 'Failed to create post.');
-  }
-});
-
 export function logged(bool, user) {
+  const usernameDisplay = document.getElementById('usernameDisplay');
+  const showLogin = document.getElementById('showLogin');
+  const showRegister = document.getElementById('showRegister');
+  const logoutBtn = document.getElementById('logoutBtn');
+  const createPostForm = document.getElementById('createPostForm');
+  const userList = document.getElementById('userList');
+
   if (bool) {
-    document.getElementById('usernameDisplay').textContent = user
-    document.getElementById('showLogin').classList.add('hidden');
-    document.getElementById('showRegister').classList.add('hidden');
-    document.getElementById('logoutBtn').classList.remove('hidden');
-    document.getElementById('createPostForm').classList.remove('hidden');
-    document.getElementById('userList').classList.remove('hidden');
-    document.getElementById('usernameDisplay').classList.remove('hidden');
+    if (usernameDisplay) {
+      usernameDisplay.textContent = user;
+      usernameDisplay.classList.remove('hidden');
+    }
+    if (showLogin) showLogin.classList.add('hidden');
+    if (showRegister) showRegister.classList.add('hidden');
+    if (logoutBtn) logoutBtn.classList.remove('hidden');
+    if (createPostForm) createPostForm.classList.remove('hidden');
+    if (userList) userList.classList.remove('hidden');
   } else {
-    document.getElementById('usernameDisplay').textContent = ""
-    document.getElementById('usernameDisplay').classList.add('hidden');
-    document.getElementById('showLogin').classList.remove('hidden');
-    document.getElementById('showRegister').classList.remove('hidden');
-    document.getElementById('logoutBtn').classList.add('hidden');
-    document.getElementById('createPostForm').classList.add('hidden');
-    document.getElementById('userList').classList.add('hidden');
+    if (usernameDisplay) {
+      usernameDisplay.textContent = "";
+      usernameDisplay.classList.add('hidden');
+    }
+    if (showLogin) showLogin.classList.remove('hidden');
+    if (showRegister) showRegister.classList.remove('hidden');
+    if (logoutBtn) logoutBtn.classList.add('hidden');
+    if (createPostForm) createPostForm.classList.add('hidden');
+    if (userList) userList.classList.add('hidden');
   }
 }
