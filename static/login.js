@@ -32,10 +32,10 @@ export function handleLogin(event) {
       return res.json();
     })
     .then(data => {
-      startChatFeature(data.username);
-      loadPosts();
-      showSection('postsSection');
-      logged(true, data.username);
+      logged(true, data.username)
+      renderLoggedPage(data.username)
+      startChatFeature(data.username)
+      loadPosts()
     })
     .catch(err => {
       loginError.textContent = "Incorrect email/nickname or password."
