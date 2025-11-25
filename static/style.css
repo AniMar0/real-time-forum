@@ -369,6 +369,75 @@ form {
   width: 100%;
 }
 
+/* Auth pages polish */
+#loginSection,
+#registerSection {
+  margin: 10vh auto;
+  max-width: 720px;
+  position: relative;
+  overflow: hidden;
+}
+
+#loginSection::after,
+#registerSection::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  box-shadow: var(--glow-primary);
+}
+
+#loginSection h2,
+#registerSection h2 {
+  text-align: center;
+  margin-bottom: var(--space-2xl);
+  color: var(--primary);
+}
+
+/* Inputs in auth forms */
+#loginSection input,
+#registerSection input,
+#registerSection select {
+  height: 44px;
+}
+
+#registerSection textarea {
+  min-height: 120px;
+}
+
+/* Submit button full width on small screens */
+#loginSection button[type="submit"],
+#registerSection button[type="submit"] {
+  align-self: stretch;
+}
+
+/* Toggle between login/register */
+#showRegister,
+#showLogin {
+  background: transparent;
+  color: var(--primary);
+  padding: 0;
+  border: none;
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+#showRegister:hover,
+#showLogin:hover {
+  color: var(--primary-light);
+  transform: none;
+}
+
+/* Inline error on login form */
+#loginError {
+  color: var(--danger) !important;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+}
+
 textarea {
   min-height: 120px;
   resize: vertical;
