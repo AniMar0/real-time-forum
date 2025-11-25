@@ -2,6 +2,7 @@ import { showSection, logged } from './app.js';
 import { startChatFeature } from './chat.js';
 import { ErrorPage } from './error.js';
 import { loadPosts } from './posts.js';
+import { renderLoggedPage } from './dom.js';
 
 
 
@@ -27,7 +28,7 @@ export function handleLogin(event) {
         ErrorPage(res)
       }
       if (!res.ok) {
-        throw new Error("Registration failed");
+        throw new Error("Login failed");
       }
       return res.json();
     })
