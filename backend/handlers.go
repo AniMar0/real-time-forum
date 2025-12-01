@@ -369,13 +369,15 @@ func (S *Server) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 	S.RLock()
 	if clients, exists := S.clients[username]; exists {
 		for _, client := range clients {
-			client.Send <- map[string]string{
-				"event":   "logout",
-				"message": "Session terminated",
+			if client.SessionID == cookie.Value {
+				client.Send <- map[string]string{
+					"event":   "logout",
+					"message": "Session terminated",
+				}
+				client.Conn.Close()
+				break
 			}
-			client.Conn.Close()
 		}
-		delete(S.clients, username)
 	}
 	S.RUnlock()
 
