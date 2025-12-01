@@ -27,9 +27,27 @@ const checkLoggedIn = () => {
     })
 }
 
+const stillLogged = () => {
+  fetch('/logged', {
+    method: 'POST',
+    credentials: 'include'
+  })
+    .then(res => {
+      if (res.status != 200 && res.status != 401 && res.status != 405 && res.status != 201) {
+        ErrorPage(res)
+      }
+      if (!res.ok) throw new Error('Not logged in')
+      return res.json()
+    })
+    .catch(() => {
+      logged(false)
+      renderLoginPage()
+    })
+}
+
 // Global timer to check every minute if user is still logged in
 setInterval(() => {
-  checkLoggedIn();
+  stillLogged();
 }, 60000); // 60000ms = 1 minute
 
 document.addEventListener('DOMContentLoaded', function () {
