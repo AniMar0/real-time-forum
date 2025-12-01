@@ -110,7 +110,8 @@ function setUserList(users) {
 
     div.addEventListener("click", async () => {
       const typingIndicator = document.getElementById("typingIndicator")
-
+      const chatInput = document.getElementById("messageInput")
+      chatInput.value = ""
       typingIndicator.textContent = ""
       typingIndicator.classList.add("hidden")
       if (typingTimeoutSideBarId) clearTimeout(typingTimeoutSideBarId)
