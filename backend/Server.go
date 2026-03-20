@@ -51,7 +51,7 @@ func (S *Server) Run(port string) {
 	S.Mux = http.NewServeMux()
 
 	var err error
-	S.db, err = sql.Open("sqlite3", "database/forum.db")
+	S.db, err = sql.Open("sqlite", "database/forum.db")
 	if err != nil {
 		log.Fatal(err)
 	}

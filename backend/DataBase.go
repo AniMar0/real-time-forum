@@ -6,7 +6,7 @@ import (
 	"log"
 	"os"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 )
 
 func MakeDataBase() {
@@ -14,7 +14,7 @@ func MakeDataBase() {
 		log.Fatalf("Failed to create database directory: %v", err)
 	}
 
-	db, err := sql.Open("sqlite3", "database/forum.db")
+	db, err := sql.Open("sqlite", "database/forum.db")
 	if err != nil {
 		log.Fatal(err)
 	}

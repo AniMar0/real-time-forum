@@ -1,214 +1,48 @@
-# Real-Time Forum
+# 🚀 Real-Time Forum | Go & Vanilla JS SPA
 
-A real-time forum application with instant messaging capabilities, built with Go and vanilla JavaScript.
+A high-performance, real-time social platform built with **Go** (Standard Library) and **Vanilla JavaScript**. This project demonstrates a deep understanding of web fundamentals, concurrency, and real-time communication without relying on heavy frameworks.
 
-## 🚀 Features
+## 🛠️ Tech Stack
 
-- **User Authentication**: Register, login, and session management with bcrypt password hashing
-- **Posts & Comments**: Create and view posts with threaded comments
-- **Real-time Chat**: WebSocket-based instant messaging with online/offline status
-- **Notifications**: Unread message badges and real-time updates
-- **Multi-session Support**: Users can be connected from multiple devices simultaneously
-- **Message History**: Pagination for loading previous messages
+- **Backend:** Go (Golang) - Pure Standard Library for Routing & Logic.
+- **Real-Time:** WebSockets (Gorilla WebSocket).
+- **Database:** SQLite3 with Foreign Key constraints.
+- **Frontend:** Vanilla JS (Single Page Application architecture), CSS3, HTML5.
+- **Security:** Bcrypt for password hashing, Cookie-based session management (UUID).
 
-## 🛠️ Technologies
+## 🌟 Key Features
 
-### Backend
+- **Full SPA Experience:** Smooth navigation and page transitions without browser refreshes.
+- **Real-Time Messaging:** Private chat system with instant delivery.
+- **Typing Indicators:** Live "user is typing..." visual feedback via WebSockets.
+- **Presence System:** Real-time online/offline status tracking.
+- **Forum Core:** Post creation, categorization, and threaded comments.
+- **Smart Loading:** Infinite scroll with throttling and debouncing for message history.
 
-- **Go 1.24.1**
-- **SQLite3** - Database
-- **Gorilla WebSocket** - Real-time communication
-- **bcrypt** - Password hashing
-- **UUID** - Session management
+## 🏗️ Technical Highlights (The "Under the Hood")
 
-### Frontend
+### 1. Concurrency Management (Go)
 
-- **Vanilla JavaScript** (ES6 Modules)
-- **HTML5** & **CSS3**
-- **WebSocket API**
+The backend utilizes a robust **Hub/Client pattern**. Each connection is managed by dedicated **Goroutines** (Reader/Writer) and synchronized using **RWMutex** and **Buffered Channels** to prevent data races and ensure high throughput.
 
-## 📁 Project Structure
+### 2. Custom SPA Router
 
-```
-real-time-forum/
-├── backend/
-│   ├── DataBase.go      # Database initialization and schema
-│   ├── handlers.go      # HTTP request handlers
-│   ├── Objects.go       # Data structures
-│   ├── Server.go        # Server setup and WebSocket handling
-│   └── Tools.go         # Helper functions
-├── database/            # SQLite database (auto-generated)
-├── static/              # Frontend files
-│   ├── app.js          # Main application logic
-│   ├── chat.js         # Real-time chat features
-│   ├── comments.js     # Comment system
-│   ├── error.js        # Error page handler
-│   ├── login.js        # Login functionality
-│   ├── logout.js       # Logout functionality
-│   ├── posts.js        # Post management
-│   ├── regester.js     # User registration
-│   ├── style.css       # Styling
-│   └── index.html      # Main HTML page
-├── main.go             # Entry point
-├── go.mod              # Go dependencies
-├── PROJECT_ANALYSIS.md # Comprehensive project analysis (Arabic)
-└── BUGS_AND_FIXES.md   # Detailed bug report and fixes
+Implemented a frontend "Router" from scratch that handles DOM manipulation and state management, mimicking modern framework behavior while maintaining a zero-dependency footprint.
 
-```
+### 3. Optimized Data Layer
 
-## 🗄️ Database Schema
+- Complex SQLite schemas with `CHECK` constraints and `FOREIGN KEYS`.
+- Paginated message retrieval to optimize memory and network usage.
 
-### Tables:
+## 📁 Architecture
 
-- **users** - User accounts (nickname, email, password, age, gender)
-- **posts** - Forum posts with categories
-- **comments** - Comments on posts
-- **messages** - Private messages between users
-- **sessions** - User session management
-- **notifications** - Unread message notifications
+- `/backend`: Core logic, WebSocket handling, and DB operations.
+- `/static`: Frontend assets (ES Modules, CSS, and SPA logic).
+- `/database`: SQLite schema definitions and migrations.
 
-## 📥 Installation
+## 🚀 How to Run
 
-### Prerequisites
-
-- Go 1.24 or higher
-- Modern web browser
-
-### Steps
-
-1. **Clone the repository**
-
-```bash
-git clone <repository-url>
-cd real-time-forum
-```
-
-2. **Install Go dependencies**
-
-```bash
-go mod download
-```
-
-3. **Build the project**
-
-```bash
-go build -o real-time-forum.exe .
-```
-
-4. **Run the server**
-
-```bash
-./real-time-forum.exe
-# or
-go run main.go
-```
-
-5. **Open in browser**
-
-```
-http://localhost:8080
-```
-
-## 🔧 Configuration
-
-The server runs on port **8080** by default. To change the port, modify `main.go`:
-
-```go
-func main() {
-    var Server backend.Server
-    backend.MakeDataBase()
-    Server.Run("8080") // Change port here
-}
-```
-
-## 📝 API Endpoints
-
-### Authentication
-
-- `POST /register` - Register new user
-- `POST /login` - User login
-- `POST /logout` - User logout
-- `POST /logged` - Check session status
-
-### Posts & Comments
-
-- `GET /posts` - Get all posts
-- `POST /createPost` - Create new post (authenticated)
-- `GET /comments?post_id={id}` - Get comments for a post
-- `POST /createComment` - Add comment (authenticated)
-
-### Messaging
-
-- `POST /sendMessage` - Send message (authenticated)
-- `POST /messages?from={user}&to={user}` - Get message history
-- `POST /notification` - Update notification status
-- `GET /ws` - WebSocket connection (authenticated)
-
-## 🐛 Known Issues
-
-See [BUGS_AND_FIXES.md](BUGS_AND_FIXES.md) for detailed information about:
-
-- 4 Critical security and stability issues
-- 4 Medium priority improvements
-- 6 Low priority enhancements
-
-## 📊 Testing
-
-The project currently builds without compilation errors. To test:
-
-```bash
-# Build and check for errors
-go build -o real-time-forum.exe .
-
-# Run the application
-./real-time-forum.exe
-```
-
-Visit `http://localhost:8080` and test:
-
-1. User registration and login
-2. Creating posts and comments
-3. Real-time chat functionality
-4. Multi-device sessions
-5. Online/offline status updates
-
-## 🔐 Security Features
-
-- ✅ bcrypt password hashing
-- ✅ Session-based authentication with expiration (24 hours)
-- ✅ HTML escaping to prevent XSS attacks
-- ✅ SQL parameterized queries
-- ✅ Foreign key constraints
-- ⚠️ CORS protection needed for WebSocket
-- ⚠️ Rate limiting recommended
-
-## 🎯 Future Improvements
-
-- [ ] Add input validation in backend
-- [ ] Implement rate limiting
-- [ ] Add database indexes for performance
-- [ ] Create comprehensive test suite
-- [ ] Add HTTPS support
-- [ ] Implement file upload for posts
-- [ ] Add user profiles and avatars
-- [ ] Email verification system
-- [ ] Password reset functionality
-
-## 📖 Documentation
-
-- **[PROJECT_ANALYSIS.md](PROJECT_ANALYSIS.md)** - Comprehensive analysis in Arabic
-- **[BUGS_AND_FIXES.md](BUGS_AND_FIXES.md)** - Detailed bug reports and solutions
-
-## 📄 License
-
-This project is available for educational purposes.
-
-## 👥 Contributing
-
-Issues and pull requests are welcome!
-
----
-
-**Status**: ✅ Working - Build successful  
-**Version**: 1.0  
-**Last Updated**: November 17, 2025
+1. Clone the repository: `git clone https://github.com/AniMar0/real-time-forum`
+2. Install Go dependencies: `go mod tidy`
+3. Run the server: `go run main.go`
+4. Open `http://localhost:8080`
