@@ -137,28 +137,40 @@ export function renderLoggedPage(username) {
         e.preventDefault();
 
         const form = e.target;
+        const title = form.elements.namedItem('title').value.trim();
+        const content = form.elements.namedItem('content').value.trim();
+        const category = form.elements.namedItem('category').value.trim();
+        if (!title || !content || !category) {
+            errorToast('Title, content, and category are required.');
+            return;
+        }
+
         const postData = {
-            title: form.title.value,
-            content: form.content.value,
-            category: form.category.value
+            title,
+            content,
+            category
         };
 
-        const response = await fetch('/createPost', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(postData),
-            credentials: 'include'
-        });
+        try {
+            const response = await fetch('/createPost', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(postData),
+                credentials: 'include'
+            });
 
-        if (response.ok) {
+            if (!response.ok) {
+                errorToast(await response.text() || 'Failed to create post.');
+                return;
+            }
+
             successToast('Post created successfully!');
             form.reset();
             loadPosts();
-        } else {
-            console.log('Failed to create post:', response);
-            errorToast(await response.text() || 'Failed to create post.');
+        } catch (err) {
+            errorToast('Failed to create post. Please try again.');
         }
     });
 }

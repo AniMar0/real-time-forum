@@ -3,9 +3,11 @@ package forum
 import (
 	"database/sql"
 	"errors"
+	"strings"
 )
 
 var ErrPostNotFound = errors.New("post not found")
+var ErrInvalidPost = errors.New("post title, content, and category are required")
 
 type Repository struct {
 	db *sql.DB
@@ -16,10 +18,20 @@ func NewRepository(db *sql.DB) *Repository {
 }
 
 func (r *Repository) CreatePost(userNickname, title, content, category string) error {
+	if strings.TrimSpace(userNickname) == "" || strings.TrimSpace(title) == "" ||
+		strings.TrimSpace(content) == "" || strings.TrimSpace(category) == "" {
+		return ErrInvalidPost
+	}
+
+	var userID int64
+	if err := r.db.QueryRow("SELECT id FROM users WHERE nickname = ?", userNickname).Scan(&userID); err != nil {
+		return err
+	}
+
 	_, err := r.db.Exec(`
 		INSERT INTO posts (user_id, title, content, category)
-		VALUES ((SELECT id FROM users WHERE nickname = ?), ?, ?, ?)`,
-		userNickname, title, content, category)
+		VALUES (?, ?, ?, ?)`,
+		userID, title, content, category)
 	return err
 }
 
