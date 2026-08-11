@@ -64,31 +64,20 @@ func (S *Server) GetNotifications(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	nickname, _, err := S.CheckSession(r)
+	identity, err := S.CheckSessionIdentity(r)
 	if err != nil {
 		http.Error(w, "Unauthorized - Invalid session", http.StatusUnauthorized)
 		return
 	}
 
-	rows, err := S.db.Query(`
-		SELECT sender_nickname, unread_messages 
-		FROM notifications 
-		WHERE receiver_nickname = ? AND unread_messages > 0`, nickname)
+	if S.notifications == nil {
+		http.Error(w, "Notification repository is not initialized", http.StatusInternalServerError)
+		return
+	}
+	notifications, err := S.notifications.ListUnread(identity.UserID)
 	if err != nil {
 		http.Error(w, "Failed to fetch notifications", http.StatusInternalServerError)
 		return
-	}
-	defer rows.Close()
-
-	notifications := make(map[string]int)
-	for rows.Next() {
-		var sender string
-		var unread int
-		if err := rows.Scan(&sender, &unread); err != nil {
-			http.Error(w, "Failed to scan notifications", http.StatusInternalServerError)
-			return
-		}
-		notifications[sender] = unread
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -101,7 +90,7 @@ func (S *Server) MarkNotificationsRead(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	nickname, _, err := S.CheckSession(r)
+	identity, err := S.CheckSessionIdentity(r)
 	if err != nil {
 		http.Error(w, "Unauthorized - Invalid session", http.StatusUnauthorized)
 		return
@@ -116,10 +105,11 @@ func (S *Server) MarkNotificationsRead(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = S.db.Exec(`
-		UPDATE notifications 
-		SET unread_messages = 0 
-		WHERE receiver_nickname = ? AND sender_nickname = ?`, nickname, request.Sender)
+	if S.notifications == nil {
+		http.Error(w, "Notification repository is not initialized", http.StatusInternalServerError)
+		return
+	}
+	err = S.notifications.MarkRead(identity.UserID, request.Sender)
 	if err != nil {
 		http.Error(w, "Failed to mark notifications as read", http.StatusInternalServerError)
 		return
