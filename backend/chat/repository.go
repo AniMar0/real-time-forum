@@ -49,8 +49,8 @@ func (r *Repository) ListHistory(from, to string, beforeID, offset int) ([]Messa
 			JOIN users receiver ON receiver.id = messages.receiver_id
 			WHERE ((sender_id = (SELECT id FROM users WHERE nickname = ?) AND receiver_id = (SELECT id FROM users WHERE nickname = ?))
 			   OR (sender_id = (SELECT id FROM users WHERE nickname = ?) AND receiver_id = (SELECT id FROM users WHERE nickname = ?)))
-			  AND id < ?
-			ORDER BY id DESC
+			  AND messages.id < ?
+			ORDER BY messages.id DESC
 			LIMIT 10`, from, to, to, from, beforeID)
 	} else {
 		rows, err = r.db.Query(`
@@ -60,7 +60,7 @@ func (r *Repository) ListHistory(from, to string, beforeID, offset int) ([]Messa
 			JOIN users receiver ON receiver.id = messages.receiver_id
 			WHERE (sender_id = (SELECT id FROM users WHERE nickname = ?) AND receiver_id = (SELECT id FROM users WHERE nickname = ?))
 			   OR (sender_id = (SELECT id FROM users WHERE nickname = ?) AND receiver_id = (SELECT id FROM users WHERE nickname = ?))
-			ORDER BY id DESC
+			ORDER BY messages.id DESC
 			LIMIT 10 OFFSET ?`, from, to, to, from, offset)
 	}
 	if err != nil {
