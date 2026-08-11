@@ -22,20 +22,9 @@ func (r *Repository) IncrementUnread(tx *sql.Tx, receiverID, senderID int64) err
 
 	count++
 	if err == sql.ErrNoRows {
-		var receiverNickname, senderNickname string
-		if err := tx.QueryRow("SELECT nickname FROM users WHERE id = ?", receiverID).Scan(&receiverNickname); err != nil {
-			return err
-		}
-		if err := tx.QueryRow("SELECT nickname FROM users WHERE id = ?", senderID).Scan(&senderNickname); err != nil {
-			return err
-		}
 		_, err = tx.Exec(`
-			INSERT INTO notifications (
-				unread_messages, receiver_id, sender_id,
-				receiver_nickname, sender_nickname
-			)
-			VALUES (?, ?, ?, ?, ?)`,
-			count, receiverID, senderID, receiverNickname, senderNickname)
+			INSERT INTO notifications (unread_messages, receiver_id, sender_id)
+			VALUES (?, ?, ?)`, count, receiverID, senderID)
 		return err
 	}
 

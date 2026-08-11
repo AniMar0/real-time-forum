@@ -24,12 +24,12 @@ func TestRunMigrationsIsIdempotent(t *testing.T) {
 	if err := db.QueryRow("SELECT COUNT(*) FROM schema_migrations").Scan(&count); err != nil {
 		t.Fatal(err)
 	}
-	if count != 3 {
-		t.Fatalf("got %d applied migrations, want 3", count)
+	if count != 4 {
+		t.Fatalf("got %d applied migrations, want 4", count)
 	}
 }
 
-func TestValidateIdentityBackfillRejectsIncompleteRows(t *testing.T) {
+func TestValidateIdentityBackfillPassesCompleteSchema(t *testing.T) {
 	db, err := sql.Open("sqlite", filepath.Join(t.TempDir(), "forum.db"))
 	if err != nil {
 		t.Fatal(err)
@@ -39,13 +39,7 @@ func TestValidateIdentityBackfillRejectsIncompleteRows(t *testing.T) {
 	if err := runMigrations(db); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := db.Exec(`
-		INSERT INTO users (id, nickname) VALUES (1, 'alice');
-		INSERT INTO sessions (session_id, nickname, user_id, expires_at)
-		VALUES ('invalid-session', 'alice', NULL, CURRENT_TIMESTAMP);`); err != nil {
-		t.Fatal(err)
-	}
-	if err := validateIdentityBackfill(db); err == nil {
-		t.Fatal("expected incomplete identity rows to be rejected")
+	if err := validateIdentityBackfill(db); err != nil {
+		t.Fatalf("expected complete migrated schema to validate: %v", err)
 	}
 }

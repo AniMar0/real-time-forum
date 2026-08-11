@@ -24,9 +24,9 @@ func (r *Repository) UserByID(userID int64) (string, error) {
 
 func (r *Repository) InsertMessage(tx *sql.Tx, message Message) (Message, error) {
 	result, err := tx.Exec(`
-		INSERT INTO messages (sender_id, receiver_id, sender, receiver, content, timestamp)
-		VALUES (?, ?, ?, ?, ?, ?)`,
-		message.SenderID, message.ReceiverID, message.From, message.To, message.Content, message.Timestamp)
+		INSERT INTO messages (sender_id, receiver_id, content, timestamp)
+		VALUES (?, ?, ?, ?)`,
+		message.SenderID, message.ReceiverID, message.Content, message.Timestamp)
 	if err != nil {
 		return Message{}, err
 	}
@@ -43,8 +43,10 @@ func (r *Repository) ListHistory(from, to string, beforeID, offset int) ([]Messa
 	var err error
 	if beforeID > 0 {
 		rows, err = r.db.Query(`
-			SELECT id, sender, receiver, content, timestamp
+			SELECT messages.id, sender.nickname, receiver.nickname, messages.content, messages.timestamp
 			FROM messages
+			JOIN users sender ON sender.id = messages.sender_id
+			JOIN users receiver ON receiver.id = messages.receiver_id
 			WHERE ((sender_id = (SELECT id FROM users WHERE nickname = ?) AND receiver_id = (SELECT id FROM users WHERE nickname = ?))
 			   OR (sender_id = (SELECT id FROM users WHERE nickname = ?) AND receiver_id = (SELECT id FROM users WHERE nickname = ?)))
 			  AND id < ?
@@ -52,8 +54,10 @@ func (r *Repository) ListHistory(from, to string, beforeID, offset int) ([]Messa
 			LIMIT 10`, from, to, to, from, beforeID)
 	} else {
 		rows, err = r.db.Query(`
-			SELECT id, sender, receiver, content, timestamp
+			SELECT messages.id, sender.nickname, receiver.nickname, messages.content, messages.timestamp
 			FROM messages
+			JOIN users sender ON sender.id = messages.sender_id
+			JOIN users receiver ON receiver.id = messages.receiver_id
 			WHERE (sender_id = (SELECT id FROM users WHERE nickname = ?) AND receiver_id = (SELECT id FROM users WHERE nickname = ?))
 			   OR (sender_id = (SELECT id FROM users WHERE nickname = ?) AND receiver_id = (SELECT id FROM users WHERE nickname = ?))
 			ORDER BY id DESC

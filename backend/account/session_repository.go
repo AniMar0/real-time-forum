@@ -20,8 +20,8 @@ func (r *SessionRepository) Create(sessionID, nickname string, expiresAt time.Ti
 		return err
 	}
 	_, err := r.db.Exec(`
-		INSERT INTO sessions (session_id, user_id, nickname, expires_at)
-		VALUES (?, ?, ?, ?)`, sessionID, userID, nickname, expiresAt)
+		INSERT INTO sessions (session_id, user_id, expires_at)
+		VALUES (?, ?, ?)`, sessionID, userID, expiresAt)
 	return err
 }
 
