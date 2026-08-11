@@ -15,16 +15,30 @@ export function renderLoginPage() {
 
     const section = document.createElement("section");
     section.id = "loginSection";
+    section.className = "auth-page";
 
     section.innerHTML = `
-        <h2>Login</h2>
-        <form id="loginForm">
-          <input id="identifier" placeholder="Email or Nickname" required />
-          <input id="loginPassword" placeholder="Password" type="password" required />
-          <div id="loginError" style="color: red; display: none; margin-bottom: 10px;"></div>
-          <button type="submit">Login</button>
-        </form>
-        <p>Don't have an account? <button id="showRegister" type="button">Register</button></p>
+        <div class="auth-intro">
+          <span class="eyebrow">MY FORUM</span>
+          <h1>Ideas move faster when people talk.</h1>
+          <p>Join focused conversations, share what you know, and keep the signal high.</p>
+          <div class="intro-note"><span class="intro-dot"></span> A calmer space for useful discussions</div>
+        </div>
+        <div class="auth-card">
+          <div class="auth-heading">
+            <span class="brand-mark">F</span>
+            <div><h2>Welcome back</h2><p>Sign in to continue the conversation.</p></div>
+          </div>
+          <form id="loginForm">
+            <label for="identifier">Email or nickname</label>
+            <input id="identifier" placeholder="you@example.com" autocomplete="username" required />
+            <label for="loginPassword">Password</label>
+            <input id="loginPassword" placeholder="Enter your password" type="password" autocomplete="current-password" required />
+            <div id="loginError"></div>
+            <button type="submit">Sign in <span aria-hidden="true">→</span></button>
+          </form>
+          <p class="auth-switch">New to the forum? <button id="showRegister" type="button">Create an account</button></p>
+        </div>
     `;
 
     root.appendChild(section);
@@ -39,24 +53,32 @@ export function renderRegisterPage() {
 
     const section = document.createElement("section");
     section.id = "registerSection";
+    section.className = "auth-page";
 
     section.innerHTML = `
-        <h2>Register</h2>
-        <form id="registerForm">
-          <input id="nickname" placeholder="Nickname" required />
-          <input id="firstName" placeholder="First Name" required />
-          <input id="lastName" placeholder="Last Name" required />
-          <input id="email" placeholder="Email" type="email" required />
-          <input id="password" placeholder="Password" type="password" required />
-          <input type="date" id="dateOfBirth" required>
-          <select id="gender" required>
-            <option value="">Select Gender</option>
-            <option value="male">Male</option>
-            <option value="female">Female</option>
-          </select>
-          <button type="submit">Register</button>
-        </form>
-        <p>Already have an account? <button id="showLogin" type="button">Login</button></p>
+        <div class="auth-intro">
+          <span class="eyebrow">MY FORUM</span>
+          <h1>Bring your perspective to the room.</h1>
+          <p>Create an account and find conversations worth returning to.</p>
+          <div class="intro-note"><span class="intro-dot"></span> Your next good idea starts here</div>
+        </div>
+        <div class="auth-card auth-card-wide">
+          <div class="auth-heading">
+            <span class="brand-mark">F</span>
+            <div><h2>Create your account</h2><p>A few details and you are ready to join.</p></div>
+          </div>
+          <form id="registerForm" class="register-grid">
+            <div><label for="nickname">Nickname</label><input id="nickname" placeholder="your_nickname" autocomplete="username" required /></div>
+            <div><label for="email">Email</label><input id="email" placeholder="you@example.com" type="email" autocomplete="email" required /></div>
+            <div><label for="firstName">First name</label><input id="firstName" placeholder="First name" autocomplete="given-name" required /></div>
+            <div><label for="lastName">Last name</label><input id="lastName" placeholder="Last name" autocomplete="family-name" required /></div>
+            <div><label for="password">Password</label><input id="password" placeholder="At least 8 characters" type="password" autocomplete="new-password" required /></div>
+            <div><label for="dateOfBirth">Date of birth</label><input type="date" id="dateOfBirth" required /></div>
+            <div><label for="gender">Gender</label><select id="gender" required><option value="">Select gender</option><option value="male">Male</option><option value="female">Female</option></select></div>
+            <button type="submit">Create account <span aria-hidden="true">→</span></button>
+          </form>
+          <p class="auth-switch">Already have an account? <button id="showLogin" type="button">Sign in</button></p>
+        </div>
     `;
 
     root.appendChild(section);
@@ -72,12 +94,13 @@ export function renderLoggedPage(username) {
     // HEADER
     const header = document.createElement("header");
     header.innerHTML = `
-      <h1>My Forum</h1>
+      <div class="brand-lockup"><span class="brand-mark">F</span><div><h1>My Forum</h1><small>Make room for better ideas.</small></div></div>
       <nav>
-        <span id="usernameDisplay">${username}</span>
-        <button id="logoutBtn">Logout</button>
+        <span class="user-greeting">Signed in as <strong id="usernameDisplay"></strong></span>
+        <button id="logoutBtn">Log out</button>
       </nav>
     `;
+    header.querySelector('#usernameDisplay').textContent = username;
     root.appendChild(header);
 
     const main = document.createElement("main");
@@ -106,17 +129,17 @@ export function renderLoggedPage(username) {
         </div>
 
         <section id="postsSection">
-          <h2>Posts</h2>
+          <div class="section-heading"><div><span class="eyebrow">COMMUNITY FEED</span><h2>Latest discussions</h2><p>Share something useful with the community.</p></div></div>
           <div id="postsContainer">
             <form id="createPostForm">
-              <input name="title" placeholder="Post Title" required />
-              <textarea name="content" placeholder="Write your post here..." required></textarea>
+              <div class="composer-title"><span class="composer-avatar">${String(username).charAt(0).toUpperCase()}</span><input name="title" placeholder="Give your post a clear title" required /></div>
+              <textarea name="content" placeholder="What would you like to discuss?" required></textarea>
               <select name="category">
                 <option value="General">General</option>
                 <option value="Questions">Questions</option>
                 <option value="News">News</option>
               </select>
-              <button type="submit">Post</button>
+              <button type="submit">Publish post <span aria-hidden="true">→</span></button>
             </form>
 
             <div id="postsList"></div>
