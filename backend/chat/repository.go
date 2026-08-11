@@ -11,16 +11,30 @@ func NewRepository(db *sql.DB) *Repository {
 }
 
 func (r *Repository) UserExists(nickname string) (bool, error) {
-	var count int
-	err := r.db.QueryRow("SELECT COUNT(*) FROM users WHERE nickname = ?", nickname).Scan(&count)
-	return count > 0, err
+	_, err := r.UserIDByNickname(nickname)
+	if err == sql.ErrNoRows {
+		return false, nil
+	}
+	return err == nil, err
+}
+
+func (r *Repository) UserIDByNickname(nickname string) (int64, error) {
+	var userID int64
+	err := r.db.QueryRow("SELECT id FROM users WHERE nickname = ?", nickname).Scan(&userID)
+	return userID, err
+}
+
+func (r *Repository) UserByID(userID int64) (string, error) {
+	var nickname string
+	err := r.db.QueryRow("SELECT nickname FROM users WHERE id = ?", userID).Scan(&nickname)
+	return nickname, err
 }
 
 func (r *Repository) InsertMessage(tx *sql.Tx, message Message) (Message, error) {
 	result, err := tx.Exec(`
-		INSERT INTO messages (sender, receiver, content, timestamp)
-		VALUES (?, ?, ?, ?)`,
-		message.From, message.To, message.Content, message.Timestamp)
+		INSERT INTO messages (sender_id, receiver_id, sender, receiver, content, timestamp)
+		VALUES (?, ?, ?, ?, ?, ?)`,
+		message.SenderID, message.ReceiverID, message.From, message.To, message.Content, message.Timestamp)
 	if err != nil {
 		return Message{}, err
 	}
@@ -39,7 +53,8 @@ func (r *Repository) ListHistory(from, to string, beforeID, offset int) ([]Messa
 		rows, err = r.db.Query(`
 			SELECT id, sender, receiver, content, timestamp
 			FROM messages
-			WHERE ((sender = ? AND receiver = ?) OR (sender = ? AND receiver = ?))
+			WHERE ((sender_id = (SELECT id FROM users WHERE nickname = ?) AND receiver_id = (SELECT id FROM users WHERE nickname = ?))
+			   OR (sender_id = (SELECT id FROM users WHERE nickname = ?) AND receiver_id = (SELECT id FROM users WHERE nickname = ?)))
 			  AND id < ?
 			ORDER BY id DESC
 			LIMIT 10`, from, to, to, from, beforeID)
@@ -47,7 +62,8 @@ func (r *Repository) ListHistory(from, to string, beforeID, offset int) ([]Messa
 		rows, err = r.db.Query(`
 			SELECT id, sender, receiver, content, timestamp
 			FROM messages
-			WHERE (sender = ? AND receiver = ?) OR (sender = ? AND receiver = ?)
+			WHERE (sender_id = (SELECT id FROM users WHERE nickname = ?) AND receiver_id = (SELECT id FROM users WHERE nickname = ?))
+			   OR (sender_id = (SELECT id FROM users WHERE nickname = ?) AND receiver_id = (SELECT id FROM users WHERE nickname = ?))
 			ORDER BY id DESC
 			LIMIT 10 OFFSET ?`, from, to, to, from, offset)
 	}

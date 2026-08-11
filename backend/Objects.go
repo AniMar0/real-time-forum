@@ -44,6 +44,7 @@ type Client struct {
 	Conn      *websocket.Conn  `json:"-"`  // Added json:"-" to exclude from JSON
 	Send      chan interface{} `json:"-"`
 	Username  string           `json:"username"`
+	UserID    int64            `json:"-"`
 	SessionID string           `json:"session_id"`
 	sendMu    sync.RWMutex
 	closeOnce sync.Once

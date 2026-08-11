@@ -1,9 +1,11 @@
 package chat
 
 type Message struct {
-	ID        int
-	From      string
-	To        string
-	Content   string
-	Timestamp string
+	ID         int
+	SenderID   int64
+	ReceiverID int64
+	From       string
+	To         string
+	Content    string
+	Timestamp  string
 }

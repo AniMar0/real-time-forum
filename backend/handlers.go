@@ -18,7 +18,7 @@ func (S *Server) SendMessageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	username, _, err := S.CheckSession(r)
+	identity, err := S.CheckSessionIdentity(r)
 	if err != nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
@@ -33,12 +33,12 @@ func (S *Server) SendMessageHandler(w http.ResponseWriter, r *http.Request) {
 
 	// The authenticated session is the source of truth for the sender.
 	// Never trust a client-provided From value.
-	message.From = username
+	message.From = identity.Nickname
 	if S.chatService == nil {
 		http.Error(w, "Chat service is not initialized", http.StatusInternalServerError)
 		return
 	}
-	storedMessage, err := S.chatService.SendMessage(message.From, message.To, message.Content)
+	storedMessage, err := S.chatService.SendMessage(identity.UserID, message.To, message.Content)
 	if err != nil {
 		if err == chat.ErrInvalidRecipient || err == chat.ErrInvalidContent {
 			http.Error(w, err.Error(), http.StatusBadRequest)

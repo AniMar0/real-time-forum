@@ -243,7 +243,7 @@ func (S *Server) GetHashedPasswordFromDB(identifier string) (string, string, err
 
 // Modified HandleWebSocket function - broadcasts status changes when user connects
 func (S *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
-	username, session_id, err := S.CheckSession(r)
+	identity, err := S.CheckSessionIdentity(r)
 	if err != nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
@@ -258,14 +258,15 @@ func (S *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	client := &Client{
 		ID:        uuid.NewV4().String(),
 		Conn:      conn,
-		Username:  username,
-		SessionID: session_id,
+		Username:  identity.Nickname,
+		UserID:    identity.UserID,
+		SessionID: identity.SessionID,
 		Send:      make(chan interface{}, 10),
 	}
 
 	S.hub.Register(client)
 
-	fmt.Println(username, "connected to WebSocket")
+	fmt.Println(identity.Nickname, "connected to WebSocket")
 
 	S.broadcastUserStatusChange()
 
@@ -305,7 +306,7 @@ func (s *Server) receiveMessages(client *Client) {
 			if s.chatService == nil {
 				continue
 			}
-			storedMessage, err := s.chatService.SendMessage(msg.From, msg.To, msg.Content)
+			storedMessage, err := s.chatService.SendMessage(client.UserID, msg.To, msg.Content)
 			if err != nil {
 				fmt.Println("Failed to persist WebSocket message:", err)
 				continue
