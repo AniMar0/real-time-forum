@@ -1,58 +1,58 @@
 # Real-time Forum
 
-منتدى بسيط يدعم المنشورات، التعليقات، المحادثات الفورية عبر WebSocket، والإشعارات غير المقروءة.
+A small forum application with posts, comments, real-time direct messaging over WebSocket, and unread notifications.
 
-## المتطلبات
+## Requirements
 
-- Go 1.25 أو أحدث
+- Go 1.25 or later
 - SQLite
-- Docker و Docker Compose (اختياري)
+- Docker and Docker Compose (optional)
 
-## التشغيل محليًا
+## Run locally
 
 ```bash
 go run .
 ```
 
-افتح:
+Open:
 
 ```text
 http://localhost:8080
 ```
 
-يتم إنشاء قاعدة البيانات وتشغيل الـ migrations تلقائيًا عند بدء التطبيق.
+The application creates the database directory and runs pending SQLite migrations automatically at startup.
 
-## التشغيل باستخدام Docker
+## Run with Docker
 
 ```bash
 docker compose up --build
 ```
 
-ثم افتح:
+Then open:
 
 ```text
 http://localhost:8080
 ```
 
-يتم حفظ SQLite داخل Docker volume باسم `forum-data` حتى تبقى البيانات عند إعادة إنشاء الحاوية.
+SQLite is stored in a Docker volume named `forum-data`, so data survives container recreation.
 
-لإيقاف الحاوية:
+Stop the container with:
 
 ```bash
 docker compose down
 ```
 
-## متغيرات البيئة
+## Environment variables
 
-| المتغير | القيمة الافتراضية | الوصف |
+| Variable | Default | Description |
 |---|---|---|
-| `FORUM_HTTP_ADDRESS` | `:8080` | عنوان ومنفذ HTTP |
-| `FORUM_DATABASE_PATH` | `database/forum.db` | مسار SQLite |
-| `FORUM_STATIC_PATH` | `static` | مسار ملفات الواجهة |
-| `FORUM_ENV` | `development` | بيئة التشغيل؛ production يفعّل Secure cookies |
-| `FORUM_WS_ORIGINS` | localhost origins | Origins المسموح بها للـ WebSocket، مفصولة بفواصل |
+| `FORUM_HTTP_ADDRESS` | `:8080` | HTTP address and port |
+| `FORUM_DATABASE_PATH` | `database/forum.db` | SQLite database path |
+| `FORUM_STATIC_PATH` | `static` | Frontend files path |
+| `FORUM_ENV` | `development` | Runtime environment; `production` enables secure cookies |
+| `FORUM_WS_ORIGINS` | localhost origins | Allowed WebSocket origins, separated by commas |
 
-مثال:
+Example:
 
 ```bash
 FORUM_HTTP_ADDRESS=:9090 \
@@ -61,51 +61,51 @@ FORUM_WS_ORIGINS=http://localhost:9090 \
 go run .
 ```
 
-## الوظائف الحالية
+## Current features
 
-- إنشاء حساب وتسجيل الدخول باستخدام البريد أو nickname.
-- جلسات دخول محفوظة في SQLite.
-- إنشاء وعرض المنشورات.
-- إضافة وعرض التعليقات.
-- محادثة مباشرة عبر WebSocket.
-- حفظ الرسائل والإشعارات في معاملة قاعدة بيانات واحدة.
-- تحميل سجل المحادثة السابق.
-- إغلاق الدردشة ودعم العرض المتجاوب على الهاتف.
+- Account registration and login using email or nickname.
+- SQLite-backed login sessions.
+- Create and view posts.
+- Add and view comments.
+- Real-time direct messaging over WebSocket.
+- Persistent messages and unread notifications in one database transaction.
+- Paginated chat history loading.
+- Closeable, mobile-responsive chat interface.
 
-## المسارات الرئيسية
+## Main routes
 
-| المسار | الطريقة | الاستخدام |
+| Route | Method | Purpose |
 |---|---|---|
-| `/register` | POST | إنشاء حساب |
-| `/login` | POST | تسجيل الدخول |
-| `/logout` | POST | تسجيل الخروج |
-| `/logged` | POST | التحقق من الجلسة |
-| `/posts` | GET | جلب المنشورات |
-| `/createPost` | POST | إنشاء منشور |
-| `/comments` | GET | جلب التعليقات |
-| `/createComment` | POST | إنشاء تعليق |
-| `/messages` | POST | جلب سجل المحادثة |
-| `/notifications` | GET | جلب الإشعارات |
-| `/notifications/mark-read` | POST | تحديد الإشعار كمقروء |
-| `/ws` | WebSocket | المحادثة والحالة والكتابة |
+| `/register` | POST | Create an account |
+| `/login` | POST | Log in |
+| `/logout` | POST | Log out |
+| `/logged` | POST | Check the current session |
+| `/posts` | GET | Fetch posts |
+| `/createPost` | POST | Create a post |
+| `/comments` | GET | Fetch comments |
+| `/createComment` | POST | Create a comment |
+| `/messages` | POST | Fetch chat history |
+| `/notifications` | GET | Fetch unread notifications |
+| `/notifications/mark-read` | POST | Mark notifications as read |
+| `/ws` | WebSocket | Messaging, presence, and typing events |
 
-## بنية المشروع
+## Project structure
 
 ```text
 .
 ├── backend/
-│   ├── account/       # الجلسات وبيانات الحساب
-│   ├── chat/          # الرسائل وسجل المحادثة
-│   ├── forum/         # المنشورات والتعليقات
-│   ├── notification/  # الإشعارات
-│   └── migrations/    # ترحيلات SQLite
-├── static/            # HTML/CSS/JavaScript للواجهة
-├── database/          # قاعدة SQLite المحلية
+│   ├── account/       # Accounts and sessions
+│   ├── chat/          # Messages and chat history
+│   ├── forum/         # Posts and comments
+│   ├── notification/  # Unread notifications
+│   └── migrations/    # SQLite migrations
+├── static/            # HTML, CSS, and frontend JavaScript
+├── database/          # Local SQLite database
 ├── Dockerfile
 └── docker-compose.yml
 ```
 
-## الاختبارات
+## Tests and checks
 
 ```bash
 go test ./...
@@ -114,6 +114,6 @@ go vet ./...
 go build .
 ```
 
-## ملاحظات قاعدة البيانات
+## Database notes
 
-قاعدة البيانات المحلية `database/forum.db` مخصصة للتشغيل المحلي. في Docker يتم استخدام volume منفصل. لا تحذف ملف قاعدة البيانات أثناء تشغيل التطبيق.
+The local `database/forum.db` file is intended for local development. Docker uses a separate volume. Do not delete or replace the database while the application is running.
