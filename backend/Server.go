@@ -132,7 +132,6 @@ func (S *Server) initRoutes() {
 	S.Mux.Handle("/ws", S.SessionMiddleware(http.HandlerFunc(S.HandleWebSocket)))
 	S.Mux.Handle("/messages", S.SessionMiddleware(http.HandlerFunc(S.GetMessagesHandler)))
 
-	S.Mux.Handle("/sendMessage", S.SessionMiddleware(http.HandlerFunc(S.SendMessageHandler)))
 	S.Mux.Handle("/logout", S.SessionMiddleware(http.HandlerFunc(S.LogoutHandler)))
 }
 

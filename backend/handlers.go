@@ -8,55 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"real-time-forum/backend/chat"
 	"real-time-forum/backend/forum"
 )
-
-func (S *Server) SendMessageHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Redirect(w, r, "/404", http.StatusSeeOther)
-		return
-	}
-
-	identity, err := S.CheckSessionIdentity(r)
-	if err != nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	var message Message
-	err = json.NewDecoder(r.Body).Decode(&message)
-	if err != nil {
-		http.Error(w, "Bad Request", http.StatusBadRequest)
-		return
-	}
-
-	// The authenticated session is the source of truth for the sender.
-	// Never trust a client-provided From value.
-	message.From = identity.Nickname
-	if S.chatService == nil {
-		http.Error(w, "Chat service is not initialized", http.StatusInternalServerError)
-		return
-	}
-	storedMessage, err := S.chatService.SendMessage(identity.UserID, message.To, message.Content)
-	if err != nil {
-		if err == chat.ErrInvalidRecipient || err == chat.ErrInvalidContent {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		http.Error(w, "Failed to persist message", http.StatusInternalServerError)
-		return
-	}
-	message.ID = storedMessage.ID
-	message.Timestamp = storedMessage.Timestamp
-	message.Content = storedMessage.Content
-
-	S.broadcastUserStatusChange()
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(message)
-}
 
 func (S *Server) GetNotifications(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
