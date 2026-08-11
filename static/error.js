@@ -1,19 +1,23 @@
 export function ErrorPage(data) {
-    const MainPage = document.getElementById('my-content')
-    const ErrPage = document.getElementById('err-page')
-    const ErrorCode = document.getElementById('err-code')
-    const ErrorMsj = document.getElementById('err-msj')
-    const BackBtn = document.getElementById('back')
+    const root = document.getElementById('root')
+    if (!root) return
 
-    MainPage.classList.add('hidden');
-    ErrPage.classList.remove('hidden');
+    const errorPage = document.createElement('main')
+    errorPage.id = 'errorPage'
 
-    ErrorCode.innerText = data.status
-    ErrorMsj.innerText = data.statusText
+    const heading = document.createElement('h1')
+    heading.textContent = String(data?.status ?? 500)
 
-    BackBtn.addEventListener('click', () => {
-        MainPage.classList.remove('hidden');
-        ErrPage.classList.add('hidden');
-        history.pushState({}, '', '/');
+    const message = document.createElement('p')
+    message.textContent = data?.statusText || 'Something went wrong.'
+
+    const backButton = document.createElement('button')
+    backButton.type = 'button'
+    backButton.textContent = 'Back to home'
+    backButton.addEventListener('click', () => {
+        window.location.href = '/'
     })
+
+    errorPage.append(heading, message, backButton)
+    root.replaceChildren(errorPage)
 }

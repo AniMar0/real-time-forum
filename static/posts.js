@@ -4,8 +4,9 @@ import { ErrorPage } from './error.js';
 export async function loadPosts() {
   const response = await fetch("/posts")
 
-  if (response.status != 200 && response.status != 401  && response.status != 201) {
-    ErrorPage(res)
+  if (!response.ok) {
+    ErrorPage(response)
+    return
   }
 
   const posts = await response.json()
