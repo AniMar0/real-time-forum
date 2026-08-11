@@ -11,6 +11,7 @@ let noMoreMessages = false
 let chatContainer = null
 let displayedMessagesCount = 0
 let renderedMessageIds = new Set() // Track rendered messages to prevent duplicates
+let oldestMessageID = null
 
 const throttle = (fn, wait) => {
   let lastTime = 0
@@ -120,6 +121,7 @@ function setUserList(users) {
       chatPage = 0
       noMoreMessages = false
       displayedMessagesCount = 0
+      oldestMessageID = null
       renderedMessageIds.clear() // Clear rendered message tracking
       chatContainer = document.getElementById("chatMessages")
 
@@ -160,6 +162,7 @@ function setUserList(users) {
           chatPage = 0
           noMoreMessages = false
           displayedMessagesCount = 0
+          oldestMessageID = null
           renderedMessageIds.clear()
         }
       }
@@ -176,6 +179,9 @@ function setUserList(users) {
           // Render unique messages only
           messages.forEach(renderMessage)
           displayedMessagesCount = messages.length
+          if (messages.length > 0) {
+            oldestMessageID = messages[messages.length - 1].id
+          }
         }
       } catch (err) {
         console.error("Error loading chat history:", err)
@@ -309,7 +315,8 @@ async function loadMessagesPage(from, to) {
   if (loader) loader.classList.remove("hidden")
 
   try {
-    const res = await fetch(`/messages?from=${from}&to=${to}&offset=${offset}`, {
+    const cursor = oldestMessageID ? `&before_id=${oldestMessageID}` : `&offset=${offset}`
+    const res = await fetch(`/messages?from=${from}&to=${to}${cursor}`, {
       method: "POST"
     })
     if (!res.ok) throw new Error("Failed to load chat messages")
@@ -330,6 +337,7 @@ async function loadMessagesPage(from, to) {
         sortedMessages.reverse().forEach(msg => renderMessageAtTop(msg))
 
         displayedMessagesCount += newMessages.length
+        oldestMessageID = newMessages[newMessages.length - 1].id
 
         const newScrollHeight = container.scrollHeight
         const heightDifference = newScrollHeight - oldScrollHeight

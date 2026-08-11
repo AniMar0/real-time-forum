@@ -555,14 +555,34 @@ func (s *Server) GetMessagesHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		offset = 0
 	}
+	beforeID := 0
+	if beforeIDValue := r.URL.Query().Get("before_id"); beforeIDValue != "" {
+		beforeID, err = strconv.Atoi(beforeIDValue)
+		if err != nil || beforeID < 1 {
+			http.Error(w, "Invalid before_id", http.StatusBadRequest)
+			return
+		}
+	}
 
-	rows, err := s.db.Query(`
-	SELECT sender, receiver, content, timestamp
-	FROM messages
-	WHERE (sender = ? AND receiver = ?) OR (sender = ? AND receiver = ?)
-	ORDER BY id DESC
-	LIMIT 10 OFFSET ?
-`, from, to, to, from, offset)
+	var rows *sql.Rows
+	if beforeID > 0 {
+		rows, err = s.db.Query(`
+			SELECT id, sender, receiver, content, timestamp
+			FROM messages
+			WHERE ((sender = ? AND receiver = ?) OR (sender = ? AND receiver = ?))
+			  AND id < ?
+			ORDER BY id DESC
+			LIMIT 10
+		`, from, to, to, from, beforeID)
+	} else {
+		rows, err = s.db.Query(`
+			SELECT id, sender, receiver, content, timestamp
+			FROM messages
+			WHERE (sender = ? AND receiver = ?) OR (sender = ? AND receiver = ?)
+			ORDER BY id DESC
+			LIMIT 10 OFFSET ?
+		`, from, to, to, from, offset)
+	}
 	if err != nil {
 		if err == sql.ErrNoRows {
 			http.Error(w, "No messages found", http.StatusNotFound)
@@ -576,7 +596,7 @@ func (s *Server) GetMessagesHandler(w http.ResponseWriter, r *http.Request) {
 	var messages []Message
 	for rows.Next() {
 		var msg Message
-		err := rows.Scan(&msg.From, &msg.To, &msg.Content, &msg.Timestamp)
+		err := rows.Scan(&msg.ID, &msg.From, &msg.To, &msg.Content, &msg.Timestamp)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				http.Error(w, "No messages found", http.StatusNotFound)
