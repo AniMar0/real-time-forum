@@ -102,7 +102,7 @@ export function renderLoggedPage(username) {
         <div id="chatWindow" class="chat-box hidden">
           <div class="chat-header">
             <strong>Chat with: <span id="chatWithName"></span></strong>
-            <i id="closeChatBtn" class="fa-solid fa-xmark" style="cursor:pointer;"></i>
+            <button id="closeChatBtn" class="chat-close" type="button" aria-label="Close chat">×</button>
           </div>
 
           <div id="chatLoader" class="hidden" style="text-align:center; padding:5px;">
@@ -112,8 +112,10 @@ export function renderLoggedPage(username) {
           <div id="chatMessages"></div>
           <div id="typingIndicator" class="hidden"></div>
 
-          <input id="messageInput" type="text" placeholder="Type a message..." />
-          <button id="sendBtn">Send</button>
+          <div class="chat-composer">
+            <input id="messageInput" type="text" placeholder="Type a message..." />
+            <button id="sendBtn" type="button">Send</button>
+          </div>
         </div>
 
         <section id="postsSection">
