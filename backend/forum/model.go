@@ -1,18 +1,18 @@
 package forum
 
 type Post struct {
-	ID        int
-	Title     string
-	Content   string
-	Category  string
-	CreatedAt string
-	Author    string
+	ID        int    `json:"id"`
+	Title     string `json:"title"`
+	Content   string `json:"content"`
+	Category  string `json:"category"`
+	CreatedAt string `json:"created_at"`
+	Author    string `json:"author"`
 }
 
 type Comment struct {
-	ID        int
-	PostID    int
-	Content   string
-	CreatedAt string
-	Author    string
+	ID        int    `json:"id"`
+	PostID    int    `json:"post_id"`
+	Content   string `json:"content"`
+	CreatedAt string `json:"created_at"`
+	Author    string `json:"author"`
 }
