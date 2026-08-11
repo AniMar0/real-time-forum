@@ -3,7 +3,6 @@ package backend
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"html"
 	"net/http"
 	"os"
@@ -38,6 +37,15 @@ func (S *Server) SendMessageHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid message recipient", http.StatusBadRequest)
 		return
 	}
+	var recipientExists int
+	if err := S.db.QueryRow("SELECT COUNT(*) FROM users WHERE nickname = ?", message.To).Scan(&recipientExists); err != nil {
+		http.Error(w, "Failed to validate message recipient", http.StatusInternalServerError)
+		return
+	}
+	if recipientExists == 0 {
+		http.Error(w, "Invalid message recipient", http.StatusBadRequest)
+		return
+	}
 
 	// Validate message content
 	if !isValidTextLength(message.Content, 1, 5000) {
@@ -47,21 +55,41 @@ func (S *Server) SendMessageHandler(w http.ResponseWriter, r *http.Request) {
 
 	message.Timestamp = time.Now().Format(time.RFC3339)
 
-	fmt.Println((message.Content))
-	_, err = S.db.Exec(`
+	tx, err := S.db.Begin()
+	if err != nil {
+		http.Error(w, "Failed to start message transaction", http.StatusInternalServerError)
+		return
+	}
+	result, err := tx.Exec(`
 		INSERT INTO messages (sender, receiver, content, timestamp)
 		VALUES (?, ?, ?, ?)`,
 		message.From, message.To, html.EscapeString(message.Content), message.Timestamp)
 	if err != nil {
+		_ = tx.Rollback()
 		http.Error(w, "Failed to insert message", http.StatusInternalServerError)
+		return
+	}
+	messageID, err := result.LastInsertId()
+	if err != nil {
+		_ = tx.Rollback()
+		http.Error(w, "Failed to identify inserted message", http.StatusInternalServerError)
+		return
+	}
+	message.ID = int(messageID)
+	if err := addNewNotificationTx(tx, message.To, message.From); err != nil {
+		_ = tx.Rollback()
+		http.Error(w, "Failed to update notifications", http.StatusInternalServerError)
+		return
+	}
+	if err := tx.Commit(); err != nil {
+		http.Error(w, "Failed to commit message", http.StatusInternalServerError)
 		return
 	}
 
 	S.broadcastUserStatusChange()
-	S.addNewNotification(message.To, message.From)
 
-	w.WriteHeader(http.StatusCreated)
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(message)
 }
 

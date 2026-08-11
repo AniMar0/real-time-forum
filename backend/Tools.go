@@ -60,6 +60,38 @@ func (S *Server) addNewNotification(resiverID, senderID string) {
 	}
 }
 
+func addNewNotificationTx(tx *sql.Tx, receiverID, senderID string) error {
+	oldCount, err := getNotificationCountTx(tx, receiverID, senderID)
+	if err != nil && err != sql.ErrNoRows {
+		return err
+	}
+
+	newCount := oldCount + 1
+	if err == sql.ErrNoRows {
+		_, err = tx.Exec(`
+			INSERT INTO notifications (unread_messages, receiver_nickname, sender_nickname)
+			VALUES (?, ?, ?)`, newCount, receiverID, senderID)
+		return err
+	}
+
+	_, err = tx.Exec(`
+		UPDATE notifications
+		SET unread_messages = ?
+		WHERE receiver_nickname = ? AND sender_nickname = ?`,
+		newCount, receiverID, senderID)
+	return err
+}
+
+func getNotificationCountTx(tx *sql.Tx, receiverID, senderID string) (int, error) {
+	var count int
+	err := tx.QueryRow(`
+		SELECT unread_messages
+		FROM notifications
+		WHERE receiver_nickname = ? AND sender_nickname = ?`,
+		receiverID, senderID).Scan(&count)
+	return count, err
+}
+
 func (S *Server) getNotificationCount(resiverID, senderID string) (int, error) {
 	var count int
 	qery := `SELECT unread_messages FROM notifications WHERE receiver_nickname = ? And sender_nickname = ?`

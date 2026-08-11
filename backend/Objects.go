@@ -31,6 +31,7 @@ type Comment struct {
 }
 
 type Message struct {
+	ID        int    `json:"id,omitempty"`
 	From      string `json:"from"`
 	To        string `json:"to"`
 	Content   string `json:"content"`
