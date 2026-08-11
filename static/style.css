@@ -1298,3 +1298,47 @@ button[type="submit"]:hover { background: var(--primary-dark); }
   .auth-page { margin: 20px auto; padding: 10px; }
   .auth-card-centered { padding: 26px 20px 22px; }
 }
+
+/* Forum wireframe: keep the existing sections, organize them as a feed. */
+.flex-container {
+  display: block;
+  min-height: 0;
+}
+
+#userList {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 86px;
+  margin-bottom: 22px;
+  padding: 14px 16px;
+  overflow-x: auto;
+  position: static;
+  white-space: nowrap;
+}
+
+#userList::before {
+  flex: 0 0 auto;
+  padding: 0 12px 0 2px;
+  content: "PEOPLE";
+}
+
+#userList .user {
+  flex: 0 0 auto;
+  min-width: 112px;
+  min-height: 56px;
+  margin: 0;
+  padding: 9px 12px !important;
+  border: 1px solid var(--border) !important;
+  background: #fff;
+}
+
+#userList .user:hover { background: #f0efff; }
+.main-content { gap: 22px; }
+#postsSection { max-width: 820px; margin: 0 auto; }
+#chatWindow { width: 100%; }
+
+@media (max-width: 800px) {
+  #userList { margin-bottom: 16px; }
+  #postsSection { max-width: none; }
+}
