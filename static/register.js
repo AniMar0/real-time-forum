@@ -65,13 +65,11 @@ export function handleRegister(event) {
       "Content-Type": "application/json"
     },
     body: JSON.stringify(formData)
-  })
+    })
     .then(async res => {
-      if (res.status == 500 || res.status == 404) {
-        ErrorPage(res)
-      }
       if (!res.ok) {
-        throw await res.text();
+        if (res.status >= 500) ErrorPage(res)
+        throw new Error(await res.text() || "Registration failed");
       }
       return res.text();
     })
@@ -80,21 +78,22 @@ export function handleRegister(event) {
         identifier: formData.nickname,
         password: formData.password
       };
-      fetch("/login", {
+      return fetch("/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
         },
         body: JSON.stringify(loginData)
-      }).then((res) => {
-        if (res.status != 200 && res.status != 401 && res.status != 201) {
-          ErrorPage(res)
+      }).then(async (res) => {
+        if (!res.ok) {
+          if (res.status >= 500) ErrorPage(res)
+          throw new Error(await res.text() || "Automatic login failed");
         }
         window.location.reload();
       })
     })
     .catch(err => {
-      errorToast(err);
+      errorToast(err instanceof Error ? err.message : String(err));
     });
 }
 

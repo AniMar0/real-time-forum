@@ -24,23 +24,39 @@ export function showToast(message, type = 'success', duration = 4000) {
     const icon = type === 'success' ? '✓' : '✕';
     const title = type === 'success' ? 'Success' : 'Error';
 
-    // Build toast HTML
-    toast.innerHTML = `
-    <div class="toast-icon">${icon}</div>
-    <div class="toast-content">
-      <p class="toast-title">${title}</p>
-      <p class="toast-message">${message}</p>
-    </div>
-    <button class="toast-close" aria-label="Close">&times;</button>
-    <div class="toast-progress" style="animation-duration: ${duration}ms;"></div>
-  `;
+    // Build toast DOM with textContent so server/user messages cannot inject HTML.
+    const iconElement = document.createElement('div');
+    iconElement.className = 'toast-icon';
+    iconElement.textContent = icon;
+
+    const content = document.createElement('div');
+    content.className = 'toast-content';
+
+    const titleElement = document.createElement('p');
+    titleElement.className = 'toast-title';
+    titleElement.textContent = title;
+
+    const messageElement = document.createElement('p');
+    messageElement.className = 'toast-message';
+    messageElement.textContent = String(message);
+    content.append(titleElement, messageElement);
+
+    const closeButton = document.createElement('button');
+    closeButton.className = 'toast-close';
+    closeButton.type = 'button';
+    closeButton.setAttribute('aria-label', 'Close');
+    closeButton.textContent = '×';
+
+    const progress = document.createElement('div');
+    progress.className = 'toast-progress';
+    progress.style.animationDuration = `${duration}ms`;
+    toast.append(iconElement, content, closeButton, progress);
 
     // Add to container
     container.appendChild(toast);
 
     // Close button handler
-    const closeBtn = toast.querySelector('.toast-close');
-    closeBtn.addEventListener('click', () => removeToast(toast));
+    closeButton.addEventListener('click', () => removeToast(toast));
 
     // Auto-remove after duration
     const timeout = setTimeout(() => {
