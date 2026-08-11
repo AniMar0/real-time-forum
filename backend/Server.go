@@ -347,14 +347,15 @@ func (S *Server) broadcastUserList(currentUser string) {
 	cte_latest_interaction AS (
 	    SELECT
 	        CASE 
-	            WHEN sender = ? THEN receiver 
-	            ELSE sender 
-	        END AS user_nickname,
+	            WHEN sender_id = (SELECT id FROM users WHERE nickname = ?) THEN receiver_id
+	            ELSE sender_id
+	        END AS user_id,
 	        MAX(timestamp) AS lastInteraction,
 	        content
 	    FROM messages
-	    WHERE sender = ? OR receiver = ?
-	    GROUP BY user_nickname
+	    WHERE sender_id = (SELECT id FROM users WHERE nickname = ?)
+	       OR receiver_id = (SELECT id FROM users WHERE nickname = ?)
+	    GROUP BY user_id
 	),
 	cte_ordered_users AS (
 	    SELECT 
@@ -364,7 +365,7 @@ func (S *Server) broadcastUserList(currentUser string) {
 	        u.nickname
 	    FROM users u 
 	    LEFT JOIN cte_latest_interaction i 
-	        ON i.user_nickname = u.nickname
+	        ON i.user_id = u.id
 	    WHERE u.nickname != ?
 	)
 	SELECT 

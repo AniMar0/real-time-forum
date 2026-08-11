@@ -28,9 +28,9 @@ func (r *SessionRepository) Create(sessionID, nickname string, expiresAt time.Ti
 func (r *SessionRepository) FindValid(sessionID string) (Identity, error) {
 	var identity Identity
 	err := r.db.QueryRow(`
-		SELECT COALESCE(s.user_id, u.id), u.nickname
+		SELECT s.user_id, u.nickname
 		FROM sessions s
-		JOIN users u ON u.nickname = s.nickname
+		JOIN users u ON u.id = s.user_id
 		WHERE s.session_id = ? AND s.expires_at > CURRENT_TIMESTAMP`, sessionID).Scan(&identity.UserID, &identity.Nickname)
 	if err != nil {
 		return Identity{}, fmt.Errorf("find valid session: %w", err)
