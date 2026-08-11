@@ -60,5 +60,36 @@ func runMigrations(db *sql.DB) error {
 			return err
 		}
 	}
+	return validateIdentityBackfill(db)
+}
+
+func validateIdentityBackfill(db *sql.DB) error {
+	checks := []struct {
+		name  string
+		query string
+	}{
+		{
+			name:  "messages sender and receiver IDs",
+			query: "SELECT COUNT(*) FROM messages WHERE sender_id IS NULL OR receiver_id IS NULL",
+		},
+		{
+			name:  "session user IDs",
+			query: "SELECT COUNT(*) FROM sessions WHERE user_id IS NULL",
+		},
+		{
+			name:  "notification sender and receiver IDs",
+			query: "SELECT COUNT(*) FROM notifications WHERE sender_id IS NULL OR receiver_id IS NULL",
+		},
+	}
+
+	for _, check := range checks {
+		var invalid int
+		if err := db.QueryRow(check.query).Scan(&invalid); err != nil {
+			return fmt.Errorf("validate %s: %w", check.name, err)
+		}
+		if invalid > 0 {
+			return fmt.Errorf("validate %s: %d invalid rows", check.name, invalid)
+		}
+	}
 	return nil
 }
