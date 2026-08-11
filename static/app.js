@@ -1,4 +1,4 @@
-import { startChatFeature } from './chat.js';
+import { startChatFeature, stopChatFeature } from './chat.js';
 import { loadPosts } from './posts.js';
 import { ErrorPage } from './error.js';
 import { renderLoggedPage, renderLoginPage } from './dom.js';
@@ -22,6 +22,7 @@ const checkLoggedIn = () => {
       loadPosts()
     })
     .catch(() => {
+      stopChatFeature()
       logged(false)
       renderLoginPage()
     })
@@ -40,6 +41,7 @@ const stillLogged = () => {
       return res.json()
     })
     .catch(() => {
+      stopChatFeature()
       logged(false)
       renderLoginPage()
     })

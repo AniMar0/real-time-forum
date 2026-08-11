@@ -368,6 +368,23 @@ const renderMessageAtTop = (msg) => {
   renderedMessageIds.add(messageId)
 }
 
+export function stopChatFeature() {
+  if (socket) {
+    socket.close(1000, "session ended")
+    socket = null
+  }
+  selectedUser = null
+  currentUser = null
+  chatContainer = null
+  chatPage = 0
+  isFetching = false
+  noMoreMessages = false
+  displayedMessagesCount = 0
+  oldestMessageID = null
+  renderedMessageIds.clear()
+  notificationsCache.clear()
+}
+
 function renderMessage(msg) {
   const messageId = getMessageId(msg)
   if (renderedMessageIds.has(messageId)) return
