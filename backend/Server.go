@@ -7,7 +7,6 @@ import (
 	"html"
 	"log"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -20,6 +19,7 @@ type Server struct {
 	db       *sql.DB
 	Mux      *http.ServeMux
 	hub      *Hub
+	config   Config
 	upgrader websocket.Upgrader
 }
 
@@ -32,11 +32,7 @@ func (S *Server) initUpgrader() {
 				return true // Allow connections without Origin header (like from same origin)
 			}
 			// Add your production domain here if needed
-			allowedOrigins := []string{
-				"http://localhost:8080",
-				"http://127.0.0.1:8080",
-			}
-			for _, allowed := range allowedOrigins {
+			for _, allowed := range S.config.AllowedWSOrigins {
 				if origin == allowed {
 					return true
 				}
@@ -47,10 +43,17 @@ func (S *Server) initUpgrader() {
 }
 
 func (S *Server) Run(port string) {
+	config := LoadConfig()
+	config.HTTPAddress = ":" + port
+	S.RunWithConfig(config)
+}
+
+func (S *Server) RunWithConfig(config Config) {
 	S.Mux = http.NewServeMux()
+	S.config = config
 
 	var err error
-	S.db, err = sql.Open("sqlite", "database/forum.db")
+	S.db, err = sql.Open("sqlite", config.DatabasePath)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -63,8 +66,8 @@ func (S *Server) Run(port string) {
 
 	S.hub = NewHub()
 
-	fmt.Println("Server running on http://localhost:" + port)
-	err = http.ListenAndServe(":"+port, S.Mux)
+	fmt.Println("Server running on " + config.HTTPAddress)
+	err = http.ListenAndServe(config.HTTPAddress, S.Mux)
 	if err != nil {
 		log.Println("Server error:", err)
 		return
@@ -72,7 +75,7 @@ func (S *Server) Run(port string) {
 }
 
 func (S *Server) initRoutes() {
-	home := http.FileServer(http.Dir("./static"))
+	home := http.FileServer(http.Dir(S.config.StaticPath))
 	S.Mux.Handle("/", checkHome(home))
 	S.Mux.HandleFunc("/logged", S.LoggedHandler)
 
@@ -170,7 +173,7 @@ func (S *Server) MakeToken(Writer http.ResponseWriter, username string) {
 		Path:     "/",
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
-		Secure:   os.Getenv("FORUM_ENV") == "production",
+		Secure:   S.config.SecureCookies(),
 	})
 }
 

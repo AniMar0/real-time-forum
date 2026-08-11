@@ -5,16 +5,21 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 
 	_ "modernc.org/sqlite"
 )
 
 func MakeDataBase() {
-	if err := os.MkdirAll("database", os.ModePerm); err != nil {
+	MakeDataBaseAt("database/forum.db")
+}
+
+func MakeDataBaseAt(databasePath string) {
+	if err := os.MkdirAll(filepath.Dir(databasePath), os.ModePerm); err != nil {
 		log.Fatalf("Failed to create database directory: %v", err)
 	}
 
-	db, err := sql.Open("sqlite", "database/forum.db")
+	db, err := sql.Open("sqlite", databasePath)
 	if err != nil {
 		log.Fatal(err)
 	}

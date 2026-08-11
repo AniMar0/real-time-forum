@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"html"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -421,7 +420,7 @@ func (S *Server) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 		Path:     "/",
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
-		Secure:   os.Getenv("FORUM_ENV") == "production",
+		Secure:   S.config.SecureCookies(),
 	})
 
 	// Broadcast user status change to remaining connected clients

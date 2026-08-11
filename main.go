@@ -5,7 +5,8 @@ import (
 )
 
 func main() {
-	var Server backend.Server
-	backend.MakeDataBase()
-	Server.Run("8080")
+	config := backend.LoadConfig()
+	backend.MakeDataBaseAt(config.DatabasePath)
+	var server backend.Server
+	server.RunWithConfig(config)
 }
