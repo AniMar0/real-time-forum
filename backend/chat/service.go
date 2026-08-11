@@ -58,7 +58,7 @@ func (s *Service) SendMessage(senderID int64, receiver, content string) (Message
 		_ = tx.Rollback()
 		return Message{}, err
 	}
-	if err := s.notifications.IncrementUnread(tx, receiver, sender); err != nil {
+	if err := s.notifications.IncrementUnread(tx, receiverID, senderID); err != nil {
 		_ = tx.Rollback()
 		return Message{}, err
 	}
