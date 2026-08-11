@@ -1,7 +1,6 @@
 import { handleRegister } from './register.js';
 import { handleLogin } from './login.js';
 import { logout } from './logout.js';
-import { logged } from './app.js';
 import { successToast, errorToast } from './toast.js';
 import { loadPosts } from './posts.js';
 
@@ -132,7 +131,6 @@ export function renderLoggedPage(username) {
     // Attach event listeners AFTER elements are created
     document.getElementById('logoutBtn').addEventListener('click', (e) => {
         logout(e);
-        document.getElementById('usernameDisplay').textContent = logged(false);
     });
 
     document.getElementById('createPostForm').addEventListener('submit', async function (e) {
