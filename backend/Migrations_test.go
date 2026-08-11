@@ -24,7 +24,7 @@ func TestRunMigrationsIsIdempotent(t *testing.T) {
 	if err := db.QueryRow("SELECT COUNT(*) FROM schema_migrations").Scan(&count); err != nil {
 		t.Fatal(err)
 	}
-	if count != 2 {
-		t.Fatalf("got %d applied migrations, want 2", count)
+	if count != 3 {
+		t.Fatalf("got %d applied migrations, want 3", count)
 	}
 }
