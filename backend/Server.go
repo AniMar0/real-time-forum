@@ -24,6 +24,13 @@ type Server struct {
 	upgrader   websocket.Upgrader
 }
 
+const (
+	webSocketWriteWait = 10 * time.Second
+	webSocketPongWait  = 60 * time.Second
+	webSocketPingEvery = (webSocketPongWait * 9) / 10
+	webSocketMaxSize   = 8 * 1024
+)
+
 func (S *Server) initUpgrader() {
 	S.upgrader = websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
@@ -247,6 +254,12 @@ func (S *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 func (s *Server) receiveMessages(client *Client) {
 	defer s.removeClient(client)
 
+	client.Conn.SetReadLimit(webSocketMaxSize)
+	_ = client.Conn.SetReadDeadline(time.Now().Add(webSocketPongWait))
+	client.Conn.SetPongHandler(func(string) error {
+		return client.Conn.SetReadDeadline(time.Now().Add(webSocketPongWait))
+	})
+
 	for {
 		var msg Message
 		err := client.Conn.ReadJSON(&msg)
@@ -398,10 +411,31 @@ func StartWriter(c *Client) {
 		}
 	}()
 
-	for msg := range c.Send {
-		if err := c.Conn.WriteJSON(msg); err != nil {
-			fmt.Println("Write error:", err)
-			return // Exit on write error
+	ticker := time.NewTicker(webSocketPingEvery)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case msg, ok := <-c.Send:
+			if !ok {
+				return
+			}
+			if err := c.Conn.SetWriteDeadline(time.Now().Add(webSocketWriteWait)); err != nil {
+				return
+			}
+			if err := c.Conn.WriteJSON(msg); err != nil {
+				c.Close()
+				return
+			}
+		case <-ticker.C:
+			if err := c.Conn.SetWriteDeadline(time.Now().Add(webSocketWriteWait)); err != nil {
+				c.Close()
+				return
+			}
+			if err := c.Conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+				c.Close()
+				return
+			}
 		}
 	}
 }
