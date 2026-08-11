@@ -10,14 +10,6 @@ func NewRepository(db *sql.DB) *Repository {
 	return &Repository{db: db}
 }
 
-func (r *Repository) UserExists(nickname string) (bool, error) {
-	_, err := r.UserIDByNickname(nickname)
-	if err == sql.ErrNoRows {
-		return false, nil
-	}
-	return err == nil, err
-}
-
 func (r *Repository) UserIDByNickname(nickname string) (int64, error) {
 	var userID int64
 	err := r.db.QueryRow("SELECT id FROM users WHERE nickname = ?", nickname).Scan(&userID)

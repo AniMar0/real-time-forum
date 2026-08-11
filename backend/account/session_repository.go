@@ -43,9 +43,3 @@ func (r *SessionRepository) Delete(sessionID string) error {
 	_, err := r.db.Exec("DELETE FROM sessions WHERE session_id = ?", sessionID)
 	return err
 }
-
-func (r *SessionRepository) FindNickname(sessionID string) (string, error) {
-	var nickname string
-	err := r.db.QueryRow("SELECT nickname FROM sessions WHERE session_id = ?", sessionID).Scan(&nickname)
-	return nickname, err
-}
