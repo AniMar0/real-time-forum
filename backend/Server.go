@@ -13,6 +13,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/twinj/uuid"
 	"golang.org/x/crypto/bcrypt"
+	"real-time-forum/backend/account"
 )
 
 type Server struct {
@@ -150,13 +151,16 @@ func (S *Server) AddUser(user User) string {
 
 func (S *Server) SessionMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		username, _, err := S.CheckSession(r)
+		username, sessionID, err := S.CheckSession(r)
 		if err != nil {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), "username", username)
+		ctx := account.WithIdentity(r.Context(), account.Identity{
+			Nickname:  username,
+			SessionID: sessionID,
+		})
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
