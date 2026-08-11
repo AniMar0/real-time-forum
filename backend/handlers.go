@@ -98,17 +98,7 @@ func (S *Server) GetNotifications(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cookie, err := r.Cookie("session_token")
-	if err != nil {
-		http.Error(w, "Unauthorized - No session", http.StatusUnauthorized)
-		return
-	}
-
-	sessionID := cookie.Value
-	var nickname string
-	err = S.db.QueryRow(`
-		SELECT nickname FROM sessions 
-		WHERE session_id = ? AND expires_at > datetime('now')`, sessionID).Scan(&nickname)
+	nickname, _, err := S.CheckSession(r)
 	if err != nil {
 		http.Error(w, "Unauthorized - Invalid session", http.StatusUnauthorized)
 		return
@@ -145,17 +135,7 @@ func (S *Server) MarkNotificationsRead(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cookie, err := r.Cookie("session_token")
-	if err != nil {
-		http.Error(w, "Unauthorized - No session", http.StatusUnauthorized)
-		return
-	}
-
-	sessionID := cookie.Value
-	var nickname string
-	err = S.db.QueryRow(`
-		SELECT nickname FROM sessions 
-		WHERE session_id = ? AND expires_at > datetime('now')`, sessionID).Scan(&nickname)
+	nickname, _, err := S.CheckSession(r)
 	if err != nil {
 		http.Error(w, "Unauthorized - Invalid session", http.StatusUnauthorized)
 		return
@@ -294,15 +274,7 @@ func (S *Server) CreatePostHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cookie, err := r.Cookie("session_token")
-	if err != nil {
-		http.Error(w, "Unauthorized - No session", http.StatusUnauthorized)
-		return
-	}
-
-	sessionID := cookie.Value
-	var nickname string
-	err = S.db.QueryRow("SELECT nickname FROM sessions WHERE session_id = ? AND expires_at > datetime('now')", sessionID).Scan(&nickname)
+	nickname, _, err := S.CheckSession(r)
 	if err != nil {
 		http.Error(w, "Unauthorized - Invalid session", http.StatusUnauthorized)
 		return
@@ -387,23 +359,23 @@ func (S *Server) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/404", http.StatusSeeOther)
 		return
 	}
-	cookie, err := r.Cookie("session_token")
+	username, sessionID, err := S.CheckSession(r)
 	if err != nil {
 		http.Error(w, "No session", http.StatusBadRequest)
 		return
 	}
-
-	var username string
-	S.db.QueryRow("SELECT nickname FROM sessions WHERE session_id = ?", cookie.Value).Scan(&username)
-
-	_, err = S.db.Exec("DELETE FROM sessions WHERE session_id = ?", cookie.Value)
+	if S.sessions == nil {
+		http.Error(w, "Session repository is not initialized", http.StatusInternalServerError)
+		return
+	}
+	err = S.sessions.Delete(sessionID)
 	if err != nil {
 		http.Error(w, "Error deleting session", http.StatusInternalServerError)
 		return
 	}
 
 	for _, session := range S.hub.ClientsForUser(username) {
-		if session.SessionID == cookie.Value {
+		if session.SessionID == sessionID {
 			session.Enqueue(map[string]string{
 				"event":   "logout",
 				"message": "Session terminated",
@@ -453,14 +425,7 @@ func (S *Server) CreateCommentHandler(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/404", http.StatusSeeOther)
 		return
 	}
-	cookie, err := r.Cookie("session_token")
-	if err != nil {
-		http.Error(w, "Unauthorized - No session", http.StatusUnauthorized)
-		return
-	}
-	sessionID := cookie.Value
-	var nickname string
-	err = S.db.QueryRow("SELECT nickname FROM sessions WHERE session_id = ? AND expires_at > datetime('now')", sessionID).Scan(&nickname)
+	nickname, _, err := S.CheckSession(r)
 	if err != nil {
 		http.Error(w, "Unauthorized - Invalid session", http.StatusUnauthorized)
 		return
