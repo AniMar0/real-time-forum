@@ -164,35 +164,39 @@ func (S *Server) AddUser(user User) string {
 
 func (S *Server) SessionMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		username, sessionID, err := S.CheckSession(r)
+		identity, err := S.CheckSessionIdentity(r)
 		if err != nil {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 
-		ctx := account.WithIdentity(r.Context(), account.Identity{
-			Nickname:  username,
-			SessionID: sessionID,
-		})
+		ctx := account.WithIdentity(r.Context(), identity)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
 func (S *Server) CheckSession(r *http.Request) (string, string, error) {
+	identity, err := S.CheckSessionIdentity(r)
+	if err != nil {
+		return "", "", err
+	}
+	return identity.Nickname, identity.SessionID, nil
+}
+
+func (S *Server) CheckSessionIdentity(r *http.Request) (account.Identity, error) {
 	cookie, err := r.Cookie("session_token")
 	if err != nil {
-		return "", "", fmt.Errorf("no session cookie")
+		return account.Identity{}, fmt.Errorf("no session cookie")
 	}
 	sessionID := cookie.Value
 	if S.sessions == nil {
-		return "", "", fmt.Errorf("session repository is not initialized")
+		return account.Identity{}, fmt.Errorf("session repository is not initialized")
 	}
 	identity, err := S.sessions.FindValid(sessionID)
 	if err != nil {
-		return "", "", fmt.Errorf("invalid or expired session")
+		return account.Identity{}, fmt.Errorf("invalid or expired session")
 	}
-
-	return identity.Nickname, identity.SessionID, nil
+	return identity, nil
 }
 
 func (S *Server) MakeToken(Writer http.ResponseWriter, username string) {

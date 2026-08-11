@@ -6,7 +6,7 @@ import (
 )
 
 func TestIdentityContextRoundTrip(t *testing.T) {
-	expected := Identity{Nickname: "alice", SessionID: "session-1"}
+	expected := Identity{UserID: 42, Nickname: "alice", SessionID: "session-1"}
 	ctx := WithIdentity(context.Background(), expected)
 
 	got, ok := IdentityFromContext(ctx)

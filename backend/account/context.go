@@ -5,6 +5,7 @@ import "context"
 // Identity is the authenticated request identity established by session
 // middleware. Feature handlers must use it instead of client-provided fields.
 type Identity struct {
+	UserID    int64
 	Nickname  string
 	SessionID string
 }
