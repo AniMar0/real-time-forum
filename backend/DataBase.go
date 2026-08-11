@@ -30,9 +30,8 @@ func MakeDataBaseAt(databasePath string) {
 		log.Fatalf("Failed to enable foreign keys: %v", err)
 	}
 
-	table, err := createTables(db)
-	if err != nil {
-		log.Fatalf("Failed to create tables in %d: %v ", table, err)
+	if err := runMigrations(db); err != nil {
+		log.Fatalf("Failed to run database migrations: %v", err)
 	}
 
 	fmt.Println("Database and tables created successfully!")
