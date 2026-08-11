@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"real-time-forum/backend/forum"
 )
 
 func (S *Server) SendMessageHandler(w http.ResponseWriter, r *http.Request) {
@@ -309,9 +311,15 @@ func (S *Server) CreatePostHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = S.db.Exec(
-		"INSERT INTO posts (user_id, title, content, category) VALUES ((SELECT id FROM users WHERE nickname = ?), ?, ?, ?)",
-		html.EscapeString(nickname), html.EscapeString(post.Title), html.EscapeString(post.Content), html.EscapeString(post.Category),
+	if S.forum == nil {
+		http.Error(w, "Forum repository is not initialized", http.StatusInternalServerError)
+		return
+	}
+	err = S.forum.CreatePost(
+		html.EscapeString(nickname),
+		html.EscapeString(post.Title),
+		html.EscapeString(post.Content),
+		html.EscapeString(post.Category),
 	)
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -327,27 +335,14 @@ func (S *Server) GetPostsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rows, err := S.db.Query(`
-        SELECT posts.id, posts.title, posts.content, posts.category, posts.created_at, users.nickname
-        FROM posts
-        JOIN users ON posts.user_id = users.id
-        ORDER BY posts.created_at DESC
-    `)
+	if S.forum == nil {
+		http.Error(w, "Forum repository is not initialized", http.StatusInternalServerError)
+		return
+	}
+	posts, err := S.forum.ListPosts()
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
-	}
-	defer rows.Close()
-
-	var posts []Post
-	for rows.Next() {
-		var p Post
-		err := rows.Scan(&p.ID, &p.Title, &p.Content, &p.Category, &p.CreatedAt, &p.Author)
-		if err != nil {
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
-		}
-		posts = append(posts, p)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -448,11 +443,16 @@ func (S *Server) CreateCommentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = S.db.Exec(
-		"INSERT INTO comments (post_id, user_id, content) VALUES (?, (SELECT id FROM users WHERE nickname = ?), ?)",
-		(comment.PostID), html.EscapeString(nickname), html.EscapeString(comment.Content),
-	)
+	if S.forum == nil {
+		http.Error(w, "Forum repository is not initialized", http.StatusInternalServerError)
+		return
+	}
+	err = S.forum.CreateComment(comment.PostID, html.EscapeString(nickname), html.EscapeString(comment.Content))
 	if err != nil {
+		if err == forum.ErrPostNotFound {
+			http.Error(w, "Post not found", http.StatusBadRequest)
+			return
+		}
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -469,28 +469,14 @@ func (S *Server) GetCommentsHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Missing post_id parameter", http.StatusBadRequest)
 		return
 	}
-	rows, err := S.db.Query(`
-        SELECT comments.id, comments.content, comments.created_at, users.nickname
-        FROM comments
-        JOIN users ON comments.user_id = users.id
-        WHERE comments.post_id = ?
-        ORDER BY comments.created_at ASC
-    `, postID)
+	if S.forum == nil {
+		http.Error(w, "Forum repository is not initialized", http.StatusInternalServerError)
+		return
+	}
+	comments, err := S.forum.ListComments(postID)
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
-	}
-	defer rows.Close()
-
-	var comments []Comment
-	for rows.Next() {
-		var c Comment
-		err := rows.Scan(&c.ID, &c.Content, &c.CreatedAt, &c.Author)
-		if err != nil {
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
-		}
-		comments = append(comments, c)
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(comments)
