@@ -25,8 +25,7 @@ func MakeDataBaseAt(databasePath string) {
 	}
 	defer db.Close()
 
-	_, err = db.Exec("PRAGMA foreign_keys = ON;")
-	if err != nil {
+	if _, err := db.Exec("PRAGMA foreign_keys = ON;"); err != nil {
 		log.Fatalf("Failed to enable foreign keys: %v", err)
 	}
 
@@ -34,71 +33,5 @@ func MakeDataBaseAt(databasePath string) {
 		log.Fatalf("Failed to run database migrations: %v", err)
 	}
 
-	fmt.Println("Database and tables created successfully!")
-}
-
-func createTables(db *sql.DB) (int, error) {
-	tables := []string{
-		`CREATE TABLE IF NOT EXISTS users (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		nickname TEXT UNIQUE,
-		first_name TEXT,
-		last_name TEXT,
-		email TEXT UNIQUE,
-		password TEXT,
-		age INTEGER,
-		gender TEXT
-	)`,
-		`CREATE TABLE IF NOT EXISTS posts (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		user_id INTEGER,
-		title TEXT,
-		content TEXT,
-		category TEXT,
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-		FOREIGN KEY(user_id) REFERENCES users(id)
-	)`,
-
-		`CREATE TABLE IF NOT EXISTS comments (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		post_id INTEGER,
-		user_id INTEGER,
-		content TEXT,
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-		FOREIGN KEY(post_id) REFERENCES posts(id),
-		FOREIGN KEY(user_id) REFERENCES users(id)
-	)`,
-
-		`CREATE TABLE IF NOT EXISTS messages (
-	id INTEGER PRIMARY KEY AUTOINCREMENT,
-	sender TEXT,
-	receiver TEXT,
-	content TEXT,
-	timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-	FOREIGN KEY(sender) REFERENCES users(nickname),
-	FOREIGN KEY(receiver) REFERENCES users(nickname),
-	CHECK (sender != receiver)
-	)`,
-		`CREATE TABLE IF NOT EXISTS sessions (
-    session_id TEXT PRIMARY KEY,
-    nickname TEXT,
-    expires_at DATETIME,
-    FOREIGN KEY(nickname) REFERENCES users(nickname)
-	)`,
-		`CREATE TABLE IF NOT EXISTS notifications (
-	id INTEGER PRIMARY KEY AUTOINCREMENT,
-	receiver_nickname TEXT,
-	sender_nickname TEXT,
-	unread_messages INTEGER DEFAULT 0,
-	FOREIGN KEY(receiver_nickname) REFERENCES users(nickname),
-	FOREIGN KEY(sender_nickname) REFERENCES users(nickname)
-	)`}
-
-	for i := 0; i < len(tables); i++ {
-		_, err := db.Exec(tables[i])
-		if err != nil {
-			return i + 1, err
-		}
-	}
-	return 0, nil
+	fmt.Println("Database and migrations applied successfully!")
 }
