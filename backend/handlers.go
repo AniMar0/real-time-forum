@@ -375,20 +375,16 @@ func (S *Server) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	S.RLock()
-	if sessions, exists := S.clients[username]; exists {
-		for _, session := range sessions {
-			if session.SessionID == cookie.Value {
-				session.Send <- map[string]string{
-					"event":   "logout",
-					"message": "Session terminated",
-				}
-				S.removeClient(session)
-				break
-			}
+	for _, session := range S.hub.ClientsForUser(username) {
+		if session.SessionID == cookie.Value {
+			session.Enqueue(map[string]string{
+				"event":   "logout",
+				"message": "Session terminated",
+			})
+			S.hub.Unregister(session)
+			break
 		}
 	}
-	S.RUnlock()
 
 	http.SetCookie(w, &http.Cookie{
 		Name:     "session_token",

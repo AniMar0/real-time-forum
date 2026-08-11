@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -20,9 +19,8 @@ import (
 type Server struct {
 	db       *sql.DB
 	Mux      *http.ServeMux
-	clients  map[string][]*Client // Changed: map username to slice of clients
+	hub      *Hub
 	upgrader websocket.Upgrader
-	sync.RWMutex
 }
 
 func (S *Server) initUpgrader() {
@@ -63,7 +61,7 @@ func (S *Server) Run(port string) {
 
 	S.initRoutes()
 
-	S.clients = make(map[string][]*Client) // Updated initialization
+	S.hub = NewHub()
 
 	fmt.Println("Server running on http://localhost:" + port)
 	err = http.ListenAndServe(":"+port, S.Mux)
@@ -215,12 +213,7 @@ func (S *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 		Send:      make(chan interface{}, 10),
 	}
 
-	S.Lock()
-	if S.clients[username] == nil {
-		S.clients[username] = []*Client{}
-	}
-	S.clients[username] = append(S.clients[username], client)
-	S.Unlock()
+	S.hub.Register(client)
 
 	fmt.Println(username, "connected to WebSocket")
 
@@ -262,39 +255,20 @@ func (s *Server) receiveMessages(client *Client) {
 }
 
 func (s *Server) sendMessageToRecipient(msg Message, clientID string) {
-	s.RLock()
-	// Send to all sessions of the recipient
-	if recipientSessions, ok := s.clients[msg.To]; ok {
-		for _, recipient := range recipientSessions {
-			s.broadcastUserStatusChange()
-			recipient.Send <- (msg)
-
+	for _, recipient := range s.hub.ClientsForUser(msg.To) {
+		recipient.Enqueue(msg)
+	}
+	for _, senderClient := range s.hub.ClientsForUser(msg.From) {
+		if senderClient.ID != clientID {
+			senderClient.Enqueue(msg)
 		}
 	}
-	s.RUnlock()
-
-	s.RLock()
-	// Send to all other sessions of the sender (excluding current session)
-	if senderSessions, ok := s.clients[msg.From]; ok {
-		for _, senderClient := range senderSessions {
-			s.broadcastUserStatusChange()
-			if senderClient.ID != clientID { // Don't send back to the same session
-				senderClient.Send <- (msg)
-			}
-		}
-	}
-	s.RUnlock()
 }
 
 func (s *Server) sendTypingIndicator(msg Message) {
-	s.RLock()
-	// Send to all sessions of the recipient
-	if recipientSessions, ok := s.clients[msg.To]; ok {
-		for _, recipient := range recipientSessions {
-			recipient.Send <- (msg)
-		}
+	for _, recipient := range s.hub.ClientsForUser(msg.To) {
+		recipient.Enqueue(msg)
 	}
-	s.RUnlock()
 }
 
 // Modified broadcastUserList function
@@ -363,48 +337,24 @@ func (S *Server) broadcastUserList(currentUser string) {
 	}
 	var Users []UsersListe
 	for _, user := range usernames {
-		S.RLock()
-		if S.clients[user] != nil {
+		if S.hub.IsOnline(user) {
 			Users = append(Users, UsersListe{Nickname: user, Status: "online"})
 		} else {
 			Users = append(Users, UsersListe{Nickname: user, Status: "offline"})
 		}
-		S.RUnlock()
 	}
 
 	// Send to all client sessions
-	S.RLock()
-	for _, client := range S.clients[currentUser] {
-		client.Send <- (map[string]interface{}{
+	for _, client := range S.hub.ClientsForUser(currentUser) {
+		client.Enqueue(map[string]interface{}{
 			"type":  "user_list",
 			"users": Users,
 		})
 	}
-	S.RUnlock()
 }
 
 func (s *Server) removeClient(client *Client) {
-	s.Lock()
-	defer s.Unlock()
-
-	clients, ok := s.clients[client.Username]
-	if !ok {
-		return
-	}
-
-	for i, c := range clients {
-		if c.ID == client.ID {
-			s.clients[client.Username] = append(clients[:i], clients[i+1:]...)
-			// Issue #2: Close channel and connection to prevent goroutine leak
-			close(c.Send)
-			c.Conn.Close()
-			break
-		}
-	}
-
-	if len(s.clients[client.Username]) == 0 {
-		delete(s.clients, client.Username)
-	}
+	s.hub.Unregister(client)
 
 	fmt.Println(client.Username, "disconnected")
 
@@ -415,10 +365,7 @@ func (s *Server) removeClient(client *Client) {
 }
 
 func (S *Server) broadcastUserStatusChange() {
-	S.RLock()
-	defer S.RUnlock()
-
-	for username := range S.clients {
+	for _, username := range S.hub.Usernames() {
 		S.broadcastUserList(username)
 	}
 }

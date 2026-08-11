@@ -1,6 +1,10 @@
 package backend
 
-import "github.com/gorilla/websocket"
+import (
+	"sync"
+
+	"github.com/gorilla/websocket"
+)
 
 type Post struct {
 	ID        int    `json:"id"`
@@ -40,6 +44,8 @@ type Client struct {
 	Send      chan interface{} `json:"-"`
 	Username  string           `json:"username"`
 	SessionID string           `json:"session_id"`
+	sendMu    sync.RWMutex
+	closeOnce sync.Once
 }
 
 type User struct {
