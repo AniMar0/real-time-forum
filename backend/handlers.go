@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"html"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -17,7 +18,7 @@ func (S *Server) SendMessageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, _, err := S.CheckSession(r)
+	username, _, err := S.CheckSession(r)
 	if err != nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
@@ -27,6 +28,14 @@ func (S *Server) SendMessageHandler(w http.ResponseWriter, r *http.Request) {
 	err = json.NewDecoder(r.Body).Decode(&message)
 	if err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+
+	// The authenticated session is the source of truth for the sender.
+	// Never trust a client-provided From value.
+	message.From = username
+	if message.To == "" || message.To == username {
+		http.Error(w, "Invalid message recipient", http.StatusBadRequest)
 		return
 	}
 
@@ -382,10 +391,13 @@ func (S *Server) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 	S.RUnlock()
 
 	http.SetCookie(w, &http.Cookie{
-		Name:    "session_token",
-		Value:   "",
-		Expires: time.Unix(0, 0),
-		Path:    "/",
+		Name:     "session_token",
+		Value:    "",
+		Expires:  time.Unix(0, 0),
+		Path:     "/",
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+		Secure:   os.Getenv("FORUM_ENV") == "production",
 	})
 
 	// Broadcast user status change to remaining connected clients

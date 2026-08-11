@@ -7,6 +7,7 @@ import (
 	"html"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -168,7 +169,10 @@ func (S *Server) MakeToken(Writer http.ResponseWriter, username string) {
 		Name:     "session_token",
 		Value:    sessionID,
 		Expires:  expirationTime,
+		Path:     "/",
 		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+		Secure:   os.Getenv("FORUM_ENV") == "production",
 	})
 }
 
