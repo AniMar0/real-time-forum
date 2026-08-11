@@ -1,0 +1,6 @@
+.git
+.github
+.codex
+database/*.db
+*.log
+tmp
