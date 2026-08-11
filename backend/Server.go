@@ -14,6 +14,7 @@ import (
 	"github.com/twinj/uuid"
 	"golang.org/x/crypto/bcrypt"
 	"real-time-forum/backend/account"
+	"real-time-forum/backend/chat"
 	"real-time-forum/backend/forum"
 )
 
@@ -25,6 +26,7 @@ type Server struct {
 	httpServer *http.Server
 	sessions   *account.SessionRepository
 	forum      *forum.Repository
+	chat       *chat.Repository
 	upgrader   websocket.Upgrader
 }
 
@@ -72,6 +74,7 @@ func (S *Server) RunWithConfig(config Config) {
 	defer S.db.Close()
 	S.sessions = account.NewSessionRepository(S.db)
 	S.forum = forum.NewRepository(S.db)
+	S.chat = chat.NewRepository(S.db)
 
 	// Initialize WebSocket upgrader with CORS protection
 	S.initUpgrader()

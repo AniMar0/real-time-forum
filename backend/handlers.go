@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"real-time-forum/backend/chat"
 	"real-time-forum/backend/forum"
 )
 
@@ -61,22 +62,23 @@ func (S *Server) SendMessageHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to start message transaction", http.StatusInternalServerError)
 		return
 	}
-	result, err := tx.Exec(`
-		INSERT INTO messages (sender, receiver, content, timestamp)
-		VALUES (?, ?, ?, ?)`,
-		message.From, message.To, html.EscapeString(message.Content), message.Timestamp)
+	if S.chat == nil {
+		_ = tx.Rollback()
+		http.Error(w, "Chat repository is not initialized", http.StatusInternalServerError)
+		return
+	}
+	storedMessage, err := S.chat.InsertMessage(tx, chat.Message{
+		From:      message.From,
+		To:        message.To,
+		Content:   html.EscapeString(message.Content),
+		Timestamp: message.Timestamp,
+	})
 	if err != nil {
 		_ = tx.Rollback()
 		http.Error(w, "Failed to insert message", http.StatusInternalServerError)
 		return
 	}
-	messageID, err := result.LastInsertId()
-	if err != nil {
-		_ = tx.Rollback()
-		http.Error(w, "Failed to identify inserted message", http.StatusInternalServerError)
-		return
-	}
-	message.ID = int(messageID)
+	message.ID = storedMessage.ID
 	if err := addNewNotificationTx(tx, message.To, message.From); err != nil {
 		_ = tx.Rollback()
 		http.Error(w, "Failed to update notifications", http.StatusInternalServerError)
@@ -515,25 +517,11 @@ func (s *Server) GetMessagesHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	var rows *sql.Rows
-	if beforeID > 0 {
-		rows, err = s.db.Query(`
-			SELECT id, sender, receiver, content, timestamp
-			FROM messages
-			WHERE ((sender = ? AND receiver = ?) OR (sender = ? AND receiver = ?))
-			  AND id < ?
-			ORDER BY id DESC
-			LIMIT 10
-		`, from, to, to, from, beforeID)
-	} else {
-		rows, err = s.db.Query(`
-			SELECT id, sender, receiver, content, timestamp
-			FROM messages
-			WHERE (sender = ? AND receiver = ?) OR (sender = ? AND receiver = ?)
-			ORDER BY id DESC
-			LIMIT 10 OFFSET ?
-		`, from, to, to, from, offset)
+	if s.chat == nil {
+		http.Error(w, "Chat repository is not initialized", http.StatusInternalServerError)
+		return
 	}
+	messagesFromRepository, err := s.chat.ListHistory(from, to, beforeID, offset)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			http.Error(w, "No messages found", http.StatusNotFound)
@@ -542,22 +530,15 @@ func (s *Server) GetMessagesHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "DB error", http.StatusInternalServerError)
 		return
 	}
-	defer rows.Close()
-
 	var messages []Message
-	for rows.Next() {
-		var msg Message
-		err := rows.Scan(&msg.ID, &msg.From, &msg.To, &msg.Content, &msg.Timestamp)
-		if err != nil {
-			if err == sql.ErrNoRows {
-				http.Error(w, "No messages found", http.StatusNotFound)
-				return
-			}
-			http.Error(w, "Scan error", http.StatusInternalServerError)
-			return
-		}
-		msg.Content = html.UnescapeString(msg.Content)
-		messages = append([]Message{msg}, messages...)
+	for _, storedMessage := range messagesFromRepository {
+		messages = append([]Message{{
+			ID:        storedMessage.ID,
+			From:      storedMessage.From,
+			To:        storedMessage.To,
+			Content:   html.UnescapeString(storedMessage.Content),
+			Timestamp: storedMessage.Timestamp,
+		}}, messages...)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
