@@ -18,15 +18,9 @@ export function renderLoginPage() {
     section.className = "auth-page";
 
     section.innerHTML = `
-        <div class="auth-intro">
-          <span class="eyebrow">MY FORUM</span>
-          <h1>Ideas move faster when people talk.</h1>
-          <p>Join focused conversations, share what you know, and keep the signal high.</p>
-          <div class="intro-note"><span class="intro-dot"></span> A calmer space for useful discussions</div>
-        </div>
-        <div class="auth-card">
+        <div class="auth-card auth-card-centered">
+          <div class="auth-brand"><span class="brand-mark">F</span><h1>Forum</h1></div>
           <div class="auth-heading">
-            <span class="brand-mark">F</span>
             <div><h2>Welcome back</h2><p>Sign in to continue the conversation.</p></div>
           </div>
           <form id="loginForm">
@@ -56,15 +50,9 @@ export function renderRegisterPage() {
     section.className = "auth-page";
 
     section.innerHTML = `
-        <div class="auth-intro">
-          <span class="eyebrow">MY FORUM</span>
-          <h1>Bring your perspective to the room.</h1>
-          <p>Create an account and find conversations worth returning to.</p>
-          <div class="intro-note"><span class="intro-dot"></span> Your next good idea starts here</div>
-        </div>
-        <div class="auth-card auth-card-wide">
+        <div class="auth-card auth-card-centered auth-card-wide">
+          <div class="auth-brand"><span class="brand-mark">F</span><h1>Forum</h1></div>
           <div class="auth-heading">
-            <span class="brand-mark">F</span>
             <div><h2>Create your account</h2><p>A few details and you are ready to join.</p></div>
           </div>
           <form id="registerForm" class="register-grid">

@@ -1251,3 +1251,50 @@ button[type="submit"]:hover { background: var(--primary-dark); }
   #createPostForm select, #createPostForm button { max-width: none; width: 100%; }
   #createPostForm button { align-self: stretch; }
 }
+
+/* Auth wireframe: one focused card, using the existing fields only. */
+.auth-page {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 0;
+  max-width: none;
+  margin: clamp(36px, 9vh, 88px) auto;
+  padding: 16px;
+}
+
+.auth-card-centered {
+  width: min(100%, 430px);
+  padding: 34px 32px 28px;
+}
+
+.auth-card-wide.auth-card-centered { width: min(100%, 620px); }
+
+.auth-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 28px;
+}
+
+.auth-brand h1 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 1.55rem;
+  letter-spacing: -.04em;
+}
+
+.auth-heading {
+  justify-content: center;
+  text-align: center;
+  margin-bottom: 22px;
+}
+
+.auth-heading h2 { font-size: 1.25rem; }
+.auth-card-centered .auth-switch { border-top: 1px solid var(--border); padding-top: 20px; }
+
+@media (max-width: 560px) {
+  .auth-page { margin: 20px auto; padding: 10px; }
+  .auth-card-centered { padding: 26px 20px 22px; }
+}
