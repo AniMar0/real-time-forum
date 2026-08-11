@@ -1357,22 +1357,26 @@ button[type="submit"]:hover { background: var(--primary-dark); }
 .chat-close {
   display: inline-grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
   padding: 0;
   color: #fff;
-  background: rgba(255, 255, 255, .14);
-  border: 1px solid rgba(255, 255, 255, .22);
-  border-radius: 9px;
-  font-size: 1.35rem;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, .55);
+  border-radius: 50%;
+  font-size: 1.2rem;
+  font-weight: 400;
   line-height: 1;
+  box-shadow: none;
 }
 
 .chat-close:hover,
 .chat-close:focus-visible {
-  background: rgba(255, 255, 255, .26);
-  outline: 2px solid rgba(255, 255, 255, .75);
-  outline-offset: 2px;
+  background: rgba(255, 255, 255, .16);
+  border-color: #fff;
+  outline: none;
+  transform: none;
 }
 
 .chat-composer {
