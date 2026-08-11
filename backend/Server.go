@@ -22,6 +22,7 @@ type Server struct {
 	hub        *Hub
 	config     Config
 	httpServer *http.Server
+	sessions   *account.SessionRepository
 	upgrader   websocket.Upgrader
 }
 
@@ -67,6 +68,7 @@ func (S *Server) RunWithConfig(config Config) {
 		log.Fatal(err)
 	}
 	defer S.db.Close()
+	S.sessions = account.NewSessionRepository(S.db)
 
 	// Initialize WebSocket upgrader with CORS protection
 	S.initUpgrader()
@@ -171,24 +173,26 @@ func (S *Server) CheckSession(r *http.Request) (string, string, error) {
 		return "", "", fmt.Errorf("no session cookie")
 	}
 	sessionID := cookie.Value
-	var username string
-	err = S.db.QueryRow(`
-        SELECT nickname FROM sessions 
-        WHERE session_id = ? AND expires_at > CURRENT_TIMESTAMP
-    `, sessionID).Scan(&username)
+	if S.sessions == nil {
+		return "", "", fmt.Errorf("session repository is not initialized")
+	}
+	identity, err := S.sessions.FindValid(sessionID)
 	if err != nil {
 		return "", "", fmt.Errorf("invalid or expired session")
 	}
 
-	return username, sessionID, nil
+	return identity.Nickname, identity.SessionID, nil
 }
 
 func (S *Server) MakeToken(Writer http.ResponseWriter, username string) {
 	sessionID := uuid.NewV4().String()
 	expirationTime := time.Now().Add(24 * time.Hour)
 
-	_, err := S.db.Exec("INSERT INTO sessions (session_id, nickname, expires_at) VALUES (?, ?, ?)",
-		sessionID, username, expirationTime)
+	if S.sessions == nil {
+		http.Error(Writer, "Session repository is not initialized", http.StatusInternalServerError)
+		return
+	}
+	err := S.sessions.Create(sessionID, username, expirationTime)
 	if err != nil {
 		http.Error(Writer, "Error creating session", http.StatusInternalServerError)
 		return
