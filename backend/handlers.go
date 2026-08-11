@@ -79,7 +79,12 @@ func (S *Server) SendMessageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	message.ID = storedMessage.ID
-	if err := addNewNotificationTx(tx, message.To, message.From); err != nil {
+	if S.notifications == nil {
+		_ = tx.Rollback()
+		http.Error(w, "Notification repository is not initialized", http.StatusInternalServerError)
+		return
+	}
+	if err := S.notifications.IncrementUnread(tx, message.To, message.From); err != nil {
 		_ = tx.Rollback()
 		http.Error(w, "Failed to update notifications", http.StatusInternalServerError)
 		return

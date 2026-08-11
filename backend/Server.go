@@ -16,18 +16,20 @@ import (
 	"real-time-forum/backend/account"
 	"real-time-forum/backend/chat"
 	"real-time-forum/backend/forum"
+	"real-time-forum/backend/notification"
 )
 
 type Server struct {
-	db         *sql.DB
-	Mux        *http.ServeMux
-	hub        *Hub
-	config     Config
-	httpServer *http.Server
-	sessions   *account.SessionRepository
-	forum      *forum.Repository
-	chat       *chat.Repository
-	upgrader   websocket.Upgrader
+	db            *sql.DB
+	Mux           *http.ServeMux
+	hub           *Hub
+	config        Config
+	httpServer    *http.Server
+	sessions      *account.SessionRepository
+	forum         *forum.Repository
+	chat          *chat.Repository
+	notifications *notification.Repository
+	upgrader      websocket.Upgrader
 }
 
 const (
@@ -75,6 +77,7 @@ func (S *Server) RunWithConfig(config Config) {
 	S.sessions = account.NewSessionRepository(S.db)
 	S.forum = forum.NewRepository(S.db)
 	S.chat = chat.NewRepository(S.db)
+	S.notifications = notification.NewRepository(S.db)
 
 	// Initialize WebSocket upgrader with CORS protection
 	S.initUpgrader()
