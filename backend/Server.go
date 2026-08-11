@@ -16,11 +16,12 @@ import (
 )
 
 type Server struct {
-	db       *sql.DB
-	Mux      *http.ServeMux
-	hub      *Hub
-	config   Config
-	upgrader websocket.Upgrader
+	db         *sql.DB
+	Mux        *http.ServeMux
+	hub        *Hub
+	config     Config
+	httpServer *http.Server
+	upgrader   websocket.Upgrader
 }
 
 func (S *Server) initUpgrader() {
@@ -66,12 +67,28 @@ func (S *Server) RunWithConfig(config Config) {
 
 	S.hub = NewHub()
 
+	S.httpServer = &http.Server{
+		Addr:              config.HTTPAddress,
+		Handler:           S.Mux,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       15 * time.Second,
+		WriteTimeout:      15 * time.Second,
+		IdleTimeout:       60 * time.Second,
+	}
+
 	fmt.Println("Server running on " + config.HTTPAddress)
-	err = http.ListenAndServe(config.HTTPAddress, S.Mux)
-	if err != nil {
+	err = S.httpServer.ListenAndServe()
+	if err != nil && err != http.ErrServerClosed {
 		log.Println("Server error:", err)
 		return
 	}
+}
+
+func (S *Server) Shutdown(ctx context.Context) error {
+	if S.httpServer == nil {
+		return nil
+	}
+	return S.httpServer.Shutdown(ctx)
 }
 
 func (S *Server) initRoutes() {
