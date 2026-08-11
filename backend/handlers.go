@@ -1,7 +1,6 @@
 package backend
 
 import (
-	"database/sql"
 	"encoding/json"
 	"html"
 	"net/http"
@@ -35,64 +34,22 @@ func (S *Server) SendMessageHandler(w http.ResponseWriter, r *http.Request) {
 	// The authenticated session is the source of truth for the sender.
 	// Never trust a client-provided From value.
 	message.From = username
-	if message.To == "" || message.To == username {
-		http.Error(w, "Invalid message recipient", http.StatusBadRequest)
+	if S.chatService == nil {
+		http.Error(w, "Chat service is not initialized", http.StatusInternalServerError)
 		return
 	}
-	var recipientExists int
-	if err := S.db.QueryRow("SELECT COUNT(*) FROM users WHERE nickname = ?", message.To).Scan(&recipientExists); err != nil {
-		http.Error(w, "Failed to validate message recipient", http.StatusInternalServerError)
-		return
-	}
-	if recipientExists == 0 {
-		http.Error(w, "Invalid message recipient", http.StatusBadRequest)
-		return
-	}
-
-	// Validate message content
-	if !isValidTextLength(message.Content, 1, 5000) {
-		http.Error(w, "Message must be 1-5000 characters", http.StatusBadRequest)
-		return
-	}
-
-	message.Timestamp = time.Now().Format(time.RFC3339)
-
-	tx, err := S.db.Begin()
+	storedMessage, err := S.chatService.SendMessage(message.From, message.To, message.Content)
 	if err != nil {
-		http.Error(w, "Failed to start message transaction", http.StatusInternalServerError)
-		return
-	}
-	if S.chat == nil {
-		_ = tx.Rollback()
-		http.Error(w, "Chat repository is not initialized", http.StatusInternalServerError)
-		return
-	}
-	storedMessage, err := S.chat.InsertMessage(tx, chat.Message{
-		From:      message.From,
-		To:        message.To,
-		Content:   html.EscapeString(message.Content),
-		Timestamp: message.Timestamp,
-	})
-	if err != nil {
-		_ = tx.Rollback()
-		http.Error(w, "Failed to insert message", http.StatusInternalServerError)
+		if err == chat.ErrInvalidRecipient || err == chat.ErrInvalidContent {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		http.Error(w, "Failed to persist message", http.StatusInternalServerError)
 		return
 	}
 	message.ID = storedMessage.ID
-	if S.notifications == nil {
-		_ = tx.Rollback()
-		http.Error(w, "Notification repository is not initialized", http.StatusInternalServerError)
-		return
-	}
-	if err := S.notifications.IncrementUnread(tx, message.To, message.From); err != nil {
-		_ = tx.Rollback()
-		http.Error(w, "Failed to update notifications", http.StatusInternalServerError)
-		return
-	}
-	if err := tx.Commit(); err != nil {
-		http.Error(w, "Failed to commit message", http.StatusInternalServerError)
-		return
-	}
+	message.Timestamp = storedMessage.Timestamp
+	message.Content = storedMessage.Content
 
 	S.broadcastUserStatusChange()
 
@@ -528,10 +485,6 @@ func (s *Server) GetMessagesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	messagesFromRepository, err := s.chat.ListHistory(from, to, beforeID, offset)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			http.Error(w, "No messages found", http.StatusNotFound)
-			return
-		}
 		http.Error(w, "DB error", http.StatusInternalServerError)
 		return
 	}

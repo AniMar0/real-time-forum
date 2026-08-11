@@ -10,6 +10,12 @@ func NewRepository(db *sql.DB) *Repository {
 	return &Repository{db: db}
 }
 
+func (r *Repository) UserExists(nickname string) (bool, error) {
+	var count int
+	err := r.db.QueryRow("SELECT COUNT(*) FROM users WHERE nickname = ?", nickname).Scan(&count)
+	return count > 0, err
+}
+
 func (r *Repository) InsertMessage(tx *sql.Tx, message Message) (Message, error) {
 	result, err := tx.Exec(`
 		INSERT INTO messages (sender, receiver, content, timestamp)

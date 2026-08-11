@@ -28,6 +28,7 @@ type Server struct {
 	sessions      *account.SessionRepository
 	forum         *forum.Repository
 	chat          *chat.Repository
+	chatService   *chat.Service
 	notifications *notification.Repository
 	upgrader      websocket.Upgrader
 }
@@ -78,6 +79,7 @@ func (S *Server) RunWithConfig(config Config) {
 	S.forum = forum.NewRepository(S.db)
 	S.chat = chat.NewRepository(S.db)
 	S.notifications = notification.NewRepository(S.db)
+	S.chatService = chat.NewService(S.db, S.chat, S.notifications)
 
 	// Initialize WebSocket upgrader with CORS protection
 	S.initUpgrader()
@@ -296,22 +298,34 @@ func (s *Server) receiveMessages(client *Client) {
 			}
 
 			msg.From = client.Username
-			msg.Timestamp = time.Now().Format(time.RFC3339)
-
-			s.sendMessageToRecipient(msg, client.ID)
+			if s.chatService == nil {
+				continue
+			}
+			storedMessage, err := s.chatService.SendMessage(msg.From, msg.To, msg.Content)
+			if err != nil {
+				fmt.Println("Failed to persist WebSocket message:", err)
+				continue
+			}
+			s.broadcastUserStatusChange()
+			s.sendMessageToRecipient(Message{
+				ID:        storedMessage.ID,
+				From:      storedMessage.From,
+				To:        storedMessage.To,
+				Content:   storedMessage.Content,
+				Timestamp: storedMessage.Timestamp,
+				Type:      "chat_message",
+			})
 		}
 
 	}
 }
 
-func (s *Server) sendMessageToRecipient(msg Message, clientID string) {
+func (s *Server) sendMessageToRecipient(msg Message) {
 	for _, recipient := range s.hub.ClientsForUser(msg.To) {
 		recipient.Enqueue(msg)
 	}
 	for _, senderClient := range s.hub.ClientsForUser(msg.From) {
-		if senderClient.ID != clientID {
-			senderClient.Enqueue(msg)
-		}
+		senderClient.Enqueue(msg)
 	}
 }
 

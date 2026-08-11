@@ -264,26 +264,12 @@ export async function startChatFeature(currentUsername) {
         type: "chat_message"
       }
 
-      const messageId = getMessageId(message)
-      if (renderedMessageIds.has(messageId)) return // Prevent duplicate sends
-
-
-      fetch("/sendMessage", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(message),
-      }).then((res) => {
-        if (!res.ok) throw new Error("Failed to send message")
-        return res.json()
-      }).then((message) => {
-        socket.send(JSON.stringify(message))
-        renderMessage(message)
-        displayedMessagesCount++
-      }).catch((err) => {
+      if (!socket || socket.readyState !== WebSocket.OPEN) {
         errorToast("Failed to send message. Please try again.");
-      })
+        return
+      }
+
+      socket.send(JSON.stringify(message))
       input.value = ""
     }
     sendBtn.addEventListener("click", sendMessage)
