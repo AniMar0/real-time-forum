@@ -29,13 +29,21 @@ function displayComments(postId, comments) {
   comments.forEach((comment) => {
     const commentElement = document.createElement("div")
     commentElement.classList.add("comment")
-    commentElement.innerHTML = `
-        <div class="comment-header">
-          <span class="comment-author">${comment.author}</span>
-          <span class="comment-date">${new Date(comment.created_at).toLocaleString()}</span>
-        </div>
-        <div class="comment-content">${comment.content}</div>
-      `
+
+    const header = document.createElement('div')
+    header.className = 'comment-header'
+    const author = document.createElement('span')
+    author.className = 'comment-author'
+    author.textContent = comment.author
+    const date = document.createElement('span')
+    date.className = 'comment-date'
+    date.textContent = new Date(comment.created_at).toLocaleString()
+    header.append(author, date)
+
+    const content = document.createElement('div')
+    content.className = 'comment-content'
+    content.textContent = comment.content
+    commentElement.append(header, content)
     commentsContainer.appendChild(commentElement)
   })
 }

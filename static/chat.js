@@ -353,10 +353,16 @@ const renderMessageAtTop = (msg) => {
   const container = document.getElementById("chatMessages")
   const div = document.createElement("div")
   div.setAttribute('data-message-id', messageId) // Add ID to DOM element
-  div.innerHTML = `
-    <p><strong>${msg.from}</strong>: ${msg.content}<br/>
-    <small>${new Date(msg.timestamp).toLocaleTimeString()}</small></p>
-  `
+
+  const paragraph = document.createElement('p')
+  const sender = document.createElement('strong')
+  sender.textContent = msg.from
+  paragraph.append(sender, `: ${msg.content}`, document.createElement('br'))
+
+  const timestamp = document.createElement('small')
+  timestamp.textContent = new Date(msg.timestamp).toLocaleTimeString()
+  paragraph.appendChild(timestamp)
+  div.appendChild(paragraph)
   container.insertBefore(div, container.firstChild)
   renderedMessageIds.add(messageId)
 }

@@ -18,9 +18,9 @@ export async function loadPosts() {
     const div = document.createElement("div")
     div.classList.add("post")
     div.innerHTML = `
-      <h3>${post.title}</h3>
-      <p>${post.content}</p>
-      <small>Category: ${post.category} | By: ${post.author} | At: ${new Date(post.created_at).toLocaleString()}</small>
+      <h3 class="post-title"></h3>
+      <p class="post-content"></p>
+      <small>Category: <span class="post-category"></span> | By: <span class="post-author"></span> | At: <span class="post-date"></span></small>
       
       <div class="post-actions">
         <button class="toggle-comments-btn" data-post-id="${post.id}">
@@ -40,6 +40,11 @@ export async function loadPosts() {
         </form>
       </div>
     `
+    div.querySelector('.post-title').textContent = post.title
+    div.querySelector('.post-content').textContent = post.content
+    div.querySelector('.post-category').textContent = post.category
+    div.querySelector('.post-author').textContent = post.author
+    div.querySelector('.post-date').textContent = new Date(post.created_at).toLocaleString()
     postsList.appendChild(div)
 
     const toggleBtn = div.querySelector(".toggle-comments-btn")
