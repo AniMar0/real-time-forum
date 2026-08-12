@@ -202,7 +202,7 @@ export async function startChatFeature(currentUsername) {
 
   const socketProtocol = window.location.protocol === "https:" ? "wss:" : "ws:"
   socket = new WebSocket(`${socketProtocol}//${window.location.host}/ws`)
-
+  console.log("WebSocket connection established", socketProtocol)
   socket.addEventListener("message", (event) => {
     const data = JSON.parse(event.data)
 
