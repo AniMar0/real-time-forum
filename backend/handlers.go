@@ -273,7 +273,7 @@ func (S *Server) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/404", http.StatusSeeOther)
 		return
 	}
-	username, sessionID, err := S.CheckSession(r)
+	identity, err := S.CheckSessionIdentity(r)
 	if err != nil {
 		http.Error(w, "No session", http.StatusBadRequest)
 		return
@@ -282,14 +282,14 @@ func (S *Server) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Session repository is not initialized", http.StatusInternalServerError)
 		return
 	}
-	err = S.sessions.Delete(sessionID)
+	err = S.sessions.Delete(identity.SessionID)
 	if err != nil {
 		http.Error(w, "Error deleting session", http.StatusInternalServerError)
 		return
 	}
 
-	for _, session := range S.hub.ClientsForUser(username) {
-		if session.SessionID == sessionID {
+	for _, session := range S.hub.ClientsForUser(identity.UserID) {
+		if session.SessionID == identity.SessionID {
 			session.Enqueue(map[string]string{
 				"event":   "logout",
 				"message": "Session terminated",

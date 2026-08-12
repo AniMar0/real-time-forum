@@ -9,3 +9,10 @@ type Message struct {
 	Content    string
 	Timestamp  string
 }
+
+type Conversation struct {
+	UserID          int64
+	Nickname        string
+	LastMessage     string
+	LastInteraction string
+}

@@ -22,6 +22,46 @@ func (r *Repository) UserByID(userID int64) (string, error) {
 	return nickname, err
 }
 
+func (r *Repository) ListConversations(currentUserID int64) ([]Conversation, error) {
+	rows, err := r.db.Query(`
+		WITH latest_interaction AS (
+			SELECT
+				CASE WHEN sender_id = ? THEN receiver_id ELSE sender_id END AS user_id,
+				MAX(timestamp) AS last_interaction,
+				content
+			FROM messages
+			WHERE sender_id = ? OR receiver_id = ?
+			GROUP BY user_id
+		)
+		SELECT users.id, users.nickname,
+		       COALESCE(latest_interaction.content, ''),
+		       COALESCE(latest_interaction.last_interaction, '')
+		FROM users
+		LEFT JOIN latest_interaction ON latest_interaction.user_id = users.id
+		WHERE users.id != ?
+		ORDER BY latest_interaction.last_interaction DESC, users.nickname`,
+		currentUserID, currentUserID, currentUserID, currentUserID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var conversations []Conversation
+	for rows.Next() {
+		var conversation Conversation
+		if err := rows.Scan(
+			&conversation.UserID,
+			&conversation.Nickname,
+			&conversation.LastMessage,
+			&conversation.LastInteraction,
+		); err != nil {
+			return nil, err
+		}
+		conversations = append(conversations, conversation)
+	}
+	return conversations, rows.Err()
+}
+
 func (r *Repository) InsertMessage(tx *sql.Tx, message Message) (Message, error) {
 	result, err := tx.Exec(`
 		INSERT INTO messages (sender_id, receiver_id, content, timestamp)

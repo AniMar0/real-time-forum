@@ -275,106 +275,50 @@ func (s *Server) receiveMessages(client *Client) {
 				Content:   storedMessage.Content,
 				Timestamp: storedMessage.Timestamp,
 				Type:      "chat_message",
-			})
+			}, storedMessage.ReceiverID, storedMessage.SenderID)
 		}
 
 	}
 }
 
-func (s *Server) sendMessageToRecipient(msg Message) {
-	for _, recipient := range s.hub.ClientsForUser(msg.To) {
+func (s *Server) sendMessageToRecipient(msg Message, recipientID, senderID int64) {
+	for _, recipient := range s.hub.ClientsForUser(recipientID) {
 		recipient.Enqueue(msg)
 	}
-	for _, senderClient := range s.hub.ClientsForUser(msg.From) {
+	for _, senderClient := range s.hub.ClientsForUser(senderID) {
 		senderClient.Enqueue(msg)
 	}
 }
 
 func (s *Server) sendTypingIndicator(msg Message) {
-	for _, recipient := range s.hub.ClientsForUser(msg.To) {
+	recipientID, err := s.chat.UserIDByNickname(msg.To)
+	if err != nil {
+		return
+	}
+	for _, recipient := range s.hub.ClientsForUser(recipientID) {
 		recipient.Enqueue(msg)
 	}
 }
 
-// Modified broadcastUserList function
-func (S *Server) broadcastUserList(currentUser string) {
-	query := `
-	WITH 
-	cte_latest_interaction AS (
-	    SELECT
-	        CASE 
-	            WHEN sender_id = (SELECT id FROM users WHERE nickname = ?) THEN receiver_id
-	            ELSE sender_id
-	        END AS user_id,
-	        MAX(timestamp) AS lastInteraction,
-	        content
-	    FROM messages
-	    WHERE sender_id = (SELECT id FROM users WHERE nickname = ?)
-	       OR receiver_id = (SELECT id FROM users WHERE nickname = ?)
-	    GROUP BY user_id
-	),
-	cte_ordered_users AS (
-	    SELECT 
-	        i.content, 
-	        COALESCE(i.lastInteraction, 0) AS lastInteraction,
-	        u.id, 
-	        u.nickname
-	    FROM users u 
-	    LEFT JOIN cte_latest_interaction i 
-	        ON i.user_id = u.id
-	    WHERE u.nickname != ?
-	)
-	SELECT 
-	    u.id, 
-	    u.nickname, 
-	    COALESCE(u.content, ""), 
-	    u.lastInteraction
-	FROM cte_ordered_users u
-	ORDER BY u.lastInteraction DESC, u.nickname;
-	`
-
-	rows, err := S.db.Query(query,
-		currentUser,
-		currentUser,
-		currentUser,
-		currentUser,
-	)
+func (S *Server) broadcastUserList(currentUserID int64) {
+	conversations, err := S.chat.ListConversations(currentUserID)
 	if err != nil {
 		return
 	}
-	defer rows.Close()
 
-	var results []UserConversation
-	for rows.Next() {
-		var uc UserConversation
-		if err := rows.Scan(&uc.ID, &uc.Nickname, &uc.LastMessage, &uc.LastInteraction); err != nil {
-			continue
+	users := make([]UsersListe, 0, len(conversations))
+	for _, conversation := range conversations {
+		status := "offline"
+		if S.hub.IsOnline(conversation.UserID) {
+			status = "online"
 		}
-		results = append(results, uc)
+		users = append(users, UsersListe{Nickname: conversation.Nickname, Status: status})
 	}
 
-	if err := rows.Err(); err != nil {
-		return
-	}
-
-	var usernames []string
-	for _, r := range results {
-		usernames = append(usernames, r.Nickname)
-	}
-	var Users []UsersListe
-	for _, user := range usernames {
-		if S.hub.IsOnline(user) {
-			Users = append(Users, UsersListe{Nickname: user, Status: "online"})
-		} else {
-			Users = append(Users, UsersListe{Nickname: user, Status: "offline"})
-		}
-	}
-
-	// Send to all client sessions
-	for _, client := range S.hub.ClientsForUser(currentUser) {
+	for _, client := range S.hub.ClientsForUser(currentUserID) {
 		client.Enqueue(map[string]interface{}{
 			"type":  "user_list",
-			"users": Users,
+			"users": users,
 		})
 	}
 }
@@ -391,8 +335,8 @@ func (s *Server) removeClient(client *Client) {
 }
 
 func (S *Server) broadcastUserStatusChange() {
-	for _, username := range S.hub.Usernames() {
-		S.broadcastUserList(username)
+	for _, userID := range S.hub.UserIDs() {
+		S.broadcastUserList(userID)
 	}
 }
 
