@@ -3,7 +3,6 @@ package chat
 import (
 	"database/sql"
 	"errors"
-	"html"
 	"strings"
 	"time"
 
@@ -51,7 +50,7 @@ func (s *Service) SendMessage(senderID int64, receiver, content string) (Message
 		ReceiverID: receiverID,
 		From:       sender,
 		To:         receiver,
-		Content:    html.EscapeString(content),
+		Content:    content,
 		Timestamp:  time.Now().Format(time.RFC3339),
 	})
 	if err != nil {

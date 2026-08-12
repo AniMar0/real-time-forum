@@ -47,22 +47,26 @@ func TestChatServicePersistsMessageAndUnreadNotification(t *testing.T) {
 		chat.NewRepository(db),
 		notification.NewRepository(db),
 	)
-	message, err := service.SendMessage(1, "bob", "hello")
+	message, err := service.SendMessage(1, "bob", "<b>hello</b>")
 	if err != nil {
 		t.Fatalf("SendMessage failed: %v", err)
 	}
-	if message.ID == 0 || message.From != "alice" || message.To != "bob" {
+	if message.ID == 0 || message.From != "alice" || message.To != "bob" || message.Content != "<b>hello</b>" {
 		t.Fatalf("unexpected message: %#v", message)
 	}
 
 	var storedCount, unread int
+	var storedContent string
 	if err := db.QueryRow("SELECT COUNT(*) FROM messages WHERE sender_id = 1 AND receiver_id = 2").Scan(&storedCount); err != nil {
 		t.Fatal(err)
 	}
 	if err := db.QueryRow("SELECT unread_messages FROM notifications WHERE receiver_id = 2 AND sender_id = 1").Scan(&unread); err != nil {
 		t.Fatal(err)
 	}
-	if storedCount != 1 || unread != 1 {
-		t.Fatalf("got storedCount=%d unread=%d, want 1 and 1", storedCount, unread)
+	if err := db.QueryRow("SELECT content FROM messages WHERE sender_id = 1 AND receiver_id = 2").Scan(&storedContent); err != nil {
+		t.Fatal(err)
+	}
+	if storedCount != 1 || unread != 1 || storedContent != "<b>hello</b>" {
+		t.Fatalf("got storedCount=%d unread=%d content=%q, want 1, 1, raw content", storedCount, unread, storedContent)
 	}
 }

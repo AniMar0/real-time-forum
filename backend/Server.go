@@ -97,7 +97,7 @@ func (S *Server) RunWithConfig(config Config) {
 		IdleTimeout:       60 * time.Second,
 	}
 
-	fmt.Println("Server running on " + config.HTTPAddress)
+	log.Println("Server running on " + config.HTTPAddress)
 	err = S.httpServer.ListenAndServe()
 	if err != nil && err != http.ErrServerClosed {
 		log.Println("Server error:", err)
@@ -207,7 +207,7 @@ func (S *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	conn, err := S.upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		fmt.Println("WebSocket Upgrade Error:", err)
+		log.Println("WebSocket upgrade error:", err)
 		return
 	}
 
@@ -222,7 +222,7 @@ func (S *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	S.hub.Register(client)
 
-	fmt.Println(identity.Nickname, "connected to WebSocket")
+	log.Printf("user %s connected to WebSocket", identity.Nickname)
 
 	S.broadcastUserStatusChange()
 
@@ -244,41 +244,48 @@ func (s *Server) receiveMessages(client *Client) {
 		var msg Message
 		err := client.Conn.ReadJSON(&msg)
 		if err != nil {
-			fmt.Println("WebSocket Read Error:", err)
+			log.Printf("WebSocket read error: %v", err)
 			break
 		}
 
-		if msg.Type == "typing_indicator" {
-			msg.From = client.Username
-			s.sendTypingIndicator(msg)
-
-		} else if msg.Type == "chat_message" {
-			if strings.TrimSpace(msg.Content) == "" {
-				fmt.Println("you cant't send an empty message")
-				continue
-			}
-
-			msg.From = client.Username
-			if s.chatService == nil {
-				continue
-			}
-			storedMessage, err := s.chatService.SendMessage(client.UserID, msg.To, msg.Content)
-			if err != nil {
-				fmt.Println("Failed to persist WebSocket message:", err)
-				continue
-			}
-			s.broadcastUserStatusChange()
-			s.sendMessageToRecipient(Message{
-				ID:        storedMessage.ID,
-				From:      storedMessage.From,
-				To:        storedMessage.To,
-				Content:   storedMessage.Content,
-				Timestamp: storedMessage.Timestamp,
-				Type:      "chat_message",
-			}, storedMessage.ReceiverID, storedMessage.SenderID)
-		}
-
+		s.handleWebSocketMessage(client, msg)
 	}
+}
+
+func (s *Server) handleWebSocketMessage(client *Client, msg Message) {
+	switch msg.Type {
+	case "typing_indicator":
+		msg.From = client.Username
+		s.sendTypingIndicator(msg)
+	case "chat_message":
+		s.handleChatMessage(client, msg)
+	}
+}
+
+func (s *Server) handleChatMessage(client *Client, msg Message) {
+	if strings.TrimSpace(msg.Content) == "" {
+		log.Printf("ignored empty chat message from user %d", client.UserID)
+		return
+	}
+	if s.chatService == nil {
+		log.Printf("chat service is not initialized")
+		return
+	}
+
+	storedMessage, err := s.chatService.SendMessage(client.UserID, msg.To, msg.Content)
+	if err != nil {
+		log.Printf("failed to persist WebSocket message: %v", err)
+		return
+	}
+	s.broadcastUserStatusChange()
+	s.sendMessageToRecipient(Message{
+		ID:        storedMessage.ID,
+		From:      storedMessage.From,
+		To:        storedMessage.To,
+		Content:   storedMessage.Content,
+		Timestamp: storedMessage.Timestamp,
+		Type:      "chat_message",
+	}, storedMessage.ReceiverID, storedMessage.SenderID)
 }
 
 func (s *Server) sendMessageToRecipient(msg Message, recipientID, senderID int64) {
@@ -326,7 +333,7 @@ func (S *Server) broadcastUserList(currentUserID int64) {
 func (s *Server) removeClient(client *Client) {
 	s.hub.Unregister(client)
 
-	fmt.Println(client.Username, "disconnected")
+	log.Printf("user %s disconnected", client.Username)
 
 	go func() {
 		time.Sleep(100 * time.Millisecond)
@@ -344,7 +351,7 @@ func StartWriter(c *Client) {
 	// Issue #8: Add panic recovery and proper error handling
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Println("Writer panic recovered:", r)
+			log.Printf("writer panic recovered: %v", r)
 		}
 	}()
 

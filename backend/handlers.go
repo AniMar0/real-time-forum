@@ -449,7 +449,7 @@ func (s *Server) GetMessagesHandler(w http.ResponseWriter, r *http.Request) {
 			ID:        storedMessage.ID,
 			From:      storedMessage.From,
 			To:        storedMessage.To,
-			Content:   html.UnescapeString(storedMessage.Content),
+			Content:   storedMessage.Content,
 			Timestamp: storedMessage.Timestamp,
 		}}, messages...)
 	}
