@@ -2,6 +2,8 @@
 
 A small forum application with posts, comments, real-time direct messaging over WebSocket, and unread notifications.
 
+See [Architecture](docs/architecture.md) for the system overview, package boundaries, dependency direction, data model, authentication flow, WebSocket design, and message transaction flow.
+
 ## Requirements
 
 - Go 1.25 or later
@@ -100,6 +102,7 @@ go run .
 │   ├── notification/  # Unread notifications
 │   └── migrations/    # SQLite migrations
 ├── static/            # HTML, CSS, and frontend JavaScript
+├── docs/              # Architecture and project documentation
 ├── database/          # Local SQLite database
 ├── Dockerfile
 └── docker-compose.yml
@@ -113,6 +116,8 @@ go test -race ./...
 go vet ./...
 go build .
 ```
+
+The same checks run in `.github/workflows/ci.yml` on pushes and pull requests.
 
 ## Database notes
 
