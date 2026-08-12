@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"html"
 	"log"
 	"net/http"
 	"strings"
@@ -12,7 +11,6 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/twinj/uuid"
-	"golang.org/x/crypto/bcrypt"
 	"real-time-forum/backend/account"
 	"real-time-forum/backend/chat"
 	"real-time-forum/backend/forum"
@@ -26,6 +24,7 @@ type Server struct {
 	config        Config
 	httpServer    *http.Server
 	sessions      *account.SessionRepository
+	users         *account.UserRepository
 	forum         *forum.Repository
 	chat          *chat.Repository
 	chatService   *chat.Service
@@ -76,6 +75,7 @@ func (S *Server) RunWithConfig(config Config) {
 	}
 	defer S.db.Close()
 	S.sessions = account.NewSessionRepository(S.db)
+	S.users = account.NewUserRepository(S.db)
 	S.forum = forum.NewRepository(S.db)
 	S.chat = chat.NewRepository(S.db)
 	S.notifications = notification.NewRepository(S.db)
@@ -133,32 +133,6 @@ func (S *Server) initRoutes() {
 	S.Mux.Handle("/messages", S.SessionMiddleware(http.HandlerFunc(S.GetMessagesHandler)))
 
 	S.Mux.Handle("/logout", S.SessionMiddleware(http.HandlerFunc(S.LogoutHandler)))
-}
-
-func (S *Server) UserFound(user User) (error, bool) {
-	var exists int
-	err := S.db.QueryRow("SELECT COUNT(*) FROM users WHERE email = ? OR nickname = ?", user.Email, user.Nickname).Scan(&exists)
-	if err != nil {
-		return err, false
-	}
-	if exists > 0 {
-		return nil, true
-	}
-	return nil, false
-}
-
-func (S *Server) AddUser(user User) string {
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
-	if err != nil {
-		return "hash Password Error"
-	}
-	query := `INSERT INTO users (nickname, first_name, last_name, email, password, age, gender)
-		VALUES (?, ?, ?, ?, ?, ?, ?)`
-	_, err = S.db.Exec(query, html.EscapeString(user.Nickname), html.EscapeString(user.FirstName), html.EscapeString(user.LastName), html.EscapeString(user.Email), string(hashedPassword), user.Age, user.Gender)
-	if err != nil {
-		return error.Error(err)
-	}
-	return ""
 }
 
 func (S *Server) SessionMiddleware(next http.Handler) http.Handler {
@@ -221,23 +195,6 @@ func (S *Server) MakeToken(Writer http.ResponseWriter, username string) {
 		SameSite: http.SameSiteLaxMode,
 		Secure:   S.config.SecureCookies(),
 	})
-}
-
-func (S *Server) GetHashedPasswordFromDB(identifier string) (string, string, error) {
-	var hashedPassword, nickname string
-
-	// Issue #3: Fix SQL Scan order - must match SELECT order
-	err := S.db.QueryRow(`
-		SELECT password, nickname FROM users 
-		WHERE nickname = ? OR email = ?
-	`, identifier, identifier).Scan(&hashedPassword, &nickname)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return "", "", fmt.Errorf("this user does not exist")
-		}
-		return "", "", err
-	}
-	return hashedPassword, nickname, nil
 }
 
 // Modified HandleWebSocket function - broadcasts status changes when user connects

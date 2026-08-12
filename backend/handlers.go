@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"real-time-forum/backend/account"
 	"real-time-forum/backend/forum"
 )
 
@@ -122,7 +123,11 @@ func (S *Server) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err, found := S.UserFound(user)
+	if S.users == nil {
+		http.Error(w, "Account repository is not initialized", http.StatusInternalServerError)
+		return
+	}
+	found, err := S.users.Exists(user.Email, user.Nickname)
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
@@ -132,9 +137,12 @@ func (S *Server) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	Err := S.AddUser(user)
-	if Err != "" {
-		renderErrorPage(w, r, Err, http.StatusInternalServerError)
+	err = S.users.Create(account.UserRecord{
+		Nickname: user.Nickname, FirstName: user.FirstName, LastName: user.LastName,
+		Email: user.Email, Password: user.Password, Age: user.Age, Gender: user.Gender,
+	})
+	if err != nil {
+		renderErrorPage(w, r, "Unable to create account", http.StatusInternalServerError)
 		return
 	}
 }
@@ -156,7 +164,11 @@ func (S *Server) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		renderErrorPage(w, r, "Bad Request", http.StatusBadRequest)
 		return
 	}
-	hashedPassword, nickname, err := S.GetHashedPasswordFromDB(user.Identifier)
+	if S.users == nil {
+		http.Error(w, "Account repository is not initialized", http.StatusInternalServerError)
+		return
+	}
+	hashedPassword, nickname, err := S.users.PasswordByIdentifier(user.Identifier)
 	if err != nil {
 		renderErrorPage(w, r, "User not found", http.StatusNotFound)
 		return
