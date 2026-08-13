@@ -107,7 +107,7 @@ go run .
 ├── Dockerfile
 └── docker-compose.yml
 ```
-
+ 
 ## Tests and checks
 
 ```bash
