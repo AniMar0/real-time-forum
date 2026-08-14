@@ -5,7 +5,7 @@ This document describes the current architecture of the Real-time Forum after th
 ## System overview
 
 The application is a small Go HTTP server with a static JavaScript frontend, SQLite persistence, and a WebSocket endpoint for real-time chat and presence updates.
-
+ 
 ```mermaid
 flowchart LR
     Browser[Browser frontend\nstatic/*.js + style.css]
