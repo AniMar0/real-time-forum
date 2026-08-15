@@ -265,7 +265,7 @@ erDiagram
 ```
 
 ## Important boundaries
-
+ 
 - HTTP handlers authenticate and validate transport input, then call a repository or service.
 - `account.Identity` is used for authenticated user context.
 - `chat.Service` is the only business entry point for sending a message.
