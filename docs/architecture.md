@@ -263,7 +263,7 @@ erDiagram
         int unread_messages
     }
 ```
-
+ 
 ## Important boundaries
  
 - HTTP handlers authenticate and validate transport input, then call a repository or service.
